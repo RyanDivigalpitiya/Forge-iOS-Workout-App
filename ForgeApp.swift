@@ -12,6 +12,7 @@ struct ForgeApp: App {
     var body: some Scene {
         WindowGroup {
             CompletedWorkoutsView()
+                .environmentObject(CompletedWorkoutsViewModel())
                 .environment(\.colorScheme, .dark)
         }
     }

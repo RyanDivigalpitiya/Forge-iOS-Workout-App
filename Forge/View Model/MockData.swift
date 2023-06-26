@@ -57,23 +57,100 @@ func createMockWorkoutPlans(workoutCount: Int, exercisesPerWorkout: Int) -> [Wor
 
 // function to create specified number of mock completed workout plan objects and return them in a list.
 // This function is used for Preview Structs + before loading/saving persistant storage is implemented.
-func createMockCompletedWorkouts(workoutCount: Int, exercisesPerWorkout: Int) -> [CompletedWorkouts] {
+func createMockCompletedWorkouts(workoutCount: Int, exercisesPerWorkout: Int) -> [CompletedWorkout] {
     // array to hold the completed workouts
-    var completedWorkouts = [CompletedWorkouts]()
+    var completedWorkouts = [CompletedWorkout]()
 
     // create the specified number of workout plans
     let workoutPlans = createMockWorkoutPlans(workoutCount: workoutCount, exercisesPerWorkout: exercisesPerWorkout)
 
     // loop through each workout plan and create a completed workout for it
-    for workoutPlan in workoutPlans {
-        // generate a random date from the past 30 days
-        let randomDaysAgo = Int.random(in: 0..<30)
-        let randomDate = Calendar.current.date(byAdding: .day, value: -randomDaysAgo, to: Date())!
+    for i in 0..<workoutPlans.count {
+        // generate a date from the past "i" days
+        let daysAgo = i
+        let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
 
-        // create a completed workout with the workout plan and random date
-        let completedWorkout = CompletedWorkouts(id: UUID(), date: randomDate, workout: workoutPlan)
+        // create a completed workout with the workout plan and calculated date
+        let completedWorkout = CompletedWorkout(id: UUID(), date: date, workout: workoutPlans[i])
         completedWorkouts.append(completedWorkout)
     }
 
     return completedWorkouts
 }
+
+
+
+
+
+// Mock data is used for Preview Structs to populate UI
+// This file contains only mock data used for this purpose
+
+// Populate view with placeholder data for now
+let exercise1 = Exercise(id: UUID(), name: "Bicep Curls", weight: 50.0, reps: 10, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise2 = Exercise(id: UUID(), name: "Leg Press", weight: 60.0, reps: 8, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise3 = Exercise(id: UUID(), name: "Shoulder Flies", weight: 70.0, reps: 6, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise4 = Exercise(id: UUID(), name: "Calf Raises", weight: 30.0, reps: 8, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise5 = Exercise(id: UUID(), name: "Bench Press", weight: 90.0, reps: 7, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise6 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise7 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise8 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise9 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise10 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise11 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise12 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise13 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise14 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise15 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise16 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise17 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+let exercise18 = Exercise(id: UUID(), name: "Tricep Extensions", weight: 110.0, reps: 12, sets: 3, setCompletions: [false, false, false], completed: false)
+
+let mockExercises = [
+                        exercise1,
+                        exercise2,
+                        exercise3,
+                        exercise4,
+                        exercise5,
+                        exercise6,
+                        exercise7,
+                        exercise8,
+                        exercise9,
+                        exercise10,
+                        exercise11,
+                        exercise12,
+                        exercise13,
+                        exercise14,
+                        exercise15,
+                        exercise16,
+                        exercise17,
+                        exercise18,
+                    ]
+
+// Placeholder data for WorkoutPlan
+let workoutPlan1 = WorkoutPlan(id: UUID(), name: "Arm Day", exercises: [exercise1, exercise2])
+let workoutPlan2 = WorkoutPlan(id: UUID(), name: "Leg Day", exercises: [exercise2, exercise3])
+let workoutPlan3 = WorkoutPlan(id: UUID(), name: "Shoulder Day", exercises: [exercise1, exercise3])
+let workoutPlan4 = WorkoutPlan(id: UUID(), name: "Biceps Day", exercises: [exercise1, exercise3])
+let workoutPlan5 = WorkoutPlan(id: UUID(), name: "Calves Day", exercises: [exercise1, exercise3])
+let workoutPlan6 = WorkoutPlan(id: UUID(), name: "Abs / Obliques", exercises: [exercise1, exercise3])
+let workoutPlan7 = WorkoutPlan(id: UUID(), name: "Glutes Day", exercises: [exercise1, exercise3])
+
+let mockWorkouts = [workoutPlan1,workoutPlan2,workoutPlan3,workoutPlan4,workoutPlan5]
+
+let date1 = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+let date2 = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+let date3 = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+let date4 = Calendar.current.date(byAdding: .day, value: -4, to: Date())!
+let date5 = Calendar.current.date(byAdding: .day, value: -5, to: Date())!
+let date6 = Calendar.current.date(byAdding: .day, value: -5, to: Date())!
+
+// Placeholder data for PastWorkout
+let pastWorkout1 = CompletedWorkout(id: UUID(), date: Date(), workout: workoutPlan1)
+let pastWorkout2 = CompletedWorkout(id: UUID(), date: date1,  workout: workoutPlan2)
+let pastWorkout3 = CompletedWorkout(id: UUID(), date: date2,  workout: workoutPlan3)
+let pastWorkout4 = CompletedWorkout(id: UUID(), date: date3,  workout: workoutPlan4)
+let pastWorkout5 = CompletedWorkout(id: UUID(), date: date4,  workout: workoutPlan5)
+let pastWorkout6 = CompletedWorkout(id: UUID(), date: date5,  workout: workoutPlan6)
+let pastWorkout7 = CompletedWorkout(id: UUID(), date: date6,  workout: workoutPlan7)
+
+let mockCompletedWorkouts = [pastWorkout1,pastWorkout2,pastWorkout3,pastWorkout4,pastWorkout5,pastWorkout6, pastWorkout7]

@@ -76,7 +76,7 @@ class WorkoutPlan: Identifiable, Equatable, Encodable, Decodable {
     }
 }
 
-class CompletedWorkouts: Identifiable, Equatable, Encodable, Decodable {
+class CompletedWorkout: Identifiable, Equatable, Encodable, Decodable {
     var id: UUID
     var date: Date
     var workout: WorkoutPlan
@@ -142,9 +142,9 @@ func createMockWorkoutPlans(workoutCount: Int, exercisesPerWorkout: Int) -> [Wor
     return workoutPlans
 }
 
-func createMockCompletedWorkouts(workoutCount: Int, exercisesPerWorkout: Int) -> [CompletedWorkouts] {
+func createMockCompletedWorkouts(workoutCount: Int, exercisesPerWorkout: Int) -> [CompletedWorkout] {
     // array to hold the completed workouts
-    var completedWorkouts = [CompletedWorkouts]()
+    var completedWorkouts = [CompletedWorkout]()
 
     // create the specified number of workout plans
     let workoutPlans = createMockWorkoutPlans(workoutCount: workoutCount, exercisesPerWorkout: exercisesPerWorkout)
@@ -206,8 +206,7 @@ if testingPlans {
 
 
 // testing CompletedWorkouts
-testingCompletedWorkouts = false
-
+let testingCompletedWorkouts = false
 if testingCompletedWorkouts {
     let completedWorkouts = createMockCompletedWorkouts(workoutCount: 2, exercisesPerWorkout: 2)
 
@@ -230,3 +229,4 @@ if testingCompletedWorkouts {
         }
     }
 }
+

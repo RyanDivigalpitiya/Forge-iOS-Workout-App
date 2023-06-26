@@ -11,12 +11,13 @@
 		F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F8506C2A4920AD0093EE01 /* Assets.xcassets */; };
 		F1F850712A4920AD0093EE01 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F850702A4920AD0093EE01 /* Preview Assets.xcassets */; };
 		F1F8507D2A49249C0093EE01 /* CompletedWorkoutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */; };
-		F1F8507F2A4924D20093EE01 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */; };
 		F1F850812A4925470093EE01 /* Exercise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850802A4925470093EE01 /* Exercise.swift */; };
 		F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */; };
-		F1F850852A4928530093EE01 /* CompletedWorkouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850842A4928530093EE01 /* CompletedWorkouts.swift */; };
 		F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850862A4929390093EE01 /* GlobalSettings.swift */; };
 		F1F850892A4929E10093EE01 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850882A4929E10093EE01 /* MockData.swift */; };
+		F1F8508C2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */; };
+		F1F8508E2A493C460093EE01 /* CompletedWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */; };
+		F1F850902A49400C0093EE01 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,10 +30,12 @@
 		F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		F1F850802A4925470093EE01 /* Exercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercise.swift; sourceTree = "<group>"; };
 		F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlan.swift; sourceTree = "<group>"; };
-		F1F850842A4928530093EE01 /* CompletedWorkouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkouts.swift; sourceTree = "<group>"; };
 		F1F850862A4929390093EE01 /* GlobalSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSettings.swift; sourceTree = "<group>"; };
 		F1F850882A4929E10093EE01 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		F1F8508A2A4936250093EE01 /* TestingDataModel.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; name = TestingDataModel.playground; path = Forge/Testing/TestingDataModel.playground; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkoutsViewModel.swift; sourceTree = "<group>"; };
+		F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkout.swift; sourceTree = "<group>"; };
+		F1F8508F2A493E460093EE01 /* TestingViewModel.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = TestingViewModel.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,8 +99,10 @@
 		F1F8507A2A4924880093EE01 /* View Model */ = {
 			isa = PBXGroup;
 			children = (
-				F1F850862A4929390093EE01 /* GlobalSettings.swift */,
 				F1F850882A4929E10093EE01 /* MockData.swift */,
+				F1F850862A4929390093EE01 /* GlobalSettings.swift */,
+				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
+				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
 			sourceTree = "<group>";
@@ -107,7 +112,7 @@
 			children = (
 				F1F850802A4925470093EE01 /* Exercise.swift */,
 				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
-				F1F850842A4928530093EE01 /* CompletedWorkouts.swift */,
+				F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */,
 				F1F8508A2A4936250093EE01 /* TestingDataModel.playground */,
 			);
 			path = "Data Model";
@@ -171,7 +176,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1F8507F2A4924D20093EE01 /* Launch Screen.storyboard in Resources */,
+				F1F850902A49400C0093EE01 /* Launch Screen.storyboard in Resources */,
 				F1F850712A4920AD0093EE01 /* Preview Assets.xcassets in Resources */,
 				F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */,
 			);
@@ -185,10 +190,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				F1F8507D2A49249C0093EE01 /* CompletedWorkoutsView.swift in Sources */,
+				F1F8508E2A493C460093EE01 /* CompletedWorkout.swift in Sources */,
 				F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */,
 				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
 				F1F850812A4925470093EE01 /* Exercise.swift in Sources */,
-				F1F850852A4928530093EE01 /* CompletedWorkouts.swift in Sources */,
+				F1F8508C2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift in Sources */,
 				F1F850892A4929E10093EE01 /* MockData.swift in Sources */,
 				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
 			);
@@ -327,6 +333,7 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -369,6 +376,7 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
