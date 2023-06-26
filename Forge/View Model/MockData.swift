@@ -1,7 +1,7 @@
 import Foundation
 
-// Mock data is used for Preview Structs to populate UI
-// This file contains only mock data used for this purpose
+// Mock data is used for Preview Structs to populate UI + before loading/saving persistant storage is implemented.
+// This file contains only mock data used for these purposes and will be deleted before app is shipped.
 
 // function to create specified number of mock exercise objects and return them in a list.
 // This function is used for Preview Structs + before loading/saving persistant storage is implemented.
@@ -44,6 +44,7 @@ func createMockWorkoutPlans(workoutCount: Int, exercisesPerWorkout: Int) -> [Wor
         let randomIndex = Int.random(in: 0..<workoutNames.count)
 
         // generate exercises for this workout
+//        let exercises = createMockExercises(count: exercisesPerWorkout)
         let exercises = createMockExercises(count: exercisesPerWorkout)
 
         // create workout plan with random name and generated exercises
@@ -52,4 +53,27 @@ func createMockWorkoutPlans(workoutCount: Int, exercisesPerWorkout: Int) -> [Wor
     }
 
     return workoutPlans
+}
+
+// function to create specified number of mock completed workout plan objects and return them in a list.
+// This function is used for Preview Structs + before loading/saving persistant storage is implemented.
+func createMockCompletedWorkouts(workoutCount: Int, exercisesPerWorkout: Int) -> [CompletedWorkouts] {
+    // array to hold the completed workouts
+    var completedWorkouts = [CompletedWorkouts]()
+
+    // create the specified number of workout plans
+    let workoutPlans = createMockWorkoutPlans(workoutCount: workoutCount, exercisesPerWorkout: exercisesPerWorkout)
+
+    // loop through each workout plan and create a completed workout for it
+    for workoutPlan in workoutPlans {
+        // generate a random date from the past 30 days
+        let randomDaysAgo = Int.random(in: 0..<30)
+        let randomDate = Calendar.current.date(byAdding: .day, value: -randomDaysAgo, to: Date())!
+
+        // create a completed workout with the workout plan and random date
+        let completedWorkout = CompletedWorkouts(id: UUID(), date: randomDate, workout: workoutPlan)
+        completedWorkouts.append(completedWorkout)
+    }
+
+    return completedWorkouts
 }

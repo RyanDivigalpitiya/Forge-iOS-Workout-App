@@ -32,6 +32,7 @@
 		F1F850842A4928530093EE01 /* CompletedWorkouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkouts.swift; sourceTree = "<group>"; };
 		F1F850862A4929390093EE01 /* GlobalSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSettings.swift; sourceTree = "<group>"; };
 		F1F850882A4929E10093EE01 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		F1F8508A2A4936250093EE01 /* TestingDataModel.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; name = TestingDataModel.playground; path = Forge/Testing/TestingDataModel.playground; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +108,7 @@
 				F1F850802A4925470093EE01 /* Exercise.swift */,
 				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
 				F1F850842A4928530093EE01 /* CompletedWorkouts.swift */,
+				F1F8508A2A4936250093EE01 /* TestingDataModel.playground */,
 			);
 			path = "Data Model";
 			sourceTree = "<group>";
