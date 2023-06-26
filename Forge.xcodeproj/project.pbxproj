@@ -18,6 +18,8 @@
 		F1F8508C2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */; };
 		F1F8508E2A493C460093EE01 /* CompletedWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */; };
 		F1F850902A49400C0093EE01 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */; };
+		F1F850922A494DD00093EE01 /* SelectPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850912A494DD00093EE01 /* SelectPlanView.swift */; };
+		F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850932A494DFD0093EE01 /* PlanViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +38,8 @@
 		F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkoutsViewModel.swift; sourceTree = "<group>"; };
 		F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkout.swift; sourceTree = "<group>"; };
 		F1F8508F2A493E460093EE01 /* TestingViewModel.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = TestingViewModel.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		F1F850912A494DD00093EE01 /* SelectPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectPlanView.swift; sourceTree = "<group>"; };
+		F1F850932A494DFD0093EE01 /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */,
+				F1F850912A494DD00093EE01 /* SelectPlanView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -102,6 +107,7 @@
 				F1F850882A4929E10093EE01 /* MockData.swift */,
 				F1F850862A4929390093EE01 /* GlobalSettings.swift */,
 				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
+				F1F850932A494DFD0093EE01 /* PlanViewModel.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -193,10 +199,12 @@
 				F1F8508E2A493C460093EE01 /* CompletedWorkout.swift in Sources */,
 				F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */,
 				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
+				F1F850922A494DD00093EE01 /* SelectPlanView.swift in Sources */,
 				F1F850812A4925470093EE01 /* Exercise.swift in Sources */,
 				F1F8508C2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift in Sources */,
 				F1F850892A4929E10093EE01 /* MockData.swift in Sources */,
 				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
+				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

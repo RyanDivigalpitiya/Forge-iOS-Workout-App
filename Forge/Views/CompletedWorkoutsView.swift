@@ -10,23 +10,43 @@ struct CompletedWorkoutsView: View {
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
     var body: some View {
-        List {
-            ForEach(viewModel.completedWorkouts) { completedWorkout in
-                VStack(alignment: .leading) {
-                    Text(viewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(.systemGray3))
-                    
-                    Text(completedWorkout.workout.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(fgColor)
+        NavigationView {
+            List {
+                ForEach(viewModel.completedWorkouts) { completedWorkout in
+                    VStack(alignment: .leading) {
+                        Text(viewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color(.systemGray3))
+                        
+                        Text(completedWorkout.workout.name)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(fgColor)
+                    }
+                    .padding(.vertical, 2)
                 }
-                .padding(.vertical, 2)
-                
+            }
+            .navigationBarTitle(Text("History"))
+            .navigationBarTitleTextColor(Color(.systemGray3))
+            .toolbar {
+                ToolbarItemGroup(placement: .bottomBar){
+                    NavigationLink(destination: SelectPlanView()){
+                        HStack {
+                            Image(systemName: "figure.run")
+                                .resizable()
+                                .frame(width: 24, height: 24)
+                                .padding(.trailing, 3)
+                            Text("Start Workout")
+                        }
+                    }
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(fgColor)
+                }
             }
         }
+        .accentColor(fgColor)
     }
 }
 
@@ -49,6 +69,7 @@ struct CompletedWorkoutsView_Previews: PreviewProvider {
     static var previews: some View {
         CompletedWorkoutsView()
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+            .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
             .preferredColorScheme(.dark)
     }
 }
