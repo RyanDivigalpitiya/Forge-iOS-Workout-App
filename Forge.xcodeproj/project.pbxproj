@@ -8,18 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850682A4920AB0093EE01 /* ForgeApp.swift */; };
-		F1F8506B2A4920AB0093EE01 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8506A2A4920AB0093EE01 /* ContentView.swift */; };
 		F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F8506C2A4920AD0093EE01 /* Assets.xcassets */; };
 		F1F850712A4920AD0093EE01 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F850702A4920AD0093EE01 /* Preview Assets.xcassets */; };
+		F1F8507D2A49249C0093EE01 /* CompletedWorkoutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */; };
+		F1F8507F2A4924D20093EE01 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */; };
+		F1F850812A4925470093EE01 /* Exercise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850802A4925470093EE01 /* Exercise.swift */; };
+		F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */; };
+		F1F850852A4928530093EE01 /* CompletedWorkouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850842A4928530093EE01 /* CompletedWorkouts.swift */; };
+		F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850862A4929390093EE01 /* GlobalSettings.swift */; };
+		F1F850892A4929E10093EE01 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850882A4929E10093EE01 /* MockData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F1F850652A4920AB0093EE01 /* Forge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Forge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1F850682A4920AB0093EE01 /* ForgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeApp.swift; sourceTree = "<group>"; };
-		F1F8506A2A4920AB0093EE01 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F1F8506C2A4920AD0093EE01 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F1F8506E2A4920AD0093EE01 /* Forge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Forge.entitlements; sourceTree = "<group>"; };
 		F1F850702A4920AD0093EE01 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkoutsView.swift; sourceTree = "<group>"; };
+		F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		F1F850802A4925470093EE01 /* Exercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercise.swift; sourceTree = "<group>"; };
+		F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlan.swift; sourceTree = "<group>"; };
+		F1F850842A4928530093EE01 /* CompletedWorkouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletedWorkouts.swift; sourceTree = "<group>"; };
+		F1F850862A4929390093EE01 /* GlobalSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSettings.swift; sourceTree = "<group>"; };
+		F1F850882A4929E10093EE01 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +48,8 @@
 		F1F8505C2A4920AB0093EE01 = {
 			isa = PBXGroup;
 			children = (
+				F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */,
+				F1F850682A4920AB0093EE01 /* ForgeApp.swift */,
 				F1F850672A4920AB0093EE01 /* Forge */,
 				F1F850662A4920AB0093EE01 /* Products */,
 			);
@@ -52,8 +66,9 @@
 		F1F850672A4920AB0093EE01 /* Forge */ = {
 			isa = PBXGroup;
 			children = (
-				F1F850682A4920AB0093EE01 /* ForgeApp.swift */,
-				F1F8506A2A4920AB0093EE01 /* ContentView.swift */,
+				F1F8507B2A4924900093EE01 /* Data Model */,
+				F1F8507A2A4924880093EE01 /* View Model */,
+				F1F850792A4924810093EE01 /* Views */,
 				F1F8506C2A4920AD0093EE01 /* Assets.xcassets */,
 				F1F8506E2A4920AD0093EE01 /* Forge.entitlements */,
 				F1F8506F2A4920AD0093EE01 /* Preview Content */,
@@ -67,6 +82,33 @@
 				F1F850702A4920AD0093EE01 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		F1F850792A4924810093EE01 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F1F8507A2A4924880093EE01 /* View Model */ = {
+			isa = PBXGroup;
+			children = (
+				F1F850862A4929390093EE01 /* GlobalSettings.swift */,
+				F1F850882A4929E10093EE01 /* MockData.swift */,
+			);
+			path = "View Model";
+			sourceTree = "<group>";
+		};
+		F1F8507B2A4924900093EE01 /* Data Model */ = {
+			isa = PBXGroup;
+			children = (
+				F1F850802A4925470093EE01 /* Exercise.swift */,
+				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
+				F1F850842A4928530093EE01 /* CompletedWorkouts.swift */,
+			);
+			path = "Data Model";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -127,6 +169,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1F8507F2A4924D20093EE01 /* Launch Screen.storyboard in Resources */,
 				F1F850712A4920AD0093EE01 /* Preview Assets.xcassets in Resources */,
 				F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */,
 			);
@@ -139,8 +182,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1F8506B2A4920AB0093EE01 /* ContentView.swift in Sources */,
+				F1F8507D2A49249C0093EE01 /* CompletedWorkoutsView.swift in Sources */,
 				F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */,
+				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
+				F1F850812A4925470093EE01 /* Exercise.swift in Sources */,
+				F1F850852A4928530093EE01 /* CompletedWorkouts.swift in Sources */,
+				F1F850892A4929E10093EE01 /* MockData.swift in Sources */,
+				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,6 +317,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Forge;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -287,7 +337,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.Forge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -307,6 +359,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Forge;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -325,7 +379,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.Forge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

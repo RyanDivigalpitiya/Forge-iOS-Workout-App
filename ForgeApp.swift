@@ -11,7 +11,8 @@ import SwiftUI
 struct ForgeApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            CompletedWorkoutsView()
+                .environment(\.colorScheme, .dark)
         }
     }
 }
