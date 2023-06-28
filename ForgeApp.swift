@@ -12,8 +12,8 @@ struct ForgeApp: App {
     var body: some Scene {
         WindowGroup {
             CompletedWorkoutsView()
-                .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: createMockCompletedWorkouts(workoutCount: 2, exercisesPerWorkout: 2)))
-                .environmentObject(PlanViewModel(mockPlans: createMockWorkoutPlans(workoutCount: 2, exercisesPerWorkout: 2)))
+                .environmentObject(CompletedWorkoutsViewModel())
+                .environmentObject(PlanViewModel())
                 .environmentObject(ExerciseViewModel())
                 .environment(\.colorScheme, .dark)
         }

@@ -7,6 +7,7 @@ struct SelectPlanView: View {
     //-/////////////////////////////////////////////////
     
     @State private var planEditorIsPresented = false
+    @State private var reorderDeleteViewPresented = false
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -55,7 +56,10 @@ struct SelectPlanView: View {
                                     
                                     // EDIT BUTTON //////////////////
                                     Button( action: {
-                                        // pulls up PlanEditorView
+                                        viewModel.activePlan = viewModel.workoutPlans[index]
+                                        viewModel.activePlanMode = "EditMode"
+                                        viewModel.activePlanIndex = index
+                                        self.planEditorIsPresented = true
                                     }) {
                                         Image(systemName: "pencil.circle.fill")
                                             .resizable()
@@ -112,12 +116,13 @@ struct SelectPlanView: View {
                     
                     Spacer()
                     
-                    // EDIT BUTTON
+                    // REORDER BUTTON
                     Button(action: {
                         // pulls up reOrderDeleteView
+                        self.reorderDeleteViewPresented = true
                     }) {
                         HStack {
-                            Image(systemName: "pencil.circle.fill")
+                            Image(systemName: "arrow.up.arrow.down.circle.fill")
                                 .resizable()
                                 .frame(width: 15, height: 15)
                                 .padding(.trailing, 3)
@@ -126,6 +131,12 @@ struct SelectPlanView: View {
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
                     }
+                    .sheet(isPresented: $reorderDeleteViewPresented) {
+                        ReorderDeleteView(mode: "PlanMode")
+                            .environment(\.colorScheme, .dark)
+                    }
+                    
+                    
                     Spacer()
                 }
                 .padding()

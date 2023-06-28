@@ -11,6 +11,7 @@ struct PlanEditorView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
     @State private var exerciseEditorIsPresented = false
+    @State private var reorderDeleteViewPresented = false
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -153,10 +154,10 @@ struct PlanEditorView: View {
                     
                     Spacer()
                     
-                    // EDIT BUTTON
+                    // REORDER BUTTON
                     Button(action: {
                         isPlanNameFocused = false
-//                        reorderIsPresented = true
+                        reorderDeleteViewPresented = true
                     }) {
                         Image(systemName: "arrow.up.arrow.down.circle.fill")
                             .resizable()
@@ -167,13 +168,23 @@ struct PlanEditorView: View {
                     }
                     .foregroundColor(fgColor)
                     .padding(.bottom, 15)
+                    .sheet(isPresented: $reorderDeleteViewPresented) {
+                        ReorderDeleteView(mode: "ExerciseMode")
+                            .environment(\.colorScheme, .dark)
+                    }
                     
                     Spacer()
                     
                     // SAVE BUTTON ////////////////////
                     Button(action: {
-                        // add active plan to view model's plans
-                        planViewModel.workoutPlans.append(planViewModel.activePlan)
+                        if planViewModel.activePlanMode == "AddMode" {
+                            planViewModel.workoutPlans.append(planViewModel.activePlan)
+                            planViewModel.savePlans()
+                            self.presentationMode.wrappedValue.dismiss()
+                        } else { // "EditMode"
+                            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                            planViewModel.savePlans()
+                        }
                         self.presentationMode.wrappedValue.dismiss()
                     }) {
                         Image(systemName: "checkmark.circle.fill")
