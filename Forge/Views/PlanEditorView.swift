@@ -25,7 +25,7 @@ struct PlanEditorView: View {
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
-                    Spacer()
+                    Spacer() 
                 }
                 
                 TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)

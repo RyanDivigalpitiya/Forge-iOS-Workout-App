@@ -11,6 +11,16 @@ struct ExerciseEditorView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @FocusState private var isNameFieldFocused: Bool // used to assign focus on exercise name textfield on appear
     
+    // Data being inputted / edited:
+    @State var exerciseName: String = ""
+    @State var exerciseWeight: Float = 5.0
+    @State var exerciseReps: Int = 12
+    @State var exerciseSets: Int = 3
+    //
+    @State var previousWeight: Float = 0
+    @State var previousReps: Int = 0
+    @State var previousSets: Int = 0
+    
     // Textfield animation parameters when +/- buttons are pressed
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     @State private var weightScaleEffect: CGFloat = 1.0
@@ -50,9 +60,9 @@ struct ExerciseEditorView: View {
                     .padding(.top,15)
             }
             
-            TextField("Enter Name Here", text: $exerciseViewModel.activeExercise.name)
+            TextField("Enter Name Here", text: $exerciseName)
                 .frame(width: 300)
-//                .focused($isNameFieldFocused)
+                .focused($isNameFieldFocused)
                 .autocapitalization(.words)
                 .foregroundColor(.white)
                 .fontWeight(.bold)
@@ -63,57 +73,55 @@ struct ExerciseEditorView: View {
             
             VStack {
                 // WEIGHT FIELD
-                Stepper(value: $exerciseViewModel.activeExercise.weight, in: -999...999, step: 5) {
+                Stepper(value: $exerciseWeight, in: -999...999, step: 5) {
                     HStack {
-                        Text("\(Int(exerciseViewModel.activeExercise.weight))").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
+                        Text("\(Int(exerciseWeight))").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
                         Text("lbs").fontWeight(.bold).foregroundColor(fgColor).font(.system(size: fontSize))
                     }
                     .scaleEffect(weightScaleEffect)
                 }
                 .padding()
-                .onChange(of: exerciseViewModel.activeExercise.weight) { newValue in
-                    if newValue > exerciseViewModel.previousWeightValue {
+                .onChange(of: exerciseWeight) { newValue in
+                    if newValue > previousWeight {
                         incrementWeightAnimation()
-                    } else if newValue < exerciseViewModel.previousWeightValue {
+                    } else if newValue < previousWeight {
                         decrementWeightAnimation()
                     }
-                    exerciseViewModel.previousWeightValue = newValue
+                    previousWeight = newValue
                 }
                 
                 // REPS FIELD
-                Stepper(value: $exerciseViewModel.activeExercise.reps, in: 1...999) {
+                Stepper(value: $exerciseReps, in: 1...999) {
                     HStack {
-                        Text("\(exerciseViewModel.activeExercise.reps)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
+                        Text("\(exerciseReps)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
                         Text("reps").fontWeight(.bold) .foregroundColor(fgColor).font(.system(size: fontSize))
                     }
                     .scaleEffect(repsScaleEffect)
                 }
                 .padding()
-                .onChange(of: exerciseViewModel.activeExercise.reps) { newValue in
-                    if newValue > exerciseViewModel.previousRepsValue {
+                .onChange(of: exerciseReps) { newValue in
+                    if newValue > previousReps {
                         incrementRepsAnimation()
-                    } else if newValue < exerciseViewModel.previousRepsValue {
+                    } else if newValue < previousReps {
                         decrementRepsAnimation()
                     }
-                    exerciseViewModel.previousRepsValue = newValue
                 }
                 
                 // SETS FIELD
-                Stepper(value: $exerciseViewModel.activeExercise.sets, in: 1...999) {
+                Stepper(value: $exerciseSets, in: 1...999) {
                     HStack {
-                        Text("\(exerciseViewModel.activeExercise.sets)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
+                        Text("\(exerciseSets)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
                         Text("sets").fontWeight(.bold) .foregroundColor(fgColor).font(.system(size: fontSize))
                     }
                     .scaleEffect(setsScaleEffect)
                 }
                 .padding()
-                .onChange(of: exerciseViewModel.activeExercise.sets) { newValue in
-                    if newValue > exerciseViewModel.previousSetsValue {
+                .onChange(of: exerciseSets) { newValue in
+                    if newValue > previousSets {
                         incrementSetsAnimation()
-                    } else if newValue < exerciseViewModel.previousSetsValue {
+                    } else if newValue < previousSets {
                         decrementSetsAnimation()
                     }
-                    exerciseViewModel.previousSetsValue = newValue
                 }
             }
             .frame(width: 260)
@@ -127,6 +135,12 @@ struct ExerciseEditorView: View {
                 // SAVE BUTTON
                 Button(action: {
                     isNameFieldFocused = false
+                    // assign @State input values to activeExericse's properties
+                    exerciseViewModel.activeExercise.name   = exerciseName
+                    exerciseViewModel.activeExercise.weight = exerciseWeight
+                    exerciseViewModel.activeExercise.reps   = exerciseReps
+                    exerciseViewModel.activeExercise.sets   = exerciseSets
+                    //add exercise to active plan's exercises
                     if exerciseViewModel.activeExerciseMode == "AddMode" {
 
                         // Add new exericse to active plan being operated on:
@@ -166,6 +180,16 @@ struct ExerciseEditorView: View {
         }
         .background(Color(.systemGray6))
         .onAppear {
+            // assign exercise data from view model to UI input controls
+            exerciseName = exerciseViewModel.activeExercise.name
+            exerciseWeight = exerciseViewModel.activeExercise.weight
+            exerciseReps = exerciseViewModel.activeExercise.reps
+            exerciseSets = exerciseViewModel.activeExercise.sets
+            // assign "previous" values used by stepper to compare adjusted values to previous values
+            previousWeight = exerciseViewModel.activeExercise.weight
+            previousReps = exerciseViewModel.activeExercise.reps
+            previousSets = exerciseViewModel.activeExercise.sets
+            // assign focus to exercise name field if no name exists
             isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }
@@ -244,7 +268,7 @@ extension ExerciseEditorView {
 struct ExerciseEditorView_Previews: PreviewProvider {
     static var previews: some View {
         ExerciseEditorView()
-            .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+            .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }
