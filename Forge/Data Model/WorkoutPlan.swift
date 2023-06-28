@@ -1,6 +1,6 @@
 import Foundation
 
-class WorkoutPlan: Identifiable, Equatable, Encodable, Decodable {
+struct WorkoutPlan: Identifiable, Equatable, Encodable, Decodable {
     var id: UUID
     var name: String
     var exercises: [Exercise]
