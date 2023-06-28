@@ -6,6 +6,8 @@ struct SelectPlanView: View {
     @EnvironmentObject var viewModel: PlanViewModel
     //-/////////////////////////////////////////////////
     
+    @State private var planEditorIsPresented = false
+    
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
@@ -76,6 +78,7 @@ struct SelectPlanView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
                 }
+                .padding(.bottom, 100)
             }
             
             VStack {
@@ -87,7 +90,7 @@ struct SelectPlanView: View {
                     
                     // ADD BUTTON
                     Button(action: {
-                        // pull up PlanEditorView
+                        self.planEditorIsPresented = true
                     }) {
                         HStack {
                             Image(systemName: "plus.circle.fill")
@@ -98,6 +101,10 @@ struct SelectPlanView: View {
                         }
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
+                    }
+                    .fullScreenCover(isPresented: $planEditorIsPresented) {
+                        PlanEditorView()
+                            .environment(\.colorScheme, .dark)
                     }
                     
                     Spacer()
