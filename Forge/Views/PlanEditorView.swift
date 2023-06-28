@@ -18,11 +18,35 @@ struct PlanEditorView: View {
     
     var body: some View {
         ZStack {
-            // LIST
             VStack {
+                HStack{
+                    Spacer()
+                    Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(fgColor)
+                    Spacer()
+                }
+                
+                TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)
+                    .padding(.vertical, 20)
+                    .focused($isPlanNameFocused)
+                    .frame(width: 300)
+                    .autocapitalization(.words)
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 23))
+                
+                Text("Exercises:")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .padding(EdgeInsets(top:1, leading: 0, bottom: 15, trailing: 0))
+                    .foregroundColor(.gray)
+                
+                // LIST OF EXERCISES
                 ScrollView {
                     LazyVStack {
-                        Spacer().frame(height: 180)
                         ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
                             
                             // EDIT BUTTON
@@ -58,7 +82,8 @@ struct PlanEditorView: View {
                                 }
                             }
                             .padding(15)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color(.systemGray5)))
+                            .background(bgColor)
+                            .cornerRadius(16)
                         }
                         .padding(.horizontal, 25)
                         .padding(.vertical, 8)
@@ -83,51 +108,14 @@ struct PlanEditorView: View {
                                 .presentationDetents([.medium, .large])
                                 .environment(\.colorScheme, .dark)
                         }
+                        
+                        Spacer().frame(height: 60)
                     }
                 }
                 
                 Spacer()
             }
             
-            // TOP TOOLBAR
-            VStack {
-                VStack {
-                    Spacer().frame(height: 60)
-                    HStack{
-                        Spacer()
-                        Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(fgColor)
-                        Spacer()
-                    }
-                    
-                    TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)
-                        .padding(.vertical, 20)
-                        .focused($isPlanNameFocused)
-                        .frame(width: 300)
-                        .autocapitalization(.words)
-                        .foregroundColor(.white)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                        .font(.system(size: 23))
-                    
-                    Text("Exercises:")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .padding(EdgeInsets(top:1, leading: 0, bottom: 15, trailing: 0))
-                        .foregroundColor(.gray)
-                }
-                .background(Color(.systemGray6))
-//                .background(
-//                    ZStack {
-//                        BlurView(style: .systemUltraThinMaterial)
-//                        Color(.systemGray6).opacity(0.65)
-//                    }
-//                )
-                Spacer()
-            }
-            .edgesIgnoringSafeArea(.top)
             
             // BOTTOM TOOLBAR
             VStack {
@@ -202,7 +190,7 @@ struct PlanEditorView: View {
             }
             .edgesIgnoringSafeArea(.bottom)
         }
-        .background(Color(.systemGray6))
+        .background(.black)
         .onAppear {
             isPlanNameFocused = planViewModel.activePlan.name == ""
         }
