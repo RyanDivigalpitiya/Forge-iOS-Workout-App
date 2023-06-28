@@ -11,12 +11,12 @@ class Exercise: Identifiable, Equatable, Encodable, Decodable {
     var setCompletions: [Bool]
     var completed: Bool
     
-    // default initializer
+    // empty initializer
     init() {
         self.id = UUID()
         self.name = ""
         
-        self.weight = 0
+        self.weight = 5
         self.reps = 12
         self.sets = 3
         

@@ -5,7 +5,7 @@ class WorkoutPlan: Identifiable, Equatable, Encodable, Decodable {
     var name: String
     var exercises: [Exercise]
     
-    // default initializer
+    // empty initializer
     init() {
         self.id = UUID()
         self.name = ""

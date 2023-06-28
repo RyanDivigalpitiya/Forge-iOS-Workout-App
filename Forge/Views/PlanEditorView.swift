@@ -3,29 +3,34 @@ import SwiftUI
 struct PlanEditorView: View {
     
     //-/////////////////////////////////////////////////
-    @EnvironmentObject var viewModel: PlanViewModel
+    @EnvironmentObject var planViewModel: PlanViewModel
+    //-/////////////////////////////////////////////////
+    @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-/////////////////////////////////////////////////
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
+    @State private var exerciseEditorIsPresented = false
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
     var body: some View {
         VStack {
-            Text("Create New Plan")
+            Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(fgColor)
             
-            TextField("Plan Name (Ex: Leg Day)", text: $viewModel.activePlan.name)
-                .padding()
+            TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)
+                .padding(.vertical, 20)
                 .focused($isPlanNameFocused)
+                .frame(width: 300)
                 .autocapitalization(.words)
-                .modifier(CustomFontModifier(size: 25, weight: .bold, color: Color.white, opacity: 1.0))
-                .textFieldStyle(RoundedTextFieldStyle(borderColor: Color.gray, borderOpacity: 0.0, backgroundColor: Color(.systemGray6)))
+                .foregroundColor(.white)
+                .fontWeight(.bold)
                 .multilineTextAlignment(.center)
+                .font(.system(size: 23))
             
             Text("Exercises:")
                 .font(.headline)
@@ -35,25 +40,25 @@ struct PlanEditorView: View {
             
             ScrollView {
                 LazyVStack {
-                    ForEach(viewModel.activePlan.exercises.indices, id: \.self) { index in
+                    ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
                         Button(action: {
                             // bring up Exercise Editor View
                         }) {
                             VStack() {
                                 HStack {
                                     // Exercise Name
-                                    Text(viewModel.activePlan.exercises[index].name)
+                                    Text(planViewModel.activePlan.exercises[index].name)
                                         .foregroundColor(fgColor)
                                         .fontWeight(.bold)
                                         .font(.system(size: 25))
                                         .padding(.bottom,1)
                                     Spacer()
                                 }
-                                let setRepsString = "( \(viewModel.activePlan.exercises[index].sets) Sets x \(viewModel.activePlan.exercises[index].reps) Reps )"
+                                let setRepsString = "( \(planViewModel.activePlan.exercises[index].sets) Sets x \(planViewModel.activePlan.exercises[index].reps) Reps )"
                                 
                                 HStack {
                                     // Exercise Data
-                                    Text(viewModel.isThereNonZeroDecimal(in: viewModel.activePlan.exercises[index].weight) + " lbs")
+                                    Text(planViewModel.isThereNonZeroDecimal(in: planViewModel.activePlan.exercises[index].weight) + " lbs")
                                         .fontWeight(.bold)
                                         .font(.system(size: 20))
                                         .foregroundColor(.white)
@@ -69,6 +74,26 @@ struct PlanEditorView: View {
                     }
                     .padding(.horizontal, 25)
                     .padding(.vertical, 8)
+                    
+                    // ADD EXERCISE BUTTON
+                    Button(action: {
+                        // bring up Exercise Editor View
+                        exerciseViewModel.activeExerciseMode = "AddMode"
+                        exerciseViewModel.activeExercise = Exercise()
+                        self.exerciseEditorIsPresented = true
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add Exercise").fontWeight(.bold)
+                        }
+                        .foregroundColor(fgColor)
+                    }
+                    .padding(.top, 10)
+                    .sheet(isPresented: $exerciseEditorIsPresented) {
+                        ExerciseEditorView()
+                            .presentationDetents([.medium, .large])
+                            .environment(\.colorScheme, .dark)
+                    }
                 }
             }
             
@@ -88,6 +113,7 @@ struct PlanEditorView_Previews: PreviewProvider {
     static var previews: some View {
         PlanEditorView()
             .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
+            .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }
 }

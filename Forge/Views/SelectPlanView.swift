@@ -88,8 +88,11 @@ struct SelectPlanView: View {
                 HStack {
                     Spacer()
                     
-                    // ADD BUTTON
+                    // NEW BUTTON
                     Button(action: {
+                        // set activePlan to a new plan
+                        viewModel.activePlan = WorkoutPlan()
+                        viewModel.activePlanMode = "AddMode"
                         self.planEditorIsPresented = true
                     }) {
                         HStack {
