@@ -24,7 +24,10 @@ struct PlanEditorView: View {
                         Spacer().frame(height: 180)
                         ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
                             Button(action: {
-                                // bring up Exercise Editor View
+                                exerciseViewModel.activeExerciseMode = "EditMode"
+                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[index]
+                                exerciseViewModel.activeExerciseIndex = index
+                                self.exerciseEditorIsPresented = true
                             }) {
                                 VStack() {
                                     HStack {
@@ -170,11 +173,7 @@ struct PlanEditorView: View {
                     // SAVE BUTTON ////////////////////
                     Button(action: {
                         // add active plan to view model's plans
-                        
-                        
-                        
-                        planViewModel.workoutPlans.append(planViewModel.activePlan) // can only do this when WorkoutPlan is refactored to a struct, otherwise, classes are reference type
-                        
+                        planViewModel.workoutPlans.append(planViewModel.activePlan)
                         self.presentationMode.wrappedValue.dismiss()
                     }) {
                         Image(systemName: "checkmark.circle.fill")

@@ -88,30 +88,18 @@ struct ExerciseEditorView: View {
                 // SAVE BUTTON
                 Button(action: {
                     if exerciseViewModel.activeExerciseMode == "AddMode" {
-                        // save exercise to active plan
-                        let name = exerciseViewModel.activeExercise.name
-                        let weight = exerciseViewModel.activeExercise.weight
-                        let reps = exerciseViewModel.activeExercise.reps
-                        let sets = exerciseViewModel.activeExercise.sets
-                        var setCompletions: [Bool] = []
-                        for _ in 1...sets { setCompletions.append(false) }
-                        
-                        let newExercise = Exercise(
-                            id: UUID(),
-                            name: name,
-                            weight: weight,
-                            reps: reps,
-                            sets: sets,
-                            setCompletions: setCompletions,
-                            completed: false
-                        )
-                        
+
                         // Add new exericse to active plan being operated on:
-                        planViewModel.activePlan.exercises.append(newExercise)
+                        planViewModel.activePlan.exercises.append(exerciseViewModel.activeExercise)
                         //-///////////////////////////////////////////////////
                         
-                    } else {
-                        // add other modes here later
+                    } else if exerciseViewModel.activeExerciseMode == "EditMode"  {
+                        
+                        // Edit exercise and update active plan
+                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = exerciseViewModel.activeExercise
+                        
+                    } else { // LogMode
+                        
                     }
                     
                     self.presentationMode.wrappedValue.dismiss()
