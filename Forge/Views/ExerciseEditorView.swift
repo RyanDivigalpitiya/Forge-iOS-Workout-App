@@ -52,6 +52,7 @@ struct ExerciseEditorView: View {
             
             TextField("Enter Name Here", text: $exerciseViewModel.activeExercise.name)
                 .frame(width: 300)
+                .focused($isNameFieldFocused)
                 .autocapitalization(.words)
                 .foregroundColor(.white)
                 .fontWeight(.bold)

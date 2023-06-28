@@ -87,12 +87,6 @@ struct PlanEditorView: View {
                 }
                 
                 Spacer()
-                
-                Button(action: {
-                    self.presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Dismiss").foregroundColor(fgColor)
-                }
             }
             
             // TOP TOOLBAR
