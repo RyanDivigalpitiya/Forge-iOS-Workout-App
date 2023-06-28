@@ -24,6 +24,8 @@ struct PlanEditorView: View {
                     LazyVStack {
                         Spacer().frame(height: 180)
                         ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
+                            
+                            // EDIT BUTTON
                             Button(action: {
                                 exerciseViewModel.activeExerciseMode = "EditMode"
                                 exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[index]
@@ -64,6 +66,7 @@ struct PlanEditorView: View {
                         // ADD EXERCISE BUTTON
                         Button(action: {
                             // bring up Exercise Editor View
+                            isPlanNameFocused = false
                             exerciseViewModel.activeExerciseMode = "AddMode"
                             exerciseViewModel.activeExercise = Exercise()
                             self.exerciseEditorIsPresented = true
@@ -140,6 +143,7 @@ struct PlanEditorView: View {
                     
                     // CANCEL BUTTON ////////////////////
                     Button(action: {
+                        isPlanNameFocused = false
                         self.presentationMode.wrappedValue.dismiss()
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -177,10 +181,10 @@ struct PlanEditorView: View {
                     
                     // SAVE BUTTON ////////////////////
                     Button(action: {
+                        isPlanNameFocused = false
                         if planViewModel.activePlanMode == "AddMode" {
                             planViewModel.workoutPlans.append(planViewModel.activePlan)
                             planViewModel.savePlans()
-                            self.presentationMode.wrappedValue.dismiss()
                         } else { // "EditMode"
                             planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                             planViewModel.savePlans()
@@ -205,6 +209,9 @@ struct PlanEditorView: View {
             .edgesIgnoringSafeArea(.bottom)
         }
         .background(Color(.systemGray6))
+        .onAppear {
+            isPlanNameFocused = planViewModel.activePlan.name == ""
+        }
     }
 }
 
