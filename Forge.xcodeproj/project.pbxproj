@@ -25,8 +25,6 @@
 		F1F850922A494DD00093EE01 /* SelectPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850912A494DD00093EE01 /* SelectPlanView.swift */; };
 		F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850932A494DFD0093EE01 /* PlanViewModel.swift */; };
 		F1F850962A4956CA0093EE01 /* PlanEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850952A4956CA0093EE01 /* PlanEditorView.swift */; };
-		F1F8509B2A4958670093EE01 /* RoundedTextFieldStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509A2A4958670093EE01 /* RoundedTextFieldStyle.swift */; };
-		F1F8509D2A4958760093EE01 /* CustomFontModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509C2A4958760093EE01 /* CustomFontModifier.swift */; };
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
 /* End PBXBuildFile section */
 
@@ -54,8 +52,6 @@
 		F1F850912A494DD00093EE01 /* SelectPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectPlanView.swift; sourceTree = "<group>"; };
 		F1F850932A494DFD0093EE01 /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
 		F1F850952A4956CA0093EE01 /* PlanEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanEditorView.swift; sourceTree = "<group>"; };
-		F1F8509A2A4958670093EE01 /* RoundedTextFieldStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedTextFieldStyle.swift; sourceTree = "<group>"; };
-		F1F8509C2A4958760093EE01 /* CustomFontModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomFontModifier.swift; sourceTree = "<group>"; };
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -151,8 +147,6 @@
 		F1F850972A4958270093EE01 /* UI Support */ = {
 			isa = PBXGroup;
 			children = (
-				F1F8509A2A4958670093EE01 /* RoundedTextFieldStyle.swift */,
-				F1F8509C2A4958760093EE01 /* CustomFontModifier.swift */,
 				F1F8509E2A4958890093EE01 /* BlurView.swift */,
 			);
 			path = "UI Support";
@@ -236,7 +230,6 @@
 				F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */,
 				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
 				F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */,
-				F1F8509B2A4958670093EE01 /* RoundedTextFieldStyle.swift in Sources */,
 				F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */,
 				F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */,
 				F1F850922A494DD00093EE01 /* SelectPlanView.swift in Sources */,
@@ -244,7 +237,6 @@
 				F1F8508C2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift in Sources */,
 				F1F850892A4929E10093EE01 /* MockData.swift in Sources */,
 				F17247632A4CE4A800937621 /* WorkoutInProgressView.swift in Sources */,
-				F1F8509D2A4958760093EE01 /* CustomFontModifier.swift in Sources */,
 				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
 			);

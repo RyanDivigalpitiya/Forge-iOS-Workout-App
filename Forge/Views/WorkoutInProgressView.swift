@@ -67,9 +67,9 @@ struct WorkoutInProgressView: View {
 
                                     Spacer()
                                 }
+                                
                             }
-                            .padding(25)
-                            
+                            .padding(15)
                             .foregroundColor(fgColor)
                         }
                         .background(bgColor)
@@ -77,6 +77,7 @@ struct WorkoutInProgressView: View {
                         .padding(.horizontal)
                         .padding(.vertical, 7)
                         
+                        Spacer().frame(height: 80)
                     }
                 }
                 
