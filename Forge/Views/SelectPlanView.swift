@@ -8,9 +8,11 @@ struct SelectPlanView: View {
     
     @State private var planEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
+    @State private var workoutInProgressViewPresented = false
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
+    let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     
     var body: some View {
         ZStack {
@@ -18,8 +20,11 @@ struct SelectPlanView: View {
                 VStack {
                     ForEach(viewModel.workoutPlans.indices, id: \.self) { index in
                         
-                        Button( action: {
-                            // pulls up WorkoutInProgressView
+                        Button(action: {
+                            // set active Plan to workoutPlans[index] + bring up WorkoutInProgressView
+                            viewModel.activePlan = viewModel.workoutPlans[index]
+                            viewModel.activePlanIndex = index
+                            workoutInProgressViewPresented = true
                         }) {
                             VStack {
                                 HStack {
@@ -78,6 +83,10 @@ struct SelectPlanView: View {
                         .padding()
                         .background(bgColor)
                         .cornerRadius(15)
+                        .fullScreenCover(isPresented: $workoutInProgressViewPresented) {
+                            WorkoutInProgressView()
+                                .environment(\.colorScheme, .dark)
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
@@ -139,8 +148,8 @@ struct SelectPlanView: View {
                     
                     Spacer()
                 }
-                .padding()
-                .padding(.bottom, 30)
+                .frame(height: bottomToolbarHeight)
+                .padding(.bottom, 10)
                 .background(BlurView(style: .systemChromeMaterial))
             }
         }

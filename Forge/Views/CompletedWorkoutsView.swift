@@ -26,6 +26,7 @@ struct CompletedWorkoutsView: View {
                     }
                     .padding(.vertical, 2)
                 }
+                .onDelete(perform: viewModel.deleteCompletedWorkouts)
             }
             .navigationBarTitle(Text("History"))
             .navigationBarTitleTextColor(Color(.systemGray3))

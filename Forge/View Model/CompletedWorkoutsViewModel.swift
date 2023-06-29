@@ -31,6 +31,12 @@ class CompletedWorkoutsViewModel: ObservableObject {
         }
     }
     
+    func deleteCompletedWorkouts(at offsets: IndexSet) {
+        let originalIndices = offsets.map { completedWorkouts.count - 1 - $0 }
+        completedWorkouts.remove(atOffsets: IndexSet(originalIndices))
+        saveCompletedWorkouts()
+    }
+    
     func numberOfDaysString(from date: Date) -> String {
         /*
             returns "Today" if Date() is sometime between now and 12:00am today,

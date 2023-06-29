@@ -15,6 +15,8 @@ struct PlanEditorView: View {
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
+    let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
+
     
     var body: some View {
         ZStack {
@@ -167,7 +169,7 @@ struct PlanEditorView: View {
                         if planViewModel.activePlanMode == "AddMode" {
                             planViewModel.workoutPlans.append(planViewModel.activePlan)
                             planViewModel.savePlans()
-                        } else { // "EditMode"
+                        } else if planViewModel.activePlanMode == "EditMode" {
                             planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                             planViewModel.savePlans()
                         }
@@ -185,7 +187,7 @@ struct PlanEditorView: View {
                     
                     Spacer()
                 }
-                .frame(height: 82)
+                .frame(height: bottomToolbarHeight)
                 .background(BlurView(style: .systemUltraThinMaterial))
             }
             .edgesIgnoringSafeArea(.bottom)
