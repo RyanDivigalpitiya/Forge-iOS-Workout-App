@@ -28,45 +28,45 @@ struct WorkoutInProgressView: View {
                         Spacer().frame(height: 100)
                         ForEach(viewModel.activePlan.exercises.indices, id: \.self) { index in
                             VStack (alignment: .leading) {
-                                HStack {
-                                    Text(viewModel.activePlan.exercises[index].name)
-                                        .font(.system(size: 23))
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .padding(.bottom, 5)
-                                    
-                                    Spacer()
-                                    
-                                    // EDIT BUTTON
-                                    Button( action: {
-                                        exerciseViewModel.activeExerciseMode = "EditMode"
-                                        exerciseViewModel.activeExercise = viewModel.activePlan.exercises[index]
-                                        exerciseViewModel.activeExerciseIndex = index
-                                        self.exerciseEditorIsPresented = true
-                                    }) {
-                                        Image(systemName: "plusminus.circle.fill")
-                                            .resizable()
-                                            .frame(width: 20, height: 20)
-                                            .padding(.trailing, 5)
-                                            .foregroundColor(fgColor)
-                                    }
-                                    .sheet(isPresented: $exerciseEditorIsPresented) {
-                                        ExerciseEditorView()
-                                            .presentationDetents([.medium, .large])
-                                            .environment(\.colorScheme, .dark)
-                                    }
-                                }
-                                Text("\(viewModel.activePlan.exercises[index].sets) sets")
-                                    .fontWeight(.bold)
-                                    .font(.system(size: 23))
-                                    .padding(.bottom, 5)
-                                HStack {
-                                    Text("\(Int(viewModel.activePlan.exercises[index].weight)) lbs x \(viewModel.activePlan.exercises[index].reps) reps")
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 23))
-
-                                    Spacer()
-                                }
+//                                HStack {
+//                                    Text(viewModel.activePlan.exercises[index].name)
+//                                        .font(.system(size: 23))
+//                                        .fontWeight(.bold)
+//                                        .foregroundColor(.white)
+//                                        .padding(.bottom, 5)
+//
+//                                    Spacer()
+//
+//                                    // EDIT BUTTON
+//                                    Button( action: {
+//                                        exerciseViewModel.activeExerciseMode = "EditMode"
+//                                        exerciseViewModel.activeExercise = viewModel.activePlan.exercises[index]
+//                                        exerciseViewModel.activeExerciseIndex = index
+//                                        self.exerciseEditorIsPresented = true
+//                                    }) {
+//                                        Image(systemName: "plusminus.circle.fill")
+//                                            .resizable()
+//                                            .frame(width: 20, height: 20)
+//                                            .padding(.trailing, 5)
+//                                            .foregroundColor(fgColor)
+//                                    }
+//                                    .sheet(isPresented: $exerciseEditorIsPresented) {
+//                                        ExerciseEditorView()
+//                                            .presentationDetents([.medium, .large])
+//                                            .environment(\.colorScheme, .dark)
+//                                    }
+//                                }
+//                                Text("\(viewModel.activePlan.exercises[index].sets) sets")
+//                                    .fontWeight(.bold)
+//                                    .font(.system(size: 23))
+//                                    .padding(.bottom, 5)
+//                                HStack {
+//                                    Text("\(Int(viewModel.activePlan.exercises[index].weight)) lbs x \(viewModel.activePlan.exercises[index].reps) reps")
+//                                        .fontWeight(.bold)
+//                                        .font(.system(size: 23))
+//
+//                                    Spacer()
+//                                }
                                 
                             }
                             .padding(15)
@@ -142,7 +142,7 @@ struct WorkoutInProgressView: View {
                         viewModel.workoutPlans[viewModel.activePlanIndex] = viewModel.activePlan
                         viewModel.savePlans()
                         
-                        let completedWorkout = CompletedWorkout(id: UUID(), date: Date(), workout: viewModel.activePlan)
+                        let completedWorkout = CompletedWorkout(date: Date(), workout: viewModel.activePlan)
                         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                         completedWorkoutsViewModel.saveCompletedWorkouts()
                     
@@ -191,7 +191,7 @@ struct WorkoutInProgressView_Previews: PreviewProvider {
     static var previews: some View {
         WorkoutInProgressView()
             .environmentObject(CompletedWorkoutsViewModel())
-            .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }

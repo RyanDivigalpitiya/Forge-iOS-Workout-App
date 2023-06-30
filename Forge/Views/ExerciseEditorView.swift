@@ -136,25 +136,25 @@ struct ExerciseEditorView: View {
                 Button(action: {
                     isNameFieldFocused = false
                     // assign @State input values to activeExericse's properties
-                    exerciseViewModel.activeExercise.name   = exerciseName
-                    exerciseViewModel.activeExercise.weight = exerciseWeight
-                    exerciseViewModel.activeExercise.reps   = exerciseReps
-                    exerciseViewModel.activeExercise.sets   = exerciseSets
-                    //add exercise to active plan's exercises
-                    if exerciseViewModel.activeExerciseMode == "AddMode" {
-
-                        // Add new exericse to active plan being operated on:
-                        planViewModel.activePlan.exercises.append(exerciseViewModel.activeExercise)
-                        //-///////////////////////////////////////////////////
-                        
-                    } else if exerciseViewModel.activeExerciseMode == "EditMode"  {
-                        
-                        // Edit exercise and update active plan
-                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = exerciseViewModel.activeExercise
-                        
-                    } else { // LogMode
-                        
-                    }
+//                    exerciseViewModel.activeExercise.name   = exerciseName
+//                    exerciseViewModel.activeExercise.weight = exerciseWeight
+//                    exerciseViewModel.activeExercise.reps   = exerciseReps
+//                    exerciseViewModel.activeExercise.sets   = exerciseSets
+//                    //add exercise to active plan's exercises
+//                    if exerciseViewModel.activeExerciseMode == "AddMode" {
+//
+//                        // Add new exericse to active plan being operated on:
+//                        planViewModel.activePlan.exercises.append(exerciseViewModel.activeExercise)
+//                        //-///////////////////////////////////////////////////
+//
+//                    } else if exerciseViewModel.activeExerciseMode == "EditMode"  {
+//
+//                        // Edit exercise and update active plan
+//                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = exerciseViewModel.activeExercise
+//
+//                    } else { // LogMode
+//
+//                    }
                     
                     self.presentationMode.wrappedValue.dismiss()
                     
@@ -181,15 +181,15 @@ struct ExerciseEditorView: View {
         .background(Color(.systemGray6))
         .onAppear {
             // assign exercise data from view model to UI input controls
-            exerciseName = exerciseViewModel.activeExercise.name
-            exerciseWeight = exerciseViewModel.activeExercise.weight
-            exerciseReps = exerciseViewModel.activeExercise.reps
-            exerciseSets = exerciseViewModel.activeExercise.sets
-            // assign "previous" values used by stepper to compare adjusted values to previous values
-            previousWeight = exerciseViewModel.activeExercise.weight
-            previousReps = exerciseViewModel.activeExercise.reps
-            previousSets = exerciseViewModel.activeExercise.sets
-            // assign focus to exercise name field if no name exists
+//            exerciseName = exerciseViewModel.activeExercise.name
+//            exerciseWeight = exerciseViewModel.activeExercise.weight
+//            exerciseReps = exerciseViewModel.activeExercise.reps
+//            exerciseSets = exerciseViewModel.activeExercise.sets
+//            // assign "previous" values used by stepper to compare adjusted values to previous values
+//            previousWeight = exerciseViewModel.activeExercise.weight
+//            previousReps = exerciseViewModel.activeExercise.reps
+//            previousSets = exerciseViewModel.activeExercise.sets
+//            // assign focus to exercise name field if no name exists
             isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }

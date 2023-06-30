@@ -11,6 +11,7 @@ class GlobalSettings {
     
     // Common UI component dimensions
     let bottomToolbarHeight: CGFloat = 100
+    let setsFontSize: CGFloat = 23
 
     private init() {}
 }

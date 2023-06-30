@@ -11,6 +11,7 @@
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */; };
 		F17247632A4CE4A800937621 /* WorkoutInProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */; };
+		F17247672A4D156600937621 /* Set.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17247662A4D156600937621 /* Set.swift */; };
 		F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850682A4920AB0093EE01 /* ForgeApp.swift */; };
 		F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F8506C2A4920AD0093EE01 /* Assets.xcassets */; };
 		F1F850712A4920AD0093EE01 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F850702A4920AD0093EE01 /* Preview Assets.xcassets */; };
@@ -34,6 +35,7 @@
 		F14E94772A4BEC29008155FA /* testingViews.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = testingViews.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReorderDeleteView.swift; sourceTree = "<group>"; };
 		F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutInProgressView.swift; sourceTree = "<group>"; };
+		F17247662A4D156600937621 /* Set.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Set.swift; sourceTree = "<group>"; };
 		F1F850652A4920AB0093EE01 /* Forge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Forge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1F850682A4920AB0093EE01 /* ForgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeApp.swift; sourceTree = "<group>"; };
 		F1F8506C2A4920AD0093EE01 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 		F1F8507B2A4924900093EE01 /* Data Model */ = {
 			isa = PBXGroup;
 			children = (
+				F17247662A4D156600937621 /* Set.swift */,
 				F1F850802A4925470093EE01 /* Exercise.swift */,
 				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
 				F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */,
@@ -231,6 +234,7 @@
 				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
 				F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */,
 				F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */,
+				F17247672A4D156600937621 /* Set.swift in Sources */,
 				F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */,
 				F1F850922A494DD00093EE01 /* SelectPlanView.swift in Sources */,
 				F1F850812A4925470093EE01 /* Exercise.swift in Sources */,

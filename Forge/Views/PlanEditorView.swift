@@ -16,6 +16,8 @@ struct PlanEditorView: View {
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
+    let setsFontSize = GlobalSettings.shared.setsFontSize // Font size used for text in set rows
+    let setsSpacing: CGFloat = 5
 
     
     var body: some View {
@@ -24,27 +26,21 @@ struct PlanEditorView: View {
                 HStack{
                     Spacer()
                     Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
-                        .font(.title)
+                        .font(.system(size: 35))
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
                     Spacer() 
                 }
                 
                 TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 15)
                     .focused($isPlanNameFocused)
                     .frame(width: 300)
                     .autocapitalization(.words)
                     .foregroundColor(.white)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
-                    .font(.system(size: 23))
-                
-                Text("Exercises:")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .padding(EdgeInsets(top:1, leading: 0, bottom: 15, trailing: 0))
-                    .foregroundColor(.gray)
+                    .font(.system(size: 25))
                 
                 // LIST OF EXERCISES
                 ScrollView {
@@ -58,28 +54,57 @@ struct PlanEditorView: View {
                                 exerciseViewModel.activeExerciseIndex = index
                                 self.exerciseEditorIsPresented = true
                             }) {
-                                VStack() {
+                                VStack{
                                     HStack {
-                                        // Exercise Name
                                         Text(planViewModel.activePlan.exercises[index].name)
+                                            .fontWeight(.bold)
                                             .foregroundColor(fgColor)
-                                            .fontWeight(.bold)
-                                            .font(.system(size: 25))
-                                            .padding(.bottom,1)
+                                            .font(.system(size: setsFontSize))
                                         Spacer()
-                                    }
-                                    let setRepsString = "( \(planViewModel.activePlan.exercises[index].sets) Sets x \(planViewModel.activePlan.exercises[index].reps) Reps )"
-                                    
-                                    HStack {
-                                        // Exercise Data
-                                        Text(planViewModel.isThereNonZeroDecimal(in: planViewModel.activePlan.exercises[index].weight) + " lbs")
-                                            .fontWeight(.bold)
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.white)
-                                        Text(setRepsString)
-                                            .font(.system(size: 20))
+                                        Image(systemName: "pencil.circle.fill")
+                                            .resizable()
+                                            .frame(width: 19, height: 19)
                                             .foregroundColor(.gray)
-                                        Spacer()
+                                            .opacity(0.6)
+                                    }
+                                    if planViewModel.activePlan.exercises[index].areSetsUnique { // display each unqiue set
+                                        VStack{
+                                            ForEach(planViewModel.activePlan.exercises[index].sets.indices, id: \.self) { setIndex in
+                                                let set = planViewModel.activePlan.exercises[index].sets[setIndex]
+                                                HStack {
+                                                    Text("Set \(setIndex)")
+                                                        .font(.system(size: 16))
+                                                        .foregroundColor(.white)
+                                                        .frame(width: 58, height: 28)
+                                                        .background(fgColor)
+                                                        .cornerRadius(5)
+                                                        .padding(.trailing, setsSpacing+2)
+                                                    Text("\(Int(set.weight)) lb")
+                                                        .foregroundColor(.white)
+                                                        .padding(.trailing, setsSpacing)
+                                                    Image(systemName: "xmark")
+                                                        .resizable()
+                                                        .frame(width: 10, height: 10)
+                                                        .padding(.top,3)
+                                                        .foregroundColor(.gray)
+                                                        .opacity(0.6)
+                                                        .padding(.trailing, setsSpacing)
+                                                        
+                                                    if set.tillFailure {
+                                                        Text("Until Failure").foregroundColor(.gray).opacity(0.6)
+                                                    } else {
+                                                        Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
+                                                    }
+                                                    Spacer()
+                                                }
+                                                .fontWeight(.bold)
+                                                .font(.system(size: setsFontSize))
+                                                .padding(.vertical,9)
+                                                
+                                            }
+                                        }
+                                    } else { // display 1 row: weight x reps x sets
+                                        
                                     }
                                 }
                             }
@@ -87,7 +112,7 @@ struct PlanEditorView: View {
                             .background(bgColor)
                             .cornerRadius(16)
                         }
-                        .padding(.horizontal, 25)
+                        .padding(.horizontal, 15)
                         .padding(.vertical, 8)
                         
                         // ADD EXERCISE BUTTON
@@ -106,9 +131,9 @@ struct PlanEditorView: View {
                         }
                         .padding(.top, 10)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
-                            ExerciseEditorView()
-                                .presentationDetents([.medium, .large])
-                                .environment(\.colorScheme, .dark)
+//                            ExerciseEditorView()
+//                                .presentationDetents([.medium, .large])
+//                                .environment(\.colorScheme, .dark)
                         }
                         
                         Spacer().frame(height: 60)
@@ -157,8 +182,8 @@ struct PlanEditorView: View {
                     .foregroundColor(fgColor)
                     .padding(.bottom, 15)
                     .sheet(isPresented: $reorderDeleteViewPresented) {
-                        ReorderDeleteView(mode: "ExerciseMode")
-                            .environment(\.colorScheme, .dark)
+//                        ReorderDeleteView(mode: "ExerciseMode")
+//                            .environment(\.colorScheme, .dark)
                     }
                     
                     Spacer()
@@ -202,7 +227,7 @@ struct PlanEditorView: View {
 struct PlanEditorView_Previews: PreviewProvider {
     static var previews: some View {
         PlanEditorView()
-            .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }

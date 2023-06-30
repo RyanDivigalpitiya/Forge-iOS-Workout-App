@@ -162,7 +162,7 @@ struct SelectPlanView_Previews: PreviewProvider {
     static var previews: some View {
         SelectPlanView()
             .environmentObject(ExerciseViewModel())
-            .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
             .preferredColorScheme(.dark)
     }

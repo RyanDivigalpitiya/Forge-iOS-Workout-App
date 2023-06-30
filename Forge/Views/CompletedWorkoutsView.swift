@@ -70,7 +70,7 @@ struct CompletedWorkoutsView_Previews: PreviewProvider {
     static var previews: some View {
         CompletedWorkoutsView()
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
-            .environmentObject(PlanViewModel(mockPlans: mockWorkouts))
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .preferredColorScheme(.dark)
     }
 }
