@@ -67,7 +67,7 @@ struct PlanEditorView: View {
                                             .foregroundColor(.gray)
                                             .opacity(0.6)
                                     }
-                                    if planViewModel.activePlan.exercises[index].areSetsUnique { // heterogenous set: display each unqiue set
+                                    if planViewModel.activePlan.exercises[index].setsAreUnique { // heterogenous set: display each unqiue set
                                         VStack(spacing: 25) {
                                             ForEach(planViewModel.activePlan.exercises[index].sets.indices, id: \.self) { setIndex in
                                                 let set = planViewModel.activePlan.exercises[index].sets[setIndex]
@@ -252,7 +252,7 @@ struct PlanEditorView: View {
         }
         .background(.black)
         .onAppear {
-            isPlanNameFocused = planViewModel.activePlan.name == ""
+//            isPlanNameFocused = planViewModel.activePlan.name == ""
         }
     }
 }

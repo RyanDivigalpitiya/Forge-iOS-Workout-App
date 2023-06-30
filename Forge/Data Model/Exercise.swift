@@ -5,10 +5,10 @@ struct Exercise: Identifiable, Encodable, Decodable {
     var name: String
     var sets: [Set] {
         didSet {
-            self.areSetsUnique = containsUniqueSets()
+            self.setsAreUnique = containsUniqueSets()
         }
     }
-    var areSetsUnique: Bool
+    var setsAreUnique: Bool
     var completed: Bool
     
     // empty initializer
@@ -17,18 +17,18 @@ struct Exercise: Identifiable, Encodable, Decodable {
         self.name = ""
         self.sets = []
         self.completed = false
-        self.areSetsUnique = false
-        self.areSetsUnique = containsUniqueSets()
+        self.setsAreUnique = false
+        self.setsAreUnique = containsUniqueSets()
     }
     
     // create new Exercise object with specified params
-    init(name: String, sets: [Set], completed: Bool) {
+    init(name: String, sets: [Set]) {
         self.id = UUID()
         self.name = name
         self.sets = sets
-        self.completed = completed
-        self.areSetsUnique = false
-        self.areSetsUnique = containsUniqueSets()
+        self.completed = false
+        self.setsAreUnique = false
+        self.setsAreUnique = containsUniqueSets()
     }
     
     func containsUniqueSets() -> Bool {

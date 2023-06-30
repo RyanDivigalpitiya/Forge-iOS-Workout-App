@@ -20,7 +20,7 @@ struct ExerciseEditorView: View {
     @State private var selectedWeight = "5 lbs"
     let weightRange = stride(from: 995, through: -995, by: -5).map { "\($0) lbs" }
     // Reps data
-    @State private var selecteReps = "12 reps"
+    @State private var selectedReps = "12 reps"
     let repsRange = Array(1...999).reversed().map { "\($0) reps" }
     // Toggle for changing individual sets
     @State private var viewUniqueSets = false
@@ -70,7 +70,7 @@ struct ExerciseEditorView: View {
                     .padding(.top,15)
             }
             
-            TextField("Enter Name Here", text: $exerciseName)
+            TextField("Enter Exercise Name Here", text: $exerciseName)
                 .frame(width: 300)
                 .focused($isNameFieldFocused)
                 .autocapitalization(.words)
@@ -119,7 +119,6 @@ struct ExerciseEditorView: View {
                         
                         // INCREMENT BUTTON
                         Button(action: {
-                            incrementSetsAnimation()
                             if var num = Int(selectedSets.dropLast(5)) {
                                 if num < 999{
                                     num += 1
@@ -213,7 +212,7 @@ struct ExerciseEditorView: View {
                 
                 // REPS SELECTOR
                 VStack {
-                    Picker(selection: $selecteReps, label: Text("Reps")) {
+                    Picker(selection: $selectedReps, label: Text("Reps")) {
                        ForEach(repsRange, id: \.self) {
                            Text("\($0)")
                                .foregroundColor(fgColor)
@@ -225,10 +224,10 @@ struct ExerciseEditorView: View {
                     HStack() {
                         // DECREMENT BUTTON
                         Button(action: {
-                            if var num = Int(selecteReps.dropLast(5)) {
+                            if var num = Int(selectedReps.dropLast(5)) {
                                 if num > 1{
                                     num -= 1
-                                    selecteReps = "\(num) reps"
+                                    selectedReps = "\(num) reps"
                                     feedbackGenerator.impactOccurred()
                                 }
                             }
@@ -244,10 +243,10 @@ struct ExerciseEditorView: View {
                         
                         Button(action: {
                             // INCREMENT BUTTON
-                            if var num = Int(selecteReps.dropLast(5)) {
+                            if var num = Int(selectedReps.dropLast(5)) {
                                 if num < 999 {
                                     num += 1
-                                    selecteReps = "\(num) reps"
+                                    selectedReps = "\(num) reps"
                                     feedbackGenerator.impactOccurred()
                                 }
                             }
@@ -293,6 +292,34 @@ struct ExerciseEditorView: View {
                 // SAVE BUTTON
                 Button(action: {
                     isNameFieldFocused = false
+
+                    if exerciseViewModel.activeExercise.setsAreUnique {
+                        
+                    } else { // homogenous sets
+                        if exerciseViewModel.activeExerciseMode == "AddMode" {
+                            let inputtedSets = Int(selectedSets.dropLast(5))
+                            let inputtedWeight = Float(selectedWeight.dropLast(4))
+                            let inputtedReps = Int(selectedReps.dropLast(5))
+                            
+                            // create sets
+                            var setList: [Set] = []
+                            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                                for _ in 0...unwrappedSets-1 {
+                                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                                    setList.append(newSet)
+                                }
+                            }
+                            
+                            // create new exercise + append it to planViewModel's active plan
+                            let newExercise = Exercise(name: exerciseName, sets: setList)
+                            planViewModel.activePlan.exercises.append(newExercise)
+                            
+                        } else { // Edit Mode or Log Mode
+                            
+                        }
+                    }
+                    
+                    
                     // assign @State input values to activeExericse's properties
 //                    exerciseViewModel.activeExercise.name   = exerciseName
 //                    exerciseViewModel.activeExercise.weight = exerciseWeight
@@ -350,86 +377,23 @@ struct ExerciseEditorView: View {
         .background(Color(.systemGray6))
         .onAppear {
             // assign exercise data from view model to UI input controls
-//            exerciseName = exerciseViewModel.activeExercise.name
-//            exerciseWeight = exerciseViewModel.activeExercise.weight
-//            exerciseReps = exerciseViewModel.activeExercise.reps
-//            exerciseSets = exerciseViewModel.activeExercise.sets
-//            // assign "previous" values used by stepper to compare adjusted values to previous values
-//            previousWeight = exerciseViewModel.activeExercise.weight
-//            previousReps = exerciseViewModel.activeExercise.reps
-//            previousSets = exerciseViewModel.activeExercise.sets
-//            // assign focus to exercise name field if no name exists
-            isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
-        }
-    }
-}
+            exerciseName = exerciseViewModel.activeExercise.name
+            
+            if exerciseViewModel.activeExerciseMode == "AddMode" {
+                selectedSets = "3 sets"
+                selectedWeight = "5 lbs"
+                selectedReps = "12 reps"
+            } else { // edit mode or log mode
+                if exerciseViewModel.activeExercise.setsAreUnique {
 
-// ANIMATION FUNCTIONS
-extension ExerciseEditorView {
-
-    private func incrementWeightAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            weightScaleEffect = incrementedScaleSize
-        }
+                } else { // homogenous sets
+                    selectedSets    = "\(exerciseViewModel.activeExercise.sets.count) sets"
+                    selectedWeight  = "\(exerciseViewModel.activeExercise.sets[0].weight) lbs"
+                    selectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
+                }
+            }
         
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            weightScaleEffect = 1.0
-        }
-    }
-    
-    private func decrementWeightAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            weightScaleEffect = decrementedScaleSize
-        }
-        
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            weightScaleEffect = 1.0
-        }
-    }
-    
-    private func incrementRepsAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            repsScaleEffect = incrementedScaleSize
-        }
-        
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            repsScaleEffect = 1.0
-        }
-    }
-    
-    private func decrementRepsAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            repsScaleEffect = decrementedScaleSize
-        }
-        
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            repsScaleEffect = 1.0
-        }
-    }
-    
-    private func incrementSetsAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            setsScaleEffect = incrementedScaleSize
-        }
-        
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            setsScaleEffect = 1.0
-        }
-    }
-    
-    private func decrementSetsAnimation() {
-        feedbackGenerator.impactOccurred()
-        withAnimation(.easeInOut(duration: textFieldAnimationSpeed)) {
-            setsScaleEffect = decrementedScaleSize
-        }
-        
-        withAnimation(Animation.easeInOut(duration: textFieldAnimationSpeed).delay(textFieldAnimationDelay)) {
-            setsScaleEffect = 1.0
+//            isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }
 }
