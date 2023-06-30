@@ -13,13 +13,17 @@ struct ExerciseEditorView: View {
     
     // Data being inputted / edited:
     @State var exerciseName: String = ""
-    @State var exerciseWeight: Float = 5.0
-    @State var exerciseReps: Int = 12
-    @State var exerciseSets: Int = 3
-    //
-    @State var previousWeight: Float = 0
-    @State var previousReps: Int = 0
-    @State var previousSets: Int = 0
+    // Sets data
+    @State private var selectedSets = "3 sets"
+    let setsRange = Array(1...999).reversed().map { "\($0) sets" }
+    // Weight data
+    @State private var selectedWeight = "5 lbs"
+    let weightRange = stride(from: 995, through: -995, by: -5).map { "\($0) lbs" }
+    // Reps data
+    @State private var selecteReps = "12 reps"
+    let repsRange = Array(1...999).reversed().map { "\($0) reps" }
+    // Toggle for changing individual sets
+    @State private var viewUniqueSets = false
     
     // Textfield animation parameters when +/- buttons are pressed
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -34,7 +38,13 @@ struct ExerciseEditorView: View {
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let fontSize: CGFloat = 25
+    let buttonPlusMinusIconSize: CGFloat = 15
+    let buttonPlusMinusWidth: CGFloat = 85
+    let buttonPlusMinusHeight: CGFloat = 30
+    let buttonPlusMinusSize: CGFloat = 5
+    let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
     
+
 
     var body: some View {
         VStack {
@@ -71,64 +81,212 @@ struct ExerciseEditorView: View {
                 .padding(.vertical, 10)
             
             
-            VStack {
-                // WEIGHT FIELD
-                Stepper(value: $exerciseWeight, in: -999...999, step: 5) {
-                    HStack {
-                        Text("\(Int(exerciseWeight))").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
-                        Text("lbs").fontWeight(.bold).foregroundColor(fgColor).font(.system(size: fontSize))
+            HStack {
+                
+                // SETS SELECTOR
+                VStack {
+                    VStack {
+                        Picker(selection: $selectedSets, label: Text("Weight")) {
+                           ForEach(setsRange, id: \.self) {
+                               Text("\($0)")
+                                   .foregroundColor(fgColor)
+                           }
+                        }
+                        .pickerStyle(WheelPickerStyle())
+                        .frame(width: 100)
+                        .frame(minHeight: 150)
                     }
-                    .scaleEffect(weightScaleEffect)
-                }
-                .padding()
-                .onChange(of: exerciseWeight) { newValue in
-                    if newValue > previousWeight {
-                        incrementWeightAnimation()
-                    } else if newValue < previousWeight {
-                        decrementWeightAnimation()
+                       
+                    HStack() {
+                        // DECREMENT BUTTON
+                        Button(action: {
+                            if var num = Int(selectedSets.dropLast(5)) {
+                                if num > 1 {
+                                    num -= 1
+                                    selectedSets = "\(num) sets"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "minus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
+                        
+                        Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+                        
+                        // INCREMENT BUTTON
+                        Button(action: {
+                            incrementSetsAnimation()
+                            if var num = Int(selectedSets.dropLast(5)) {
+                                if num < 999{
+                                    num += 1
+                                    selectedSets = "\(num) sets"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
                     }
-                    previousWeight = newValue
+                    .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
+                    .background(fgColor)
+                    .cornerRadius(5)
                 }
                 
-                // REPS FIELD
-                Stepper(value: $exerciseReps, in: 1...999) {
-                    HStack {
-                        Text("\(exerciseReps)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
-                        Text("reps").fontWeight(.bold) .foregroundColor(fgColor).font(.system(size: fontSize))
-                    }
-                    .scaleEffect(repsScaleEffect)
-                }
-                .padding()
-                .onChange(of: exerciseReps) { newValue in
-                    if newValue > previousReps {
-                        incrementRepsAnimation()
-                    } else if newValue < previousReps {
-                        decrementRepsAnimation()
-                    }
+                // "X"
+                VStack {
+                    Image(systemName: "xmark")
+                        .foregroundColor(darkGray)
+                        .bold()
+                    Rectangle().frame(width: 1, height:buttonPlusMinusHeight).hidden()
                 }
                 
-                // SETS FIELD
-                Stepper(value: $exerciseSets, in: 1...999) {
-                    HStack {
-                        Text("\(exerciseSets)").fontWeight(.bold).foregroundColor(.white).font(.system(size: fontSize))
-                        Text("sets").fontWeight(.bold) .foregroundColor(fgColor).font(.system(size: fontSize))
+                // WEIGHT SELECTOR
+                VStack {
+                    Picker(selection: $selectedWeight, label: Text("Weight")) {
+                       ForEach(weightRange, id: \.self) {
+                           Text("\($0)")
+                               .foregroundColor(fgColor)
+
+                       }
                     }
-                    .scaleEffect(setsScaleEffect)
+                    .pickerStyle(WheelPickerStyle())
+                    .frame(width: 100)
+                       
+                    HStack() {
+                        // DECREMENT BUTTON
+                        Button(action: {
+                            if var num = Int(selectedWeight.dropLast(4)) {
+                                if num > -956 {
+                                    num -= 5
+                                    selectedWeight = "\(num) lbs"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "minus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
+                        
+                        Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+                        
+                        // INCREMENT BUTTON
+                        Button(action: {
+                            if var num = Int(selectedWeight.dropLast(4)) {
+                                if num < 956{
+                                    num += 5
+                                    selectedWeight = "\(num) lbs"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
+                    }
+                    .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
+                    .background(fgColor)
+                    .cornerRadius(5)
                 }
-                .padding()
-                .onChange(of: exerciseSets) { newValue in
-                    if newValue > previousSets {
-                        incrementSetsAnimation()
-                    } else if newValue < previousSets {
-                        decrementSetsAnimation()
+                
+                // "X"
+                
+                VStack {
+                    Image(systemName: "xmark")
+                        .foregroundColor(darkGray)
+                        .bold()
+                    Rectangle().frame(width: 1, height:buttonPlusMinusHeight).hidden()
+                }
+                
+                // REPS SELECTOR
+                VStack {
+                    Picker(selection: $selecteReps, label: Text("Reps")) {
+                       ForEach(repsRange, id: \.self) {
+                           Text("\($0)")
+                               .foregroundColor(fgColor)
+                       }
                     }
+                   .pickerStyle(WheelPickerStyle())
+                   .frame(width: 100)
+                       
+                    HStack() {
+                        // DECREMENT BUTTON
+                        Button(action: {
+                            if var num = Int(selecteReps.dropLast(5)) {
+                                if num > 1{
+                                    num -= 1
+                                    selecteReps = "\(num) reps"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "minus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
+                        
+                        Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+                        
+                        Button(action: {
+                            // INCREMENT BUTTON
+                            if var num = Int(selecteReps.dropLast(5)) {
+                                if num < 999 {
+                                    num += 1
+                                    selecteReps = "\(num) reps"
+                                    feedbackGenerator.impactOccurred()
+                                }
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .padding(buttonPlusMinusSize)
+                        }
+                    }
+                    .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
+                    .background(fgColor)
+                    .cornerRadius(5)
                 }
             }
-            .frame(width: 260)
-            
-
             
             HStack {
+                Toggle(isOn: $viewUniqueSets) {
+                    Text("Change Specific Sets")
+                        .foregroundColor(viewUniqueSets ? fgColor : darkGray)
+                        .fontWeight(.bold)
+                }
+            }
+            .frame(width: 235)
+            .padding(.top, 20)
+            
+            // BOTTOM TOOLBAR
+            HStack {
+                Spacer()
+                
+                // CANCEL BUTTON
+                Button(action: {
+                    self.presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text("Cancel")
+                        .foregroundColor(fgColor)
+                        .bold()
+                }
                 
                 Spacer()
             
@@ -170,6 +328,17 @@ struct ExerciseEditorView: View {
                     .foregroundColor(fgColor)
                     .background(Color(.systemGray5))
                     .cornerRadius(100)
+                }
+                
+                Spacer()
+                
+                // DELETE BUTTON
+                Button(action: {
+                    // perform delete function
+                }) {
+                    Text("Delete")
+                        .foregroundColor(fgColor)
+                        .bold()
                 }
                 
                 Spacer()

@@ -157,9 +157,9 @@ struct PlanEditorView: View {
                         }
                         .padding(.top, 10)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
-//                            ExerciseEditorView()
-//                                .presentationDetents([.medium, .large])
-//                                .environment(\.colorScheme, .dark)
+                            ExerciseEditorView()
+                                .presentationDetents([.medium, .large])
+                                .environment(\.colorScheme, .dark)
                         }
                         
                         Spacer().frame(height: 90)
