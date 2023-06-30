@@ -276,16 +276,16 @@ struct ExerciseEditorView: View {
             
             // BOTTOM TOOLBAR
             HStack {
-                Spacer()
-                
-                // CANCEL BUTTON
-                Button(action: {
-                    self.presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Cancel")
-                        .foregroundColor(fgColor)
-                        .bold()
-                }
+//                Spacer()
+//
+//                // CANCEL BUTTON
+//                Button(action: {
+//                    self.presentationMode.wrappedValue.dismiss()
+//                }) {
+//                    Text("Cancel")
+//                        .foregroundColor(fgColor)
+//                        .bold()
+//                }
                 
                 Spacer()
             
@@ -293,54 +293,54 @@ struct ExerciseEditorView: View {
                 Button(action: {
                     isNameFieldFocused = false
 
-                    if exerciseViewModel.activeExercise.setsAreUnique {
-                        
-                    } else { // homogenous sets
-                        if exerciseViewModel.activeExerciseMode == "AddMode" {
-                            let inputtedSets = Int(selectedSets.dropLast(5))
-                            let inputtedWeight = Float(selectedWeight.dropLast(4))
-                            let inputtedReps = Int(selectedReps.dropLast(5))
+                    if exerciseViewModel.activeExerciseMode == "AddMode" {
+                        if exerciseViewModel.activeExercise.setsAreUnique {
                             
-                            // create sets
-                            var setList: [Set] = []
-                            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                                for _ in 0...unwrappedSets-1 {
-                                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                                    setList.append(newSet)
+                        } else { // homogenous sets
+                            if exerciseViewModel.activeExerciseMode == "AddMode" {
+                                let inputtedSets = Int(selectedSets.dropLast(5))
+                                let inputtedWeight = Float(selectedWeight.dropLast(4))
+                                let inputtedReps = Int(selectedReps.dropLast(5))
+                                
+                                // create sets
+                                var setList: [Set] = []
+                                if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                                    for _ in 0...unwrappedSets-1 {
+                                        let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                                        setList.append(newSet)
+                                    }
                                 }
+                                
+                                // create new exercise + append it to planViewModel's active plan
+                                let newExercise = Exercise(name: exerciseName, sets: setList)
+                                planViewModel.activePlan.exercises.append(newExercise)
+                                
+                            } else { // Edit Mode or Log Mode
+                                
                             }
-                            
-                            // create new exercise + append it to planViewModel's active plan
-                            let newExercise = Exercise(name: exerciseName, sets: setList)
-                            planViewModel.activePlan.exercises.append(newExercise)
-                            
-                        } else { // Edit Mode or Log Mode
-                            
                         }
+                    } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
+                        
+                        let inputtedSets = Int(selectedSets.dropLast(5))
+                        let inputtedWeight = Float(selectedWeight.dropLast(4))
+                        let inputtedReps = Int(selectedReps.dropLast(5))
+                        
+                        // create sets
+                        var setList: [Set] = []
+                        if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                            for _ in 0...unwrappedSets-1 {
+                                let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                                setList.append(newSet)
+                            }
+                        }
+                        
+                        // update active plan's exercises with the updated exercise
+                        let updatedExercise = Exercise(name: exerciseName, sets: setList)
+                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
+                        
                     }
                     
-                    
-                    // assign @State input values to activeExericse's properties
-//                    exerciseViewModel.activeExercise.name   = exerciseName
-//                    exerciseViewModel.activeExercise.weight = exerciseWeight
-//                    exerciseViewModel.activeExercise.reps   = exerciseReps
-//                    exerciseViewModel.activeExercise.sets   = exerciseSets
-//                    //add exercise to active plan's exercises
-//                    if exerciseViewModel.activeExerciseMode == "AddMode" {
-//
-//                        // Add new exericse to active plan being operated on:
-//                        planViewModel.activePlan.exercises.append(exerciseViewModel.activeExercise)
-//                        //-///////////////////////////////////////////////////
-//
-//                    } else if exerciseViewModel.activeExerciseMode == "EditMode"  {
-//
-//                        // Edit exercise and update active plan
-//                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = exerciseViewModel.activeExercise
-//
-//                    } else { // LogMode
-//
-//                    }
-                    
+                    feedbackGenerator.impactOccurred()
                     self.presentationMode.wrappedValue.dismiss()
                     
                 }) {
@@ -359,16 +359,17 @@ struct ExerciseEditorView: View {
                 
                 Spacer()
                 
-                // DELETE BUTTON
-                Button(action: {
-                    // perform delete function
-                }) {
-                    Text("Delete")
-                        .foregroundColor(fgColor)
-                        .bold()
-                }
-                
-                Spacer()
+//                // DELETE BUTTON
+//                Button(action: {
+//                    // perform delete function
+//                }) {
+//                    Text("Delete")
+//                        .bold()
+//                }
+//                .disabled(true)
+//                .foregroundColor(darkGray)
+//
+//                Spacer()
             }
             .padding(.top, 20)
             
@@ -378,22 +379,35 @@ struct ExerciseEditorView: View {
         .onAppear {
             // assign exercise data from view model to UI input controls
             exerciseName = exerciseViewModel.activeExercise.name
+            viewUniqueSets  = exerciseViewModel.activeExercise.setsAreUnique
             
             if exerciseViewModel.activeExerciseMode == "AddMode" {
-                selectedSets = "3 sets"
-                selectedWeight = "5 lbs"
-                selectedReps = "12 reps"
-            } else { // edit mode or log mode
-                if exerciseViewModel.activeExercise.setsAreUnique {
-
+                if viewUniqueSets {
+                    // add unique sets to new exercise + append to active plan
+                } else {
+                    selectedSets    = "3 sets"
+                    selectedWeight  = "5 lbs"
+                    selectedReps    = "12 reps"
+                }
+            } else if exerciseViewModel.activeExerciseMode == "EditMode" {
+                if viewUniqueSets {
+                    // udpate exercise with unique sets + update active plan with edited exercise
                 } else { // homogenous sets
                     selectedSets    = "\(exerciseViewModel.activeExercise.sets.count) sets"
-                    selectedWeight  = "\(exerciseViewModel.activeExercise.sets[0].weight) lbs"
+                    selectedWeight  = "\(Int(exerciseViewModel.activeExercise.sets[0].weight)) lbs"
+                    selectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
+                }
+            } else if exerciseViewModel.activeExerciseMode == "LogMode" {
+                if viewUniqueSets {
+                    // udpate exercise with unique sets + update active plan with edited exercise
+                } else { // homogenous sets
+                    selectedSets    = "\(exerciseViewModel.activeExercise.sets.count) sets"
+                    selectedWeight  = "\(Int(exerciseViewModel.activeExercise.sets[0].weight)) lbs"
                     selectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
                 }
             }
-        
-//            isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
+
+            // isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }
 }

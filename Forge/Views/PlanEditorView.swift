@@ -137,6 +137,11 @@ struct PlanEditorView: View {
                             .padding(15) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
                             .background(bgColor)
                             .cornerRadius(16)
+                            .sheet(isPresented: $exerciseEditorIsPresented) {
+                                ExerciseEditorView()
+                                    .presentationDetents([.medium, .large])
+                                    .environment(\.colorScheme, .dark)
+                            }
                         }
                         .padding(.horizontal, 15)
                         .padding(.vertical, 8)
@@ -158,6 +163,7 @@ struct PlanEditorView: View {
                         .padding(.top, 10)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
                             ExerciseEditorView()
+                                .background(.black)
                                 .presentationDetents([.medium, .large])
                                 .environment(\.colorScheme, .dark)
                         }
