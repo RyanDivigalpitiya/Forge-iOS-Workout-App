@@ -24,3 +24,4 @@ struct Set: Identifiable, Encodable, Decodable {
         self.completed = false
     }
 }
+    
