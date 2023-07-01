@@ -64,12 +64,16 @@ struct ExerciseEditorView: View {
                     Button(action: {
                         self.presentationMode.wrappedValue.dismiss()
                     }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .resizable()
-                            .frame(width: 23, height: 23)
-                            .background(.gray)
-                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
-                            .clipShape(Circle())
+                        ZStack {
+                            Circle()
+                                .frame(width: 28, height: 28)
+                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                            Image(systemName: "xmark")
+                                .resizable()
+                                .frame(width: 11, height: 11)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
                 .frame(width: 0.2*screenWidth)
@@ -101,13 +105,24 @@ struct ExerciseEditorView: View {
                         saveExercise()
                     }) {
                         ZStack {
-                            Circle()
-                                .frame(width: 24, height: 24)
-                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
-                            Image("Checkmark")
-                                .resizable()
-                                .frame(width: 13, height: 11)
-                                .padding(.top,1)
+                            if exerciseViewModel.activeExerciseMode == "AddMode" {
+                                Circle()
+                                    .frame(width: 28, height: 28)
+                                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                Image(systemName: "plus")
+                                    .resizable()
+                                    .frame(width: 13, height: 13)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(fgColor)
+                            } else if exerciseViewModel.activeExerciseMode == "EditMode" {
+                                Circle()
+                                    .frame(width: 28, height: 28)
+                                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                Image("Checkmark")
+                                    .resizable()
+                                    .frame(width: 15, height: 13)
+                                    .padding(.top,1)
+                            }
                         }
                     }
                 }
@@ -123,7 +138,7 @@ struct ExerciseEditorView: View {
                 .fontWeight(.bold)
                 .multilineTextAlignment(.center)
                 .font(.system(size: 23))
-                .padding(.vertical, 10)
+                .padding(.bottom, 10)
             
             // HOMOGENOUS SET SELECTORS
             HStack {
@@ -331,7 +346,7 @@ struct ExerciseEditorView: View {
                 }
             }
             .frame(width: 235)
-            .padding(.top, 20)
+            .padding(.top, uniqueSets ? 0 : 20)
             
             // HETEROGENOUS SET ROWS + SELECTORS
             VStack {
