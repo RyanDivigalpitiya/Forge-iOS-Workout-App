@@ -30,6 +30,8 @@ struct ExerciseEditorView: View {
     @State private var heteroSets_Reps: [String] = ["12 reps", "12 reps", "12 reps"]
     @State private var heteroSets_Failure: [Bool] = [false, false, false]
     
+    @State private var homoHeteroControlsAreConnected: Bool = false
+    
     // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     @State private var homogenousSelectorHeight: CGFloat = 200
@@ -331,15 +333,6 @@ struct ExerciseEditorView: View {
             .frame(maxHeight: homogenousSelectorHeight)
             .clipped()
             .opacity(homogenousSelectorOpacity)
-            .onChange(of: homoSelectedSets) { newValue in
-                updateHeteroDataBasedOnHomoData()
-            }
-            .onChange(of: homoSelectedWeight) { newValue in
-                updateHeteroDataBasedOnHomoData()
-            }
-            .onChange(of: homoSelectedReps) { newValue in
-                updateHeteroDataBasedOnHomoData()
-            }
             
             // TOGGLE
             HStack {
@@ -349,6 +342,13 @@ struct ExerciseEditorView: View {
                         .fontWeight(.bold)
                 }
                 .onChange(of: uniqueSets) { newValue in
+//
+//                    if newValue == false { // we're switching to viewing the homogenous sets
+//                        updateHomoDataBasedOnHeteroData()
+//                    } else { // we're switching to viewing the heterogenous sets
+//                        updateHeteroDataBasedOnHomoData()
+//                    }
+//
                     withAnimation(.easeInOut(duration: 0.3)) {
                         homogenousSelectorHeight = newValue ? 0 : 200
                         homogenousSelectorOpacity = newValue ? 0 : 1
@@ -611,6 +611,7 @@ struct ExerciseEditorView: View {
         }
         .background(Color(.systemGray6))
         .onAppear {
+            homoHeteroControlsAreConnected = false
             // initialize UI dimensions, labels + toggle based on activeExercise and activeMode
             // name field
             exerciseName = exerciseViewModel.activeExercise.name
@@ -636,6 +637,8 @@ struct ExerciseEditorView: View {
             homoSelectedWeight  = "\(Int(exerciseViewModel.activeExercise.sets[0].weight)) lbs"
             homoSelectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
             
+            homoHeteroControlsAreConnected = true
+            
             // isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }
@@ -647,94 +650,60 @@ extension ExerciseEditorView {
     func saveExercise() {
         isNameFieldFocused = false
         
-        if exerciseViewModel.activeExerciseMode == "AddMode" {
-            if uniqueSets { // heterogenous sets
-                
-                // create list of sets
-                var newSets: [Set] = []
-                for index in 0...heteroSets_Weights.count-1 {
-                    let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
-                    let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
-                    if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                        let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
-                        newSets.append(newSet)
-                    }
-                }
-                
-                // create new exercise + append it to planViewModel's active plan
-                let newExercise = Exercise(name: exerciseName, sets: newSets)
-                planViewModel.activePlan.exercises.append(newExercise)
-                
-                
-            } else { // homogenous sets
-                if exerciseViewModel.activeExerciseMode == "AddMode" {
-                    let inputtedSets = Int(homoSelectedSets.dropLast(5))
-                    let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
-                    let inputtedReps = Int(homoSelectedReps.dropLast(5))
-                    
-                    // create sets
-                    var newSets: [Set] = []
-                    if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                        for _ in 0...unwrappedSets-1 {
-                            let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                            newSets.append(newSet)
-                        }
-                    }
-                    
-                    // create new exercise + append it to planViewModel's active plan
-                    let newExercise = Exercise(name: exerciseName, sets: newSets)
-                    planViewModel.activePlan.exercises.append(newExercise)
-                    
-                } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode"  { // unique sets
-                    if uniqueSets {
-                        
-                    }
-                }
+        // create list of sets that were edited
+        var newSets: [Set] = []
+        for index in 0...heteroSets_Weights.count-1 {
+            let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
+            let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
+            if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
+                let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
+                newSets.append(newSet)
             }
-        } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" { // not unique sets
-            
-            let inputtedSets = Int(homoSelectedSets.dropLast(5))
-            let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
-            let inputtedReps = Int(homoSelectedReps.dropLast(5))
-            
-            // create sets
-            var setList: [Set] = []
-            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                for _ in 0...unwrappedSets-1 {
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                    setList.append(newSet)
-                }
-            }
-            
-            // update active plan's exercises with the updated exercise
-            let updatedExercise = Exercise(name: exerciseName, sets: setList)
-            planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
-            
         }
         
-        //        planViewModel.activePlan.
+        if exerciseViewModel.activeExerciseMode == "AddMode" {
+            // create new exercise + append it to planViewModel's active plan
+            let newExercise = Exercise(name: exerciseName, sets: newSets)
+            planViewModel.activePlan.exercises.append(newExercise)
+
+        } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
+            // update active plan's exercises with the updated exercise
+            let updatedExercise = Exercise(name: exerciseName, sets: newSets)
+            planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
+        }
+        
         feedbackGenerator.impactOccurred()
         self.presentationMode.wrappedValue.dismiss()
     }
     
     func updateHeteroDataBasedOnHomoData() {
-        // clear heteroSets_ values and append values from homoSelected_ data
-        heteroSets_Weights.removeAll()
-        heteroSets_Reps.removeAll()
-        heteroSets_Failure.removeAll()
-        
-        let inputtedSets = Int(homoSelectedSets.dropLast(5))
-        let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
-        let inputtedReps = Int(homoSelectedReps.dropLast(5))
-        
-        // update individual sets
-        if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-            for _ in 0...unwrappedSets-1 {
-                heteroSets_Weights.append("\(Int(unwrappedWeight)) lbs")
-                heteroSets_Reps.append("\(unwrappedReps) reps")
-                heteroSets_Failure.append(false)
-                
+        if homoHeteroControlsAreConnected {
+            // clear heteroSets_ values and append values from homoSelected_ data
+            heteroSets_Weights.removeAll()
+            heteroSets_Reps.removeAll()
+            heteroSets_Failure.removeAll()
+            
+            let inputtedSets = Int(homoSelectedSets.dropLast(5))
+            let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
+            let inputtedReps = Int(homoSelectedReps.dropLast(5))
+            
+            // update individual sets
+            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                for _ in 0...unwrappedSets-1 {
+                    heteroSets_Weights.append("\(Int(unwrappedWeight)) lbs")
+                    heteroSets_Reps.append("\(unwrappedReps) reps")
+                    heteroSets_Failure.append(false)
+                    
+                }
             }
+        }
+    }
+    
+    func updateHomoDataBasedOnHeteroData() {
+        if homoHeteroControlsAreConnected {
+            homoSelectedSets = "\(heteroSets_Weights.count) sets"
+            homoSelectedWeight = heteroSets_Weights[0]
+            homoSelectedReps = heteroSets_Reps[0]
         }
     }
 }
