@@ -15,7 +15,7 @@ struct Exercise: Identifiable, Encodable, Decodable {
     init() {
         self.id = UUID()
         self.name = ""
-        self.sets = []
+        self.sets = [Set(), Set(), Set()]
         self.completed = false
         self.setsAreUnique = false
         self.setsAreUnique = containsUniqueSets()

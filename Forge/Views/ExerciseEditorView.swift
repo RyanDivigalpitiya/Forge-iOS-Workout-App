@@ -13,6 +13,7 @@ struct ExerciseEditorView: View {
     
     // Data being inputted / edited:
     @State var exerciseName: String = ""
+    // Homogenous Sets: ////////////////////////////////////////////////////////////
     // Sets data
     @State private var selectedSets = "3 sets"
     let setsRange = Array(1...999).reversed().map { "\($0) sets" }
@@ -24,16 +25,17 @@ struct ExerciseEditorView: View {
     let repsRange = Array(1...999).reversed().map { "\($0) reps" }
     // Toggle for changing individual sets
     @State private var viewUniqueSets = false
+    // Heterogenous Sets: ////////////////////////////////////////////////////////////
+    @State private var heteroSets_Weights: [String] = ["5 lbs", "5 lbs", "5 lbs"]
+    @State private var heteroSets_Reps: [String] = ["12 reps", "12 reps", "12 reps"]
+    @State private var heteroSets_Failure: [Bool] = [false, false, false]
     
-    // Textfield animation parameters when +/- buttons are pressed
+    // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
-    @State private var weightScaleEffect: CGFloat = 1.0
-    @State private var repsScaleEffect: CGFloat = 1.0
-    @State private var setsScaleEffect: CGFloat = 1.0
-    private var incrementedScaleSize: CGFloat = 1.2
-    private var decrementedScaleSize: CGFloat = 0.9
-    let textFieldAnimationSpeed: Double = 0.05
-    let textFieldAnimationDelay: Double = 0.05
+    @State private var homogenousSelectorHeight: CGFloat = 200
+    @State private var heterogenousSelectorHeight: CGFloat = 0
+    @State private var homogenousSelectorOpacity: Double = 1.0
+    @State private var heterogenousSelectorOpacity: Double = 0
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -48,7 +50,8 @@ struct ExerciseEditorView: View {
 
     var body: some View {
         VStack {
-            Spacer()
+            ScrollView {
+                Spacer()
             
             if exerciseViewModel.activeExerciseMode == "AddMode" {
                 Text("Add Exercise")
@@ -80,7 +83,7 @@ struct ExerciseEditorView: View {
                 .font(.system(size: 23))
                 .padding(.vertical, 10)
             
-            
+            // HOMOGENOUS SET SELECTORS
             HStack {
                 
                 // SETS SELECTOR
@@ -157,6 +160,7 @@ struct ExerciseEditorView: View {
                        }
                     }
                     .pickerStyle(WheelPickerStyle())
+                    .frame(minHeight: 150)
                     .frame(width: 100)
                        
                     HStack() {
@@ -219,6 +223,7 @@ struct ExerciseEditorView: View {
                        }
                     }
                    .pickerStyle(WheelPickerStyle())
+                   .frame(minHeight: 150)
                    .frame(width: 100)
                        
                     HStack() {
@@ -263,16 +268,104 @@ struct ExerciseEditorView: View {
                     .cornerRadius(5)
                 }
             }
+            .frame(maxHeight: homogenousSelectorHeight)
+            .clipped()
+            .opacity(homogenousSelectorOpacity)
             
+            // TOGGLE
             HStack {
                 Toggle(isOn: $viewUniqueSets) {
                     Text("Change Specific Sets")
                         .foregroundColor(viewUniqueSets ? fgColor : darkGray)
                         .fontWeight(.bold)
                 }
+                .onChange(of: viewUniqueSets) { newValue in
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        homogenousSelectorHeight = newValue ? 0 : 200
+                        homogenousSelectorOpacity = newValue ? 0 : 1
+                        heterogenousSelectorHeight = newValue ? 175 : 0
+                        heterogenousSelectorOpacity = newValue ? 1 : 0
+                    }
+                }
             }
+            
             .frame(width: 235)
             .padding(.top, 20)
+            
+            // HETEROGENOUS SET ROWS + SELECTORS
+            VStack {
+                if !exerciseViewModel.activeExercise.sets.isEmpty {
+                    ForEach(heteroSets_Weights.indices, id: \.self) { setIndex in
+                        
+                        // SET ROW
+                        HStack() {
+                            
+                            HStack {
+                                // SET LABEL
+                                Text("Set \(setIndex+1)")
+                                    .foregroundColor(fgColor)
+                                    .fontWeight(.bold)
+                                    .font(.system(size: 15))
+                                    .frame(width: 45)
+                                
+                                // WEIGHT SELECTOR
+                                VStack {
+                                    Picker(selection: $heteroSets_Weights[setIndex], label: Text("Weight")) {
+                                        ForEach(weightRange, id: \.self) {
+                                            Text("\($0)")
+                                                .foregroundColor(fgColor)
+                                        }
+                                    }
+                                    .pickerStyle(WheelPickerStyle())
+                                    .frame(minHeight: 150)
+                                    .frame(width: 100)
+                                }
+                                
+                                // "X"
+                                VStack {
+                                    Image(systemName: "xmark")
+                                        .foregroundColor(darkGray)
+                                        .bold()
+                                }
+                                
+                                // REPS SELECTOR
+                                VStack {
+                                    Picker(selection: $heteroSets_Reps[setIndex], label: Text("Reps")) {
+                                        ForEach(repsRange, id: \.self) {
+                                            Text("\($0)")
+                                                .foregroundColor(fgColor)
+                                        }
+                                    }
+                                    .pickerStyle(WheelPickerStyle())
+                                    .frame(minHeight: 150)
+                                    .frame(width: 100)
+                                }
+                                
+                                // till Failure + Delete Button
+                                VStack(spacing: 15) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(darkGray)
+                                    Spacer().frame(height: 8)
+                                    Image(systemName: "trash.fill")
+                                        .foregroundColor(darkGray)
+                                }
+                                .frame(width: 45)
+                            }
+                            .padding(15)
+                        }
+                        .frame(maxHeight: heterogenousSelectorHeight)
+                        .clipped()
+                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
+                        .opacity(heterogenousSelectorOpacity)
+                        .cornerRadius(20)
+                        .padding(.top, 10)
+                        
+                        
+                    }
+                }
+                
+            }
+            
             
             // BOTTOM TOOLBAR
             HStack {
@@ -294,7 +387,23 @@ struct ExerciseEditorView: View {
                     isNameFieldFocused = false
 
                     if exerciseViewModel.activeExerciseMode == "AddMode" {
-                        if exerciseViewModel.activeExercise.setsAreUnique {
+                        if viewUniqueSets { // heterogenous sets
+
+                            // create list of sets
+                            var newSets: [Set] = []
+                            for index in 0...heteroSets_Weights.count-1 {
+                                let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
+                                let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
+                                if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
+                                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
+                                    newSets.append(newSet)
+                                }
+                            }
+                            
+                            // create new exercise + append it to planViewModel's active plan
+                            let newExercise = Exercise(name: exerciseName, sets: newSets)
+                            planViewModel.activePlan.exercises.append(newExercise)
+                            
                             
                         } else { // homogenous sets
                             if exerciseViewModel.activeExerciseMode == "AddMode" {
@@ -303,16 +412,16 @@ struct ExerciseEditorView: View {
                                 let inputtedReps = Int(selectedReps.dropLast(5))
                                 
                                 // create sets
-                                var setList: [Set] = []
+                                var newSets: [Set] = []
                                 if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
                                     for _ in 0...unwrappedSets-1 {
                                         let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                                        setList.append(newSet)
+                                        newSets.append(newSet)
                                     }
                                 }
                                 
                                 // create new exercise + append it to planViewModel's active plan
-                                let newExercise = Exercise(name: exerciseName, sets: setList)
+                                let newExercise = Exercise(name: exerciseName, sets: newSets)
                                 planViewModel.activePlan.exercises.append(newExercise)
                                 
                             } else { // Edit Mode or Log Mode
@@ -345,7 +454,7 @@ struct ExerciseEditorView: View {
                     
                 }) {
                     HStack {
-                        Image(systemName: "checkmark.circle.fill")
+                        Image(systemName: "arrow.up.circle.fill")
                             .resizable()
                             .frame(width: 15, height: 15)
                         Text("Save")
@@ -374,6 +483,8 @@ struct ExerciseEditorView: View {
             .padding(.top, 20)
             
             Spacer()
+        }
+            
         }
         .background(Color(.systemGray6))
         .onAppear {
