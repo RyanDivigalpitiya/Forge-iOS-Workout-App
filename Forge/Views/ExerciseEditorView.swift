@@ -36,44 +36,85 @@ struct ExerciseEditorView: View {
     @State private var heterogenousSelectorHeight: CGFloat = 0
     @State private var homogenousSelectorOpacity: Double = 1.0
     @State private var heterogenousSelectorOpacity: Double = 0
+    @State private var heterogenousSetMaxViewHeight: CGFloat = CGFloat((150*3)+80)
+    @State private var heterogenousSetRowHeight: CGFloat = 1000000
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
-    let fontSize: CGFloat = 25
-//    let specificSetFontSize: CGFlo
+    let fontSize: CGFloat = 21
+    let fontTitleSize: CGFloat = 35
     let buttonPlusMinusIconSize: CGFloat = 15
     let buttonPlusMinusWidth: CGFloat = 85
     let buttonPlusMinusHeight: CGFloat = 30
     let buttonPlusMinusSize: CGFloat = 5
+    let wheelSelectorSize: CGFloat = 150
     let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
+    let screenWidth = UIScreen.main.bounds.width
     
 
 
     var body: some View {
         VStack {
             ScrollView {
-                Spacer()
-            
-            if exerciseViewModel.activeExerciseMode == "AddMode" {
-                Text("Add Exercise")
-                    .font(.title)
-                    .foregroundColor(fgColor)
-                    .fontWeight(.bold)
-                    .padding(.top,15)
-            } else if exerciseViewModel.activeExerciseMode == "EditMode" {
-                Text("Edit Exercise")
-                    .font(.title)
-                    .foregroundColor(fgColor)
-                    .fontWeight(.bold)
-                    .padding(.top,15)
-            } else {
-                Text("Log Change")
-                    .font(.title)
-                    .foregroundColor(fgColor)
-                    .fontWeight(.bold)
-                    .padding(.top,15)
+            // TOP TOOLBAR
+                HStack {
+                    
+                // dismiss button?
+                HStack {
+                    Button(action: {
+                        self.presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .resizable()
+                            .frame(width: 23, height: 23)
+                            .background(.gray)
+                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                            .clipShape(Circle())
+                    }
+                }
+                .frame(width: 0.2*screenWidth)
+                
+                // Title text
+                HStack {
+                    if exerciseViewModel.activeExerciseMode == "AddMode" {
+                        Text("Add Exercise")
+                            .font(.system(size:fontTitleSize))
+                            .foregroundColor(fgColor)
+                            .fontWeight(.bold)
+                    } else if exerciseViewModel.activeExerciseMode == "EditMode" {
+                        Text("Edit Exercise")
+                            .font(.system(size:fontTitleSize))
+                            .foregroundColor(fgColor)
+                            .fontWeight(.bold)
+                    } else {
+                        Text("Log Change")
+                            .font(.system(size:fontTitleSize))
+                            .foregroundColor(fgColor)
+                            .fontWeight(.bold)
+                    }
+                }
+                .frame(width: 0.6*screenWidth)
+                
+                // save button?
+                HStack {
+                    Button(action: {
+                        saveExercise()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .frame(width: 24, height: 24)
+                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                            Image("Checkmark")
+                                .resizable()
+                                .frame(width: 13, height: 11)
+                                .padding(.top,1)
+                        }
+                    }
+                }
+                .frame(width: 0.2*screenWidth)
             }
-            
+                .padding(.top,15)
+                
             TextField("Enter Exercise Name Here", text: $exerciseName)
                 .frame(width: 300)
                 .focused($isNameFieldFocused)
@@ -98,7 +139,7 @@ struct ExerciseEditorView: View {
                         }
                         .pickerStyle(WheelPickerStyle())
                         .frame(width: 100)
-                        .frame(minHeight: 150)
+                        .frame(maxHeight: wheelSelectorSize)
                     }
                        
                     HStack() {
@@ -161,7 +202,7 @@ struct ExerciseEditorView: View {
                        }
                     }
                     .pickerStyle(WheelPickerStyle())
-                    .frame(minHeight: 150)
+                    .frame(maxHeight: wheelSelectorSize)
                     .frame(width: 100)
                        
                     HStack() {
@@ -224,7 +265,7 @@ struct ExerciseEditorView: View {
                        }
                     }
                    .pickerStyle(WheelPickerStyle())
-                   .frame(minHeight: 150)
+                   .frame(maxHeight: wheelSelectorSize)
                    .frame(width: 100)
                        
                     HStack() {
@@ -284,12 +325,11 @@ struct ExerciseEditorView: View {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         homogenousSelectorHeight = newValue ? 0 : 200
                         homogenousSelectorOpacity = newValue ? 0 : 1
-                        heterogenousSelectorHeight = newValue ? 175 : 0
+                        heterogenousSelectorHeight = newValue ? heterogenousSetMaxViewHeight : 0
                         heterogenousSelectorOpacity = newValue ? 1 : 0
                     }
                 }
             }
-            
             .frame(width: 235)
             .padding(.top, 20)
             
@@ -300,7 +340,7 @@ struct ExerciseEditorView: View {
                         
                         // SET ROW
                         HStack() {
-                            
+                            // padding hstack
                             HStack { // internal padding hstack
                                 
                                 // SET LABEL + DELETE BUTTON
@@ -391,8 +431,11 @@ struct ExerciseEditorView: View {
                                     Image(systemName: "xmark")
                                         .foregroundColor(darkGray)
                                         .bold()
-                                    Rectangle().frame(width: 1, height: buttonPlusMinusHeight).hidden().padding(.bottom,9)
+                                    Rectangle().frame(width: 1, height: buttonPlusMinusHeight)
+                                        .hidden()
+                                        .padding(.bottom,9)
                                 }
+                                .padding(.horizontal, -5)
                                 
                                 // REPS LABEL + PLUS/MINUS BUTTONS
                                 VStack{
@@ -470,20 +513,12 @@ struct ExerciseEditorView: View {
 
                                 
                             }
-                            .padding(20)
                         }
-                        .frame(maxHeight: heterogenousSelectorHeight)
-                        .clipped()
-//                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
-                        .opacity(heterogenousSelectorOpacity)
-                        .cornerRadius(20)
+                        .frame(height: 100)
                         .padding(.top, 10)
-                        
-                        
+                        .cornerRadius(20)
                     }
                 }
-                
-                
                 // ADD SET BUTTON
                 Button(action: {
                     if let unwrappedLastWeight = heteroSets_Weights.last {
@@ -501,126 +536,40 @@ struct ExerciseEditorView: View {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Set").fontWeight(.bold)
                     }
+                    .frame(height: 20)
                     .foregroundColor(fgColor)
+                }
+                .onChange(of: heteroSets_Weights) { newValue in
+                    let count = newValue.count
+                    // compute new height
+                    heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
                 }
                 .padding(.top, 20)
-            }
-            
-            
-            // BOTTOM TOOLBAR
-            HStack {
-//                Spacer()
-//
-//                // CANCEL BUTTON
-//                Button(action: {
-//                    self.presentationMode.wrappedValue.dismiss()
-//                }) {
-//                    Text("Cancel")
-//                        .foregroundColor(fgColor)
-//                        .bold()
-//                }
                 
-                Spacer()
-            
                 // SAVE BUTTON
-                Button(action: {
-                    isNameFieldFocused = false
-
-                    if exerciseViewModel.activeExerciseMode == "AddMode" {
-                        if uniqueSets { // heterogenous sets
-
-                            // create list of sets
-                            var newSets: [Set] = []
-                            for index in 0...heteroSets_Weights.count-1 {
-                                let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
-                                let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
-                                if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
-                                    newSets.append(newSet)
-                                }
-                            }
-                            
-                            // create new exercise + append it to planViewModel's active plan
-                            let newExercise = Exercise(name: exerciseName, sets: newSets)
-                            planViewModel.activePlan.exercises.append(newExercise)
-                            
-                            
-                        } else { // homogenous sets
-                            if exerciseViewModel.activeExerciseMode == "AddMode" {
-                                let inputtedSets = Int(selectedSets.dropLast(5))
-                                let inputtedWeight = Float(selectedWeight.dropLast(4))
-                                let inputtedReps = Int(selectedReps.dropLast(5))
-                                
-                                // create sets
-                                var newSets: [Set] = []
-                                if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                                    for _ in 0...unwrappedSets-1 {
-                                        let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                                        newSets.append(newSet)
-                                    }
-                                }
-                                
-                                // create new exercise + append it to planViewModel's active plan
-                                let newExercise = Exercise(name: exerciseName, sets: newSets)
-                                planViewModel.activePlan.exercises.append(newExercise)
-                                
-                            } else { // Edit Mode or Log Mode
-                                
-                            }
+                HStack {
+                    Button(action: {
+                        saveExercise()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .resizable()
+                                .frame(width: 15, height: 15)
+                            Text("Save")
+                                .fontWeight(.bold)
                         }
-                    } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
-                        
-                        let inputtedSets = Int(selectedSets.dropLast(5))
-                        let inputtedWeight = Float(selectedWeight.dropLast(4))
-                        let inputtedReps = Int(selectedReps.dropLast(5))
-                        
-                        // create sets
-                        var setList: [Set] = []
-                        if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                            for _ in 0...unwrappedSets-1 {
-                                let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
-                                setList.append(newSet)
-                            }
-                        }
-                        
-                        // update active plan's exercises with the updated exercise
-                        let updatedExercise = Exercise(name: exerciseName, sets: setList)
-                        planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
-                        
+                        .padding(EdgeInsets(top: 6, leading: 13, bottom: 6, trailing: 14))
+                        .foregroundColor(fgColor)
+                        .background(Color(.systemGray5))
+                        .cornerRadius(100)
                     }
-                    
-                    feedbackGenerator.impactOccurred()
-                    self.presentationMode.wrappedValue.dismiss()
-                    
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .resizable()
-                            .frame(width: 15, height: 15)
-                        Text("Save")
-                            .fontWeight(.bold)
-                    }
-                    .padding(EdgeInsets(top: 6, leading: 13, bottom: 6, trailing: 14))
-                    .foregroundColor(fgColor)
-                    .background(Color(.systemGray5))
-                    .cornerRadius(100)
                 }
-                
-                Spacer()
-                
-//                // DELETE BUTTON
-//                Button(action: {
-//                    // perform delete function
-//                }) {
-//                    Text("Delete")
-//                        .bold()
-//                }
-//                .disabled(true)
-//                .foregroundColor(darkGray)
-//
-//                Spacer()
+                .padding(20)
             }
-            .padding(.top, 20)
+            .frame(maxHeight: heterogenousSelectorHeight)
+            .clipped()
+            .opacity(heterogenousSelectorOpacity)
+            
             
             Spacer()
         }
@@ -630,6 +579,8 @@ struct ExerciseEditorView: View {
         .onAppear {
             // assign exercise data from view model to UI input controls
             exerciseName = exerciseViewModel.activeExercise.name
+            let count = exerciseViewModel.activeExercise.sets.count
+            heterogenousSetMaxViewHeight = CGFloat((Int(heterogenousSetRowHeight)*count)+80)
 //            uniqueSets  = true // for testing UI purposes
             uniqueSets  = exerciseViewModel.activeExercise.setsAreUnique
             
@@ -661,6 +612,79 @@ struct ExerciseEditorView: View {
 
             // isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
+    }
+}
+
+// save function used by multiple save buttons in this view
+extension ExerciseEditorView {
+    func saveExercise() {
+            isNameFieldFocused = false
+
+            if exerciseViewModel.activeExerciseMode == "AddMode" {
+                if uniqueSets { // heterogenous sets
+
+                    // create list of sets
+                    var newSets: [Set] = []
+                    for index in 0...heteroSets_Weights.count-1 {
+                        let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
+                        let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
+                        if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
+                            let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
+                            newSets.append(newSet)
+                        }
+                    }
+                    
+                    // create new exercise + append it to planViewModel's active plan
+                    let newExercise = Exercise(name: exerciseName, sets: newSets)
+                    planViewModel.activePlan.exercises.append(newExercise)
+                    
+                    
+                } else { // homogenous sets
+                    if exerciseViewModel.activeExerciseMode == "AddMode" {
+                        let inputtedSets = Int(selectedSets.dropLast(5))
+                        let inputtedWeight = Float(selectedWeight.dropLast(4))
+                        let inputtedReps = Int(selectedReps.dropLast(5))
+                        
+                        // create sets
+                        var newSets: [Set] = []
+                        if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                            for _ in 0...unwrappedSets-1 {
+                                let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                                newSets.append(newSet)
+                            }
+                        }
+                        
+                        // create new exercise + append it to planViewModel's active plan
+                        let newExercise = Exercise(name: exerciseName, sets: newSets)
+                        planViewModel.activePlan.exercises.append(newExercise)
+                        
+                    } else { // Edit Mode or Log Mode
+                        
+                    }
+                }
+            } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
+                
+                let inputtedSets = Int(selectedSets.dropLast(5))
+                let inputtedWeight = Float(selectedWeight.dropLast(4))
+                let inputtedReps = Int(selectedReps.dropLast(5))
+                
+                // create sets
+                var setList: [Set] = []
+                if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                    for _ in 0...unwrappedSets-1 {
+                        let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                        setList.append(newSet)
+                    }
+                }
+                
+                // update active plan's exercises with the updated exercise
+                let updatedExercise = Exercise(name: exerciseName, sets: setList)
+                planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
+                
+            }
+            
+            feedbackGenerator.impactOccurred()
+            self.presentationMode.wrappedValue.dismiss()
     }
 }
 
