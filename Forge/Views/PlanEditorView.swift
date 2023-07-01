@@ -26,7 +26,7 @@ struct PlanEditorView: View {
                 HStack{
                     Spacer()
                     Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
-                        .font(.system(size: 35))
+                        .font(.system(size: 40))
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
                     Spacer() 
@@ -40,7 +40,7 @@ struct PlanEditorView: View {
                     .foregroundColor(.white)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
-                    .font(.system(size: 25))
+                    .font(.system(size: 30))
                 
                 // LIST OF EXERCISES
                 ScrollView {
@@ -59,7 +59,7 @@ struct PlanEditorView: View {
                                         Text(planViewModel.activePlan.exercises[index].name)
                                             .fontWeight(.bold)
                                             .foregroundColor(fgColor)
-                                            .font(.system(size: setsFontSize))
+                                            .font(.system(size: 30))
                                         Spacer()
                                         Image(systemName: "pencil.circle.fill")
                                             .resizable()
@@ -129,6 +129,7 @@ struct PlanEditorView: View {
                                                 .opacity(0.6)
                                             Spacer()
                                         }
+                                        .padding(.top, -8)
                                         .fontWeight(.bold)
                                         .font(.system(size: setsFontSize))
                                     }
