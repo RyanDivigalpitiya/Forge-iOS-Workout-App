@@ -9,6 +9,7 @@ struct SetView: View {
     var setIndex: Int
     var exerciseIndex: Int
     var uniqueSets: Bool
+    var displayLabelBKG: Bool
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -26,7 +27,7 @@ struct SetView: View {
                     .font(.system(size: 16))
                     .foregroundColor(.white)
                     .frame(width: 58, height: 28)
-                    .background(fgColor)
+                    .background(displayLabelBKG ? fgColor : Color.clear)
                     .cornerRadius(5)
                     .padding(.trailing, setsSpacing+2)
                 Text("\(Int(set.weight)) lb")
@@ -84,7 +85,7 @@ struct SetView: View {
 
 struct SetView_Previews: PreviewProvider {
     static var previews: some View {
-        SetView(setIndex: 0, exerciseIndex: 0, uniqueSets: true)
+        SetView(setIndex: 0, exerciseIndex: 0, uniqueSets: true, displayLabelBKG: true)
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .preferredColorScheme(.dark)
 

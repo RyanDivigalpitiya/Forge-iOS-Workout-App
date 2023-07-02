@@ -16,6 +16,9 @@ struct WorkoutInProgressView: View {
     @State var selectedDetent: PresentationDetent = .medium
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     
+    // Animation + Feedback parameters
+    let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
+    
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
@@ -29,7 +32,7 @@ struct WorkoutInProgressView: View {
                 ScrollView {
                     
                     LazyVStack {
-                        Spacer().frame(height: 100)
+                        Spacer().frame(height: 85)
                         
                         ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
                             
@@ -56,19 +59,49 @@ struct WorkoutInProgressView: View {
                                     ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
 
                                         HStack(spacing: 0) {
+                                            // SET BUTTON
                                             Button(action: {
-                                                #warning ("Implement set button")
-                                                
+                                                withAnimation(.easeOut(duration: 0.2)) {
+                                                    planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
+                                                    feedbackGenerator.impactOccurred()
+                                                }
                                             }) {
-                                                Circle()
-                                                    .stroke(lineWidth: 2)
-                                                    .frame(width: setButtonSize, height: setButtonSize)
-                                                    .foregroundColor(fgColor)
-                                                    .padding(.trailing, 16)
+                                                if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
+                                                    ZStack {
+                                                        Image("Checkmark")
+                                                            .resizable()
+                                                            .frame(width: 13, height: 11)
+                                                            .padding(.top,1)
+                                                            .padding(.trailing, 16)
+                                                        Circle()
+                                                            .stroke(lineWidth: 2)
+                                                            .frame(width: setButtonSize, height: setButtonSize)
+                                                            .foregroundColor(fgColor)
+                                                            .padding(.trailing, 16)
+                                                    }
+                                                    .opacity(0.5)
+                                                } else {
+                                                    Circle()
+                                                        .stroke(lineWidth: 2)
+                                                        .frame(width: setButtonSize, height: setButtonSize)
+                                                        .foregroundColor(fgColor)
+                                                        .padding(.trailing, 16)
+                                                }
+                                        
                                             }
                                             .padding(.trailing, 3)
 
-                                            SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true)
+                                            ZStack {
+                                                SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true, displayLabelBKG: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? false : true)
+                                                    .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 0.5 : 1)
+                                                HStack {
+                                                    Rectangle()
+                                                        .frame(width: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? .infinity : 0, height:2)
+                                                        .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 1 : 0)
+                                                    Spacer()
+                                                }
+                                                .offset(x: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? -10 : -20,y:0)
+                                            }
                                         }
                                         
                                         if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
@@ -112,7 +145,7 @@ struct WorkoutInProgressView: View {
             // Top Toolbar
             VStack {
                 VStack {
-                    Spacer().frame(height: 70)
+                    Spacer().frame(height: 55)
                     HStack {
                         Spacer()
                         Text("\(planViewModel.activePlan.name)")
@@ -124,10 +157,20 @@ struct WorkoutInProgressView: View {
                     .padding(.bottom,1)
                     
                     HStack {
+                        Spacer()
+//                        Image(systemName: "timer.circle.fill")
+//                            .foregroundColor(fgColor)
+//                            .padding(.leading,30)
+//                            .hidden()
+                        
                         Text("0% Complete  —  00:00:24")
                             .fontWeight(.bold)
+                        
+                        Image(systemName: "pause.circle.fill")
+                            .foregroundColor(fgColor)
+//                            .padding(.trailing,30)
+                        Spacer()
                     }
-
                 }
                 .padding(.bottom, 15)
                 .background(BlurView(style: .systemChromeMaterial))

@@ -73,12 +73,12 @@ struct PlanEditorView: View {
                                         VStack(spacing: 25) {
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
 
-                                                SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true)
+                                                SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true, displayLabelBKG: true)
                                             }
                                         }
                                     } else { // homogenous set: display 1 row: weight x reps x sets
                                         
-                                        SetView(setIndex: 0, exerciseIndex: exerciseIndex, uniqueSets: false)
+                                        SetView(setIndex: 0, exerciseIndex: exerciseIndex, uniqueSets: false, displayLabelBKG: true)
                                     }
                                 }
                             }
