@@ -10,6 +10,7 @@ struct ExerciseEditorView: View {
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @FocusState private var isNameFieldFocused: Bool // used to assign focus on exercise name textfield on appear
+    @Binding var selectedDetent: PresentationDetent
     
     // Data being inputted / edited:
     @State var exerciseName: String = ""
@@ -349,6 +350,8 @@ struct ExerciseEditorView: View {
 //                        updateHeteroDataBasedOnHomoData()
 //                    }
 //
+                    selectedDetent = newValue ? .large : .medium
+                    
                     withAnimation(.easeInOut(duration: 0.3)) {
                         homogenousSelectorHeight = newValue ? 0 : 200
                         homogenousSelectorOpacity = newValue ? 0 : 1
@@ -621,6 +624,7 @@ struct ExerciseEditorView: View {
 //            uniqueSets  = true // for testing UI purposes
             // whether uniqueSets toggle is switched to false/true (ie. should view show homogenous exercise or heterogenous set rows)
             uniqueSets  = exerciseViewModel.activeExercise.setsAreUnique
+            selectedDetent = uniqueSets ? .large : .medium
             
             // clear heteroSets_ values and append values from activeExercise's set data
             heteroSets_Weights.removeAll()
@@ -652,14 +656,29 @@ extension ExerciseEditorView {
         
         // create list of sets that were edited
         var newSets: [Set] = []
-        for index in 0...heteroSets_Weights.count-1 {
-            let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
-            let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
-            if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
-                newSets.append(newSet)
+        
+        if uniqueSets {
+            for index in 0...heteroSets_Weights.count-1 {
+                let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
+                let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
+                if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
+                    newSets.append(newSet)
+                }
+            }
+        } else {
+            let inputtedSets = Int(homoSelectedSets.dropLast(5))
+            let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
+            let inputtedReps = Int(homoSelectedReps.dropLast(5))
+            
+            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
+                for _ in 0...unwrappedSets-1 {
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                    newSets.append(newSet)
+                }
             }
         }
+        
         
         if exerciseViewModel.activeExerciseMode == "AddMode" {
             // create new exercise + append it to planViewModel's active plan
@@ -710,7 +729,7 @@ extension ExerciseEditorView {
 
 struct ExerciseEditorView_Previews: PreviewProvider {
     static var previews: some View {
-        ExerciseEditorView()
+        ExerciseEditorView(selectedDetent: .constant(.medium))
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)

@@ -12,6 +12,8 @@ struct PlanEditorView: View {
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
+    @State var selectedDetent: PresentationDetent = .medium
+    private let availableDetents: [PresentationDetent] = [.medium, .large]
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -104,6 +106,13 @@ struct PlanEditorView: View {
                                         }
                                     } else { // homogenous set: display 1 row: weight x reps x sets
                                         HStack {
+                                            Text("\(planViewModel.activePlan.exercises[index].sets.count) sets")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(.white)
+                                                .frame(width: 58, height: 28)
+                                                .background(fgColor)
+                                                .cornerRadius(5)
+                                                .padding(.trailing, setsSpacing+2)
                                             Text("\(Int(planViewModel.activePlan.exercises[index].sets[0].weight)) lb")
                                                 .foregroundColor(.white)
                                                 .padding(.trailing, setsSpacing)
@@ -115,16 +124,6 @@ struct PlanEditorView: View {
                                                 .opacity(0.6)
                                                 .padding(.trailing, setsSpacing)
                                             Text("\(planViewModel.activePlan.exercises[index].sets[0].reps) reps")
-                                                .foregroundColor(.gray)
-                                                .opacity(0.6)
-                                            Image(systemName: "xmark")
-                                                .resizable()
-                                                .frame(width: 10, height: 10)
-                                                .padding(.top,3)
-                                                .foregroundColor(.gray)
-                                                .opacity(0.6)
-                                                .padding(.trailing, setsSpacing)
-                                            Text("\(planViewModel.activePlan.exercises[index].sets.count) sets")
                                                 .foregroundColor(.gray)
                                                 .opacity(0.6)
                                             Spacer()
@@ -139,9 +138,11 @@ struct PlanEditorView: View {
                             .background(bgColor)
                             .cornerRadius(16)
                             .sheet(isPresented: $exerciseEditorIsPresented) {
-                                ExerciseEditorView()
-                                    .presentationDetents([.medium, .large])
+                                
+                                ExerciseEditorView(selectedDetent: $selectedDetent)
+                                    .presentationDetents([.medium, .large], selection: $selectedDetent)
                                     .environment(\.colorScheme, .dark)
+                                
                             }
                         }
                         .padding(.horizontal, 15)
@@ -163,9 +164,9 @@ struct PlanEditorView: View {
                         }
                         .padding(.top, 10)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
-                            ExerciseEditorView()
+                            ExerciseEditorView(selectedDetent: $selectedDetent)
                                 .background(.black)
-                                .presentationDetents([.medium, .large])
+                                .presentationDetents([.medium, .large], selection: $selectedDetent)
                                 .environment(\.colorScheme, .dark)
                         }
                         

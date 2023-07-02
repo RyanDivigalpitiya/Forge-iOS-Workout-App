@@ -13,6 +13,8 @@ struct WorkoutInProgressView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
+    @State var selectedDetent: PresentationDetent = .medium
+    private let availableDetents: [PresentationDetent] = [.medium, .large]
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -130,8 +132,8 @@ struct WorkoutInProgressView: View {
                             .environment(\.colorScheme, .dark)
                     }
                     .sheet(isPresented: $exerciseEditorIsPresented) {
-                        ExerciseEditorView()
-                            .presentationDetents([.medium, .large])
+                        ExerciseEditorView(selectedDetent: $selectedDetent)
+                            .presentationDetents([.medium, .large], selection: $selectedDetent)
                             .environment(\.colorScheme, .dark)
                     }
                     
