@@ -24,13 +24,14 @@ struct ExerciseEditorView: View {
     @State private var heteroSets_Reps: [String] = ["12 reps", "12 reps", "12 reps"]
     @State private var heteroSets_Failure: [Bool] = [false, false, false]
     let setsRange = Array(1...50).reversed().map { "\($0) sets" }
-    let weightRange = stride(from: 450, through: -100, by: -5).map { "\($0) lbs" }
-    let repsRange = Array(1...50).reversed().map { "\($0) reps" }
+    let weightRange = stride(from: 500, through: -100, by: -5).map { "\($0) lbs" }
+    let repsRange = Array(1...500).reversed().map { "\($0) reps" }
     //- ////////////////////////////////////////////////////////////////////////////
     
     // Toggle for changing individual sets
-    @State private var uniqueSets = false
+    @State private var areSetsUnique = false
     @State private var homoHeteroControlsAreConnected: Bool = false
+    @State private var editedExerciseStartedWithUniqueSets: Bool = false
     
     // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -337,19 +338,36 @@ struct ExerciseEditorView: View {
             
                 // TOGGLE
                 HStack {
-                    Toggle(isOn: $uniqueSets) {
+                    Toggle(isOn: $areSetsUnique) {
                         Text("Change Specific Sets")
-                            .foregroundColor(uniqueSets ? fgColor : darkGray)
+                            .foregroundColor(areSetsUnique ? fgColor : darkGray)
                             .fontWeight(.bold)
                     }
-                    .onChange(of: uniqueSets) { newValue in
-    //
-    //                    if newValue == false { // we're switching to viewing the homogenous sets
-    //                        updateHomoDataBasedOnHeteroData()
-    //                    } else { // we're switching to viewing the heterogenous sets
-    //                        updateHeteroDataBasedOnHomoData()
-    //                    }
-    //
+                    .onChange(of: areSetsUnique) { newValue in
+    
+                        if editedExerciseStartedWithUniqueSets {
+                            // do nothing.
+                            /*
+                             when this editor view appears with unique sets to be edited,
+                             this toggle will automatically be switched from false to true.
+                             When this happens, we do not want to update the hetero data based on homo data because
+                             the user did not trigger this switch, the UI does when loading itself.
+                             So the first time this toggle is switched WHEN an exercise to be edited has unique sets
+                             should not trigger updateHeteroDataBasedOnHomoData()
+                             However, after the data loads, and the user switches toggle to false, then back to true again,
+                             we want to always trigger updateHeteroDataBasedOnHomoData() from there on out.
+                             Thus, we set editedExerciseStartedWithUniqueSets = false after this if-else statement
+                             */
+                        } else {
+                            if newValue == false { // we're switching to viewing the homogenous sets
+                                updateHomoDataBasedOnHeteroData()
+                            } else { // we're switching to viewing the heterogenous sets
+                                updateHeteroDataBasedOnHomoData()
+                            }
+                        }
+                        
+                        editedExerciseStartedWithUniqueSets = false
+    
                         selectedDetent = newValue ? .large : .medium
                         
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -361,7 +379,7 @@ struct ExerciseEditorView: View {
                     }
                 }
                 .frame(width: 235)
-                .padding(.top, uniqueSets ? 0 : 20)
+                .padding(.top, areSetsUnique ? 0 : 20)
             
                 // HETEROGENOUS SET ROWS + CONTROLS
                 VStack {
@@ -621,11 +639,16 @@ struct ExerciseEditorView: View {
             // heterogenousSetMaxViewHeight
             let count = exerciseViewModel.activeExercise.sets.count
             heterogenousSetMaxViewHeight = CGFloat((Int(heterogenousSetRowHeight)*count)+80)
-            //uniqueSets  = true // for testing UI purposes
-            // whether uniqueSets toggle is switched to false/true (ie. should view show homogenous exercise or heterogenous set rows)
-            uniqueSets  = exerciseViewModel.activeExercise.setsAreUnique
-            selectedDetent = uniqueSets ? .large : .medium
+            //areSetsUnique  = true // for testing UI purposes
+            // whether areSetsUnique toggle is switched to false/true (ie. should view show homogenous exercise or heterogenous set rows)
+            areSetsUnique  = exerciseViewModel.activeExercise.areSetsUnique
+            if areSetsUnique {
+                editedExerciseStartedWithUniqueSets = true
+            }
             
+            selectedDetent = areSetsUnique ? .large : .medium
+            
+            // LOAD UI WITH ACTIVE EXERCISE'S DATA: ////////////////////////////////////
             // clear heteroSets_ values and append values from activeExercise's set data
             heteroSets_Weights.removeAll()
             heteroSets_Reps.removeAll()
@@ -640,6 +663,7 @@ struct ExerciseEditorView: View {
             homoSelectedSets    = "\(exerciseViewModel.activeExercise.sets.count) sets"
             homoSelectedWeight  = "\(Int(exerciseViewModel.activeExercise.sets[0].weight)) lbs"
             homoSelectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
+            // -  //////////////////////////////////// //////////////////////////////////
             
             homoHeteroControlsAreConnected = true
             
@@ -657,7 +681,7 @@ extension ExerciseEditorView {
         // create list of sets that were edited
         var newSets: [Set] = []
         
-        if uniqueSets {
+        if areSetsUnique {
             for index in 0...heteroSets_Weights.count-1 {
                 let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
                 let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))

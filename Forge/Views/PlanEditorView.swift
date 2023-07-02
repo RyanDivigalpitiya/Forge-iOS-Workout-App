@@ -70,7 +70,7 @@ struct PlanEditorView: View {
                                             .foregroundColor(.gray)
                                             .opacity(0.6)
                                     }
-                                    if planViewModel.activePlan.exercises[exerciseIndex].setsAreUnique { // heterogenous set: display each unqiue set
+                                    if planViewModel.activePlan.exercises[exerciseIndex].areSetsUnique { // heterogenous set: display each unqiue set
                                         VStack(spacing: 25) {
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
 
@@ -131,9 +131,11 @@ struct PlanEditorView: View {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Add Exercise").fontWeight(.bold)
                             }
+                            .padding(.horizontal)
+                            .padding(.top)
+                            .padding(.bottom, 8)
                             .foregroundColor(fgColor)
                         }
-                        .padding(.top, 10)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
                             ExerciseEditorView(selectedDetent: $selectedDetent)
                                 .background(.black)
@@ -142,11 +144,10 @@ struct PlanEditorView: View {
                         }
 
                     }
-                    .padding(.top, 5)
                     
                     Divider()
                         .padding(.horizontal,54)
-                        .padding(.vertical,3)
+                        .padding(.bottom,10)
                     
                     // CANCEL / SAVE / ORDER BUTTONS
                     HStack {

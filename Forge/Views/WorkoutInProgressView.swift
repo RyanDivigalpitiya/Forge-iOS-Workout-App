@@ -10,6 +10,7 @@ struct WorkoutInProgressView: View {
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
     
+    
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
@@ -242,7 +243,7 @@ struct WorkoutInProgressView: View {
                     
                     Spacer()
                     
-                    // SAVE BUTTON
+                    // DONE BUTTON
                     Button(action: {
                         planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                         planViewModel.savePlans()
@@ -252,6 +253,8 @@ struct WorkoutInProgressView: View {
                         completedWorkoutsViewModel.saveCompletedWorkouts()
                     
                         self.presentationMode.wrappedValue.dismiss()
+                        
+                        completedWorkoutsViewModel.isSelectPlanViewActive = false
                     }) {
                         Image(systemName: "checkmark.circle.fill")
                             .resizable()

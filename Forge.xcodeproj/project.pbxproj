@@ -116,10 +116,10 @@
 				F1F8507C2A49249C0093EE01 /* CompletedWorkoutsView.swift */,
 				F1F850912A494DD00093EE01 /* SelectPlanView.swift */,
 				F1F850952A4956CA0093EE01 /* PlanEditorView.swift */,
-				F19EDD7C2A511EFF00B2E974 /* SetView.swift */,
 				F14E94732A4BD118008155FA /* ExerciseEditorView.swift */,
-				F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */,
+				F19EDD7C2A511EFF00B2E974 /* SetView.swift */,
 				F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */,
+				F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */,
 				F14E94772A4BEC29008155FA /* testingViews.playground */,
 			);
 			path = Views;

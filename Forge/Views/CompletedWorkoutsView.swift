@@ -3,7 +3,7 @@ import SwiftUI
 struct CompletedWorkoutsView: View {
     
     //-//////////////////////////////////////////
-    @EnvironmentObject var viewModel: CompletedWorkoutsViewModel
+    @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-//////////////////////////////////////////
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
@@ -12,9 +12,9 @@ struct CompletedWorkoutsView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(viewModel.completedWorkouts) { completedWorkout in
+                ForEach(completedWorkoutsViewModel.completedWorkouts) { completedWorkout in
                     VStack(alignment: .leading) {
-                        Text(viewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
+                        Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
                             .font(.subheadline)
                             .fontWeight(.bold)
                             .foregroundColor(Color(.systemGray3))
@@ -26,13 +26,13 @@ struct CompletedWorkoutsView: View {
                     }
                     .padding(.vertical, 2)
                 }
-                .onDelete(perform: viewModel.deleteCompletedWorkouts)
+                .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }
             .navigationBarTitle(Text("History"))
             .navigationBarTitleTextColor(Color(.systemGray3))
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
-                    NavigationLink(destination: SelectPlanView()){
+                    NavigationLink(destination: SelectPlanView(), isActive: $completedWorkoutsViewModel.isSelectPlanViewActive) {
                         HStack {
                             Image(systemName: "figure.run")
                                 .resizable()
@@ -48,6 +48,9 @@ struct CompletedWorkoutsView: View {
             }
         }
         .accentColor(fgColor)
+        .onAppear{
+            completedWorkoutsViewModel.isSelectPlanViewActive = false
+        }
     }
 }
 

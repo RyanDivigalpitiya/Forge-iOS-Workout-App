@@ -3,16 +3,19 @@ import Foundation
 class CompletedWorkoutsViewModel: ObservableObject {
     
     @Published var completedWorkouts: [CompletedWorkout]
+    @Published var isSelectPlanViewActive: Bool
     
     // default initializer
     init() {
         self.completedWorkouts = []
+        self.isSelectPlanViewActive = false
         self.completedWorkouts = loadCompletedWorkouts()
     }
     
     // mock data initializer
     init(mockCompletedWorkouts workouts: [CompletedWorkout]) {
         self.completedWorkouts = workouts
+        self.isSelectPlanViewActive = false
     }
     
     // loads completedWorkouts from persistant storage (from UserDefaults)

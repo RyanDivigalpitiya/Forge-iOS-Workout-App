@@ -23,13 +23,24 @@ struct SetView: View {
         let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
         if uniqueSets {
             HStack {
-                Text("Set \(setIndex+1)")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-                    .frame(width: 58, height: 28)
-                    .background(displayLabelBKG ? fgColor : Color.clear)
-                    .cornerRadius(5)
-                    .padding(.trailing, setsSpacing+2)
+                if setIndex+1 > 9 {
+                    Text("Set \(setIndex+1)")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 67, height: 28)
+                        .background(displayLabelBKG ? fgColor : Color.clear)
+                        .cornerRadius(5)
+                        .padding(.trailing, setsSpacing+2)
+                } else {
+                    Text("Set \(setIndex+1)")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 58, height: 28)
+                        .background(displayLabelBKG ? fgColor : Color.clear)
+                        .cornerRadius(5)
+                        .padding(.trailing, setsSpacing+2)
+
+                }
                 Text("\(Int(set.weight)) lb")
                     .foregroundColor(.white)
                     .padding(.trailing, setsSpacing)
@@ -52,13 +63,24 @@ struct SetView: View {
             .font(.system(size: setsFontSize))
         } else {
             HStack {
-                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-                    .frame(width: 58, height: 28)
-                    .background(fgColor)
-                    .cornerRadius(5)
-                    .padding(.trailing, setsSpacing+2)
+                if planViewModel.activePlan.exercises[exerciseIndex].sets.count > 9 {
+                    Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 67, height: 28)
+                        .background(fgColor)
+                        .cornerRadius(5)
+                        .padding(.trailing, setsSpacing+2)
+                } else {
+                    Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 58, height: 28)
+                        .background(fgColor)
+                        .cornerRadius(5)
+                        .padding(.trailing, setsSpacing+2)
+
+                }
                 Text("\(Int(planViewModel.activePlan.exercises[exerciseIndex].sets[0].weight)) lb")
                     .foregroundColor(.white)
                     .padding(.trailing, setsSpacing)
