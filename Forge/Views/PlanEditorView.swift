@@ -21,10 +21,13 @@ struct PlanEditorView: View {
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     let setsFontSize = GlobalSettings.shared.setsFontSize // Font size used for text in set rows
     let setsSpacing: CGFloat = 5
+    let screenHeight = UIScreen.main.bounds.height
 
     
     var body: some View {
         ZStack {
+            
+            // TITLE + PLAN NAMEFIELD + LIST OF EXERCISES
             VStack {
                 HStack{
                     Spacer()
@@ -35,10 +38,10 @@ struct PlanEditorView: View {
                     Spacer() 
                 }
                 
-                TextField("Plan Name (Ex: Leg Day)", text: $planViewModel.activePlan.name)
+                TextField("Enter Plan Name Here", text: $planViewModel.activePlan.name)
                     .padding(.vertical, 15)
+                    .padding(.horizontal, 10)
                     .focused($isPlanNameFocused)
-                    .frame(width: 300)
                     .autocapitalization(.words)
                     .foregroundColor(.white)
                     .fontWeight(.bold)
@@ -106,6 +109,7 @@ struct PlanEditorView: View {
                         
                         Spacer().frame(height: 110)
                     }
+                    
                 }
                 
                 Spacer()
@@ -230,6 +234,20 @@ struct PlanEditorView: View {
                 .background(BlurView(style: .systemUltraThinMaterial))
             }
             .edgesIgnoringSafeArea(.bottom)
+            
+            if planViewModel.activePlan.exercises.count == 0 {
+                VStack {
+                    HStack {
+                        Text("Tap").fontWeight(.bold)
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Exercise").fontWeight(.bold)
+                        Text("to add exercises")
+                    }
+                    .padding(.bottom, 10)
+                    Image(systemName: "arrow.down")
+                }
+                .foregroundColor(darkGray)
+            }
         }
         .background(.black)
         .onAppear {
@@ -241,7 +259,7 @@ struct PlanEditorView: View {
 struct PlanEditorView_Previews: PreviewProvider {
     static var previews: some View {
         PlanEditorView()
-            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+            .environmentObject(PlanViewModel()) // mockPlans: mockWorkoutPlans
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }
