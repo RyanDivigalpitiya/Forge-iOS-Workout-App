@@ -63,7 +63,7 @@ struct ExerciseEditorView: View {
                 // TOP TOOLBAR TITLE
                 HStack {
                     
-                    // dismiss button
+                    // close button (dismiss, no changes saved)
                     HStack {
                         Button(action: {
                             self.presentationMode.wrappedValue.dismiss()
@@ -94,7 +94,7 @@ struct ExerciseEditorView: View {
                                 .font(.system(size:fontTitleSize))
                                 .foregroundColor(fgColor)
                                 .fontWeight(.bold)
-                        } else {
+                        } else if exerciseViewModel.activeExerciseMode == "LogMode" {
                             Text("Log Change")
                                 .font(.system(size:fontTitleSize))
                                 .foregroundColor(fgColor)
@@ -118,7 +118,7 @@ struct ExerciseEditorView: View {
                                         .frame(width: 13, height: 13)
                                         .fontWeight(.bold)
                                         .foregroundColor(fgColor)
-                                } else if exerciseViewModel.activeExerciseMode == "EditMode" {
+                                } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
                                     Circle()
                                         .frame(width: 28, height: 28)
                                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
@@ -346,15 +346,15 @@ struct ExerciseEditorView: View {
                     .onChange(of: areSetsUnique) { newValue in
     
                         if editedExerciseStartedWithUniqueSets {
-                            // do nothing.
+                            // do nothing - here's why:
                             /*
                              when this editor view appears with unique sets to be edited,
                              this toggle will automatically be switched from false to true.
                              When this happens, we do not want to update the hetero data based on homo data because
-                             the user did not trigger this switch, the UI does when loading itself.
-                             So the first time this toggle is switched WHEN an exercise to be edited has unique sets
-                             should not trigger updateHeteroDataBasedOnHomoData()
-                             However, after the data loads, and the user switches toggle to false, then back to true again,
+                             the user did not trigger this switch, the UI did when loading itself.
+                             So the first time this toggle is switched (when an exercise to-be-edited contains unique sets and
+                             is loaded by the UI on appear), updateHeteroDataBasedOnHomoData() should not trigger.
+                             However, after the data loads, and the user themselves switches toggle to false, then back to true again,
                              we want to always trigger updateHeteroDataBasedOnHomoData() from there on out.
                              Thus, we set editedExerciseStartedWithUniqueSets = false after this if-else statement
                              */

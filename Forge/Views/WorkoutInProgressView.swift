@@ -55,8 +55,8 @@ struct WorkoutInProgressView: View {
                                     
                                     // LOG CHANGE BUTTON
                                     Button(action: {
-                                        #warning ("Implement log change button")
-                                        exerciseViewModel.activeExerciseMode = "EditMode"
+                                        #warning ("Test log change functionality")
+                                        exerciseViewModel.activeExerciseMode = "LogMode"
                                         exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
                                         exerciseViewModel.activeExerciseIndex = exerciseIndex
                                         self.exerciseEditorIsPresented = true
@@ -83,7 +83,7 @@ struct WorkoutInProgressView: View {
                                     ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
 
                                         HStack(spacing: 0) {
-                                            // SET BUTTON
+                                            // SET BUTTON - marks planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed to TRUE OR FALSE
                                             Button(action: {
                                                 withAnimation(.easeOut(duration: 0.2)) {
                                                     planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
