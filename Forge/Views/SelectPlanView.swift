@@ -3,7 +3,7 @@ import SwiftUI
 struct SelectPlanView: View {
     
     //-/////////////////////////////////////////////////
-    @EnvironmentObject var viewModel: PlanViewModel
+    @EnvironmentObject var planViewModel: PlanViewModel
     //-/////////////////////////////////////////////////
     
     @State private var planEditorIsPresented = false
@@ -18,17 +18,17 @@ struct SelectPlanView: View {
         ZStack {
             ScrollView {
                 VStack {
-                    ForEach(viewModel.workoutPlans.indices, id: \.self) { index in
+                    ForEach(planViewModel.workoutPlans.indices, id: \.self) { index in
                         
                         Button(action: {
                             // set active Plan to workoutPlans[index] + bring up WorkoutInProgressView
-                            viewModel.activePlan = viewModel.workoutPlans[index]
-                            viewModel.activePlanIndex = index
+                            planViewModel.activePlan = planViewModel.workoutPlans[index]
+                            planViewModel.activePlanIndex = index
                             workoutInProgressViewPresented = true
                         }) {
                             VStack {
                                 HStack {
-                                    Text(viewModel.workoutPlans[index].name)
+                                    Text(planViewModel.workoutPlans[index].name)
                                         .fontWeight(.bold)
                                         .font(.system(size: 40))
                                         .foregroundColor(fgColor)
@@ -46,7 +46,7 @@ struct SelectPlanView: View {
                                 
                                 HStack {
                                     // NUMBER OF EXERCISES
-                                    Text(String(viewModel.workoutPlans[index].exercises.count) + " Exercises")
+                                    Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
                                         .foregroundColor(Color.gray.opacity(0.5))
                                         .fontWeight(.bold)
                                     Text("·")
@@ -54,16 +54,16 @@ struct SelectPlanView: View {
                                         .fontWeight(.bold)
                                         .padding(.horizontal, 1)
                                     // DURATION OF WORKOUT
-                                    Text(String(viewModel.calculateWorkoutDuration(for: viewModel.workoutPlans[index])) + " min")
+                                    Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
                                         .foregroundColor(Color.gray.opacity(0.5))
                                         .fontWeight(.bold)
                                     Spacer()
                                     
                                     // EDIT BUTTON //////////////////
                                     Button( action: {
-                                        viewModel.activePlan = viewModel.workoutPlans[index]
-                                        viewModel.activePlanMode = "EditMode"
-                                        viewModel.activePlanIndex = index
+                                        planViewModel.activePlan = planViewModel.workoutPlans[index]
+                                        planViewModel.activePlanMode = "EditMode"
+                                        planViewModel.activePlanIndex = index
                                         self.planEditorIsPresented = true
                                     }) {
                                         Image(systemName: "pencil.circle.fill")
@@ -104,8 +104,8 @@ struct SelectPlanView: View {
                     // NEW BUTTON
                     Button(action: {
                         // set activePlan to a new plan
-                        viewModel.activePlan = WorkoutPlan()
-                        viewModel.activePlanMode = "AddMode"
+                        planViewModel.activePlan = WorkoutPlan()
+                        planViewModel.activePlanMode = "AddMode"
                         self.planEditorIsPresented = true
                     }) {
                         HStack {

@@ -3,7 +3,7 @@ import SwiftUI
 struct WorkoutInProgressView: View {
     
     //-/////////////////////////////////////////////////
-    @EnvironmentObject var viewModel: PlanViewModel
+    @EnvironmentObject var planViewModel: PlanViewModel
     //-/////////////////////////////////////////////////
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-////////////////////////////////////////////////////////
@@ -18,7 +18,9 @@ struct WorkoutInProgressView: View {
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
+    let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
+    let setButtonSize: CGFloat = 28
     
     var body: some View {
         ZStack {
@@ -28,56 +30,76 @@ struct WorkoutInProgressView: View {
                     
                     LazyVStack {
                         Spacer().frame(height: 100)
-                        ForEach(viewModel.activePlan.exercises.indices, id: \.self) { index in
-                            VStack (alignment: .leading) {
-//                                HStack {
-//                                    Text(viewModel.activePlan.exercises[index].name)
-//                                        .font(.system(size: 23))
-//                                        .fontWeight(.bold)
-//                                        .foregroundColor(.white)
-//                                        .padding(.bottom, 5)
-//
-//                                    Spacer()
-//
-//                                    // EDIT BUTTON
-//                                    Button( action: {
-//                                        exerciseViewModel.activeExerciseMode = "EditMode"
-//                                        exerciseViewModel.activeExercise = viewModel.activePlan.exercises[index]
-//                                        exerciseViewModel.activeExerciseIndex = index
-//                                        self.exerciseEditorIsPresented = true
-//                                    }) {
-//                                        Image(systemName: "plusminus.circle.fill")
-//                                            .resizable()
-//                                            .frame(width: 20, height: 20)
-//                                            .padding(.trailing, 5)
-//                                            .foregroundColor(fgColor)
-//                                    }
-//                                    .sheet(isPresented: $exerciseEditorIsPresented) {
-//                                        ExerciseEditorView()
-//                                            .presentationDetents([.medium, .large])
-//                                            .environment(\.colorScheme, .dark)
-//                                    }
-//                                }
-//                                Text("\(viewModel.activePlan.exercises[index].sets) sets")
-//                                    .fontWeight(.bold)
-//                                    .font(.system(size: 23))
-//                                    .padding(.bottom, 5)
-//                                HStack {
-//                                    Text("\(Int(viewModel.activePlan.exercises[index].weight)) lbs x \(viewModel.activePlan.exercises[index].reps) reps")
-//                                        .fontWeight(.bold)
-//                                        .font(.system(size: 23))
-//
-//                                    Spacer()
-//                                }
+                        
+                        ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
+                            
+                            VStack {
                                 
+                                // EXERCISE NAME + LOG CHANGE BUTTON
+                                HStack {
+                                    Text(planViewModel.activePlan.exercises[exerciseIndex].name)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 30))
+                                    Spacer()
+                                    Image(systemName: "plusminus.circle.fill")
+                                        .resizable()
+                                        .frame(width: 25, height: 25)
+                                        .foregroundColor(fgColor)
+                                        .padding(.top,5)
+                                        .padding(.trailing, 8)
+                                }
+                                
+                                // EXERCISE SETS
+                                VStack(spacing: 0){
+                                    ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
+
+                                        HStack(spacing: 0) {
+                                            Button(action: {
+                                                // toggle set completion
+                                            }) {
+                                                Circle()
+                                                    .stroke(lineWidth: 2)
+                                                    .frame(width: setButtonSize, height: setButtonSize)
+                                                    .foregroundColor(fgColor)
+                                                    .padding(.trailing, 16)
+                                            }
+                                            .padding(.trailing, 3)
+
+                                            SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true)
+                                        }
+                                        
+                                        if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
+                                            HStack{
+                                                VStack(spacing: 0) {
+                                                    Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
+                                                    Circle().frame(width: 6, height: 6).foregroundColor(darkGray).padding(.vertical, 8)
+                                                    Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
+                                                }
+                                                .frame(width: setButtonSize)
+                                                .padding(.vertical,8)
+                                                Text("Rest ( 1 Minute )")
+                                                    .font(.system(size: 14))
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(darkGray)
+                                                    .padding(.vertical, 15)
+                                                    .padding(.leading, 10)
+                                                Spacer()
+                                            }
+                                        }
+                                    }
+                                }
+
                             }
-                            .padding(15)
-                            .foregroundColor(fgColor)
+                            .padding(17) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
+                            .background(bgColor)
+                            .cornerRadius(16)
                         }
-                        .background(bgColor)
-                        .cornerRadius(16)
-                        .padding(.horizontal)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 8)
+
+                        
+                        
                         
                         Spacer().frame(height: 80)
                     }
@@ -88,18 +110,24 @@ struct WorkoutInProgressView: View {
             // Top Toolbar
             VStack {
                 VStack {
-                    Spacer().frame(height: 80)
+                    Spacer().frame(height: 70)
                     HStack {
                         Spacer()
-                        Text("\(viewModel.activePlan.name)")
-                            .font(.title)
+                        Text("\(planViewModel.activePlan.name)")
+                            .font(.system(size: 30))
                             .fontWeight(.bold)
                             .foregroundColor(fgColor)
                         Spacer()
                     }
-                    .padding(.bottom, 20)
+                    .padding(.bottom,1)
+                    
+                    HStack {
+                        Text("0% Complete  —  00:00:24")
+                            .fontWeight(.bold)
+                    }
 
                 }
+                .padding(.bottom, 15)
                 .background(BlurView(style: .systemChromeMaterial))
                 
                 Spacer()
@@ -141,10 +169,10 @@ struct WorkoutInProgressView: View {
                     
                     // SAVE BUTTON
                     Button(action: {
-                        viewModel.workoutPlans[viewModel.activePlanIndex] = viewModel.activePlan
-                        viewModel.savePlans()
+                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                        planViewModel.savePlans()
                         
-                        let completedWorkout = CompletedWorkout(date: Date(), workout: viewModel.activePlan)
+                        let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
                         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                         completedWorkoutsViewModel.saveCompletedWorkouts()
                     

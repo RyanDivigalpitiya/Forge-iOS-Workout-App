@@ -47,18 +47,18 @@ struct PlanEditorView: View {
                 // LIST OF EXERCISES
                 ScrollView {
                     LazyVStack {
-                        ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
+                        ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
                             
                             // EDIT BUTTON
                             Button(action: {
                                 exerciseViewModel.activeExerciseMode = "EditMode"
-                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[index]
-                                exerciseViewModel.activeExerciseIndex = index
+                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
+                                exerciseViewModel.activeExerciseIndex = exerciseIndex
                                 self.exerciseEditorIsPresented = true
                             }) {
                                 VStack{
                                     HStack {
-                                        Text(planViewModel.activePlan.exercises[index].name)
+                                        Text(planViewModel.activePlan.exercises[exerciseIndex].name)
                                             .fontWeight(.bold)
                                             .foregroundColor(fgColor)
                                             .font(.system(size: 30))
@@ -69,68 +69,16 @@ struct PlanEditorView: View {
                                             .foregroundColor(.gray)
                                             .opacity(0.6)
                                     }
-                                    if planViewModel.activePlan.exercises[index].setsAreUnique { // heterogenous set: display each unqiue set
+                                    if planViewModel.activePlan.exercises[exerciseIndex].setsAreUnique { // heterogenous set: display each unqiue set
                                         VStack(spacing: 25) {
-                                            ForEach(planViewModel.activePlan.exercises[index].sets.indices, id: \.self) { setIndex in
-                                                let set = planViewModel.activePlan.exercises[index].sets[setIndex]
-                                                HStack {
-                                                    Text("Set \(setIndex+1)")
-                                                        .font(.system(size: 16))
-                                                        .foregroundColor(.white)
-                                                        .frame(width: 58, height: 28)
-                                                        .background(fgColor)
-                                                        .cornerRadius(5)
-                                                        .padding(.trailing, setsSpacing+2)
-                                                    Text("\(Int(set.weight)) lb")
-                                                        .foregroundColor(.white)
-                                                        .padding(.trailing, setsSpacing)
-                                                    Image(systemName: "xmark")
-                                                        .resizable()
-                                                        .frame(width: 10, height: 10)
-                                                        .padding(.top,3)
-                                                        .foregroundColor(.gray)
-                                                        .opacity(0.6)
-                                                        .padding(.trailing, setsSpacing)
-                                                        
-                                                    if set.tillFailure {
-                                                        Text("Until Failure").foregroundColor(.gray).opacity(0.6)
-                                                    } else {
-                                                        Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
-                                                    }
-                                                    Spacer()
-                                                }
-                                                .fontWeight(.bold)
-                                                .font(.system(size: setsFontSize))
-//                                                .padding(.vertical,9)
+                                            ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
+
+                                                SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true)
                                             }
                                         }
                                     } else { // homogenous set: display 1 row: weight x reps x sets
-                                        HStack {
-                                            Text("\(planViewModel.activePlan.exercises[index].sets.count) sets")
-                                                .font(.system(size: 16))
-                                                .foregroundColor(.white)
-                                                .frame(width: 58, height: 28)
-                                                .background(fgColor)
-                                                .cornerRadius(5)
-                                                .padding(.trailing, setsSpacing+2)
-                                            Text("\(Int(planViewModel.activePlan.exercises[index].sets[0].weight)) lb")
-                                                .foregroundColor(.white)
-                                                .padding(.trailing, setsSpacing)
-                                            Image(systemName: "xmark")
-                                                .resizable()
-                                                .frame(width: 10, height: 10)
-                                                .padding(.top,3)
-                                                .foregroundColor(.gray)
-                                                .opacity(0.6)
-                                                .padding(.trailing, setsSpacing)
-                                            Text("\(planViewModel.activePlan.exercises[index].sets[0].reps) reps")
-                                                .foregroundColor(.gray)
-                                                .opacity(0.6)
-                                            Spacer()
-                                        }
-                                        .padding(.top, -8)
-                                        .fontWeight(.bold)
-                                        .font(.system(size: setsFontSize))
+                                        
+                                        SetView(setIndex: 0, exerciseIndex: exerciseIndex, uniqueSets: false)
                                     }
                                 }
                             }
