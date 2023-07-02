@@ -18,6 +18,12 @@ struct WorkoutInProgressView: View {
     
     // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
+    @State private var popScaleEffect: CGFloat = 1.0
+    private var popUpScaleSize: CGFloat = 1.05
+    private var popDownScaleSize: CGFloat = 0.95
+    let popAnimationSpeed: Double = 0.05
+    let popAnimationDelay: Double = 0.05
+
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -45,13 +51,30 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(.white)
                                         .font(.system(size: 30))
                                     Spacer()
-                                    #warning ("Implement log change button")
-                                    Image(systemName: "plusminus.circle.fill")
-                                        .resizable()
-                                        .frame(width: 25, height: 25)
-                                        .foregroundColor(fgColor)
-                                        .padding(.top,5)
-                                        .padding(.trailing, 8)
+                                    
+                                    // LOG CHANGE BUTTON
+                                    Button(action: {
+                                        #warning ("Implement log change button")
+                                        exerciseViewModel.activeExerciseMode = "EditMode"
+                                        exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
+                                        exerciseViewModel.activeExerciseIndex = exerciseIndex
+                                        self.exerciseEditorIsPresented = true
+                                    }) {
+                                        Image(systemName: "plusminus.circle.fill")
+                                            .resizable()
+                                            .frame(width: 25, height: 25)
+                                            .foregroundColor(fgColor)
+                                            .padding(.top,5)
+                                            .padding(.trailing, 8)
+                                    }
+                                    .sheet(isPresented: $exerciseEditorIsPresented) {
+                                        
+                                        ExerciseEditorView(selectedDetent: $selectedDetent)
+                                            .presentationDetents([.medium, .large], selection: $selectedDetent)
+                                            .environment(\.colorScheme, .dark)
+                                        
+                                    }
+
                                 }
                                 
                                 // EXERCISE SETS
@@ -63,6 +86,11 @@ struct WorkoutInProgressView: View {
                                             Button(action: {
                                                 withAnimation(.easeOut(duration: 0.2)) {
                                                     planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
+                                                    if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
+                                                        popUp()
+                                                    } else {
+                                                        popDown()
+                                                    }
                                                     feedbackGenerator.impactOccurred()
                                                 }
                                             }) {
@@ -171,6 +199,7 @@ struct WorkoutInProgressView: View {
 //                            .padding(.trailing,30)
                         Spacer()
                     }
+                    .scaleEffect(popScaleEffect)
                 }
                 .padding(.bottom, 15)
                 .background(BlurView(style: .systemChromeMaterial))
@@ -261,6 +290,33 @@ struct WorkoutInProgressView: View {
         }
         .background(.black)
     }
+}
+
+// % Complete label\ animation functions
+extension WorkoutInProgressView {
+
+    private func popUp() {
+//        feedbackGenerator.impactOccurred()
+        withAnimation(.easeInOut(duration: popAnimationSpeed)) {
+            popScaleEffect = popUpScaleSize
+        }
+        
+        withAnimation(Animation.easeInOut(duration: popAnimationSpeed).delay(popAnimationDelay)) {
+            popScaleEffect = 1.0
+        }
+    }
+    
+    private func popDown() {
+//        feedbackGenerator.impactOccurred()
+        withAnimation(.easeInOut(duration: popAnimationSpeed)) {
+            popScaleEffect = popDownScaleSize
+        }
+        
+        withAnimation(Animation.easeInOut(duration: popAnimationSpeed).delay(popAnimationDelay)) {
+            popScaleEffect = 1.0
+        }
+    }
+
 }
 
 struct WorkoutInProgressView_Previews: PreviewProvider {
