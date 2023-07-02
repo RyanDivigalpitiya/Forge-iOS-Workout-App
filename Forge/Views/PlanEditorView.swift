@@ -17,6 +17,7 @@ struct PlanEditorView: View {
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
+    let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     let setsFontSize = GlobalSettings.shared.setsFontSize // Font size used for text in set rows
     let setsSpacing: CGFloat = 5
@@ -96,7 +97,29 @@ struct PlanEditorView: View {
                         .padding(.horizontal, 15)
                         .padding(.vertical, 8)
                         
-                        // ADD EXERCISE BUTTON
+                        
+                        if planViewModel.activePlan.exercises.count > 0 {
+                            Text("Tap an exercise to edit it")
+                                .foregroundColor(darkGray)
+                                .fontWeight(.bold)
+                        }
+                        
+                        Spacer().frame(height: 110)
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            
+            // BOTTOM TOOLBAR
+            VStack {
+                Spacer()
+                
+                // BOTTOM TOOLBAR BUTTONS
+                VStack {
+                    // ADD EXERCISE BUTTON
+                    HStack {
                         Button(action: {
                             // bring up Exercise Editor View
                             isPlanNameFocused = false
@@ -117,91 +140,92 @@ struct PlanEditorView: View {
                                 .presentationDetents([.medium, .large], selection: $selectedDetent)
                                 .environment(\.colorScheme, .dark)
                         }
+
+                    }
+                    .padding(.top, 5)
+                    
+                    Divider()
+                        .padding(.horizontal,54)
+                        .padding(.vertical,3)
+                    
+                    // CANCEL / SAVE / ORDER BUTTONS
+                    HStack {
+                        Spacer()
                         
-                        Spacer().frame(height: 90)
-                    }
-                }
-                
-                Spacer()
-            }
-            
-            
-            // BOTTOM TOOLBAR
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    
-                    // CANCEL BUTTON ////////////////////
-                    Button(action: {
-                        isPlanNameFocused = false
-                        self.presentationMode.wrappedValue.dismiss()
-                    }) {
-//                        Image(systemName: "xmark.circle.fill")
-//                            .resizable()
-//                            .frame(width: 25, height: 25)
+                        // CANCEL BUTTON ////////////////////
+                        Button(action: {
+                            isPlanNameFocused = false
+                            self.presentationMode.wrappedValue.dismiss()
+                        }) {
+    //                        Image(systemName: "xmark.circle.fill")
+    //                            .resizable()
+    //                            .frame(width: 25, height: 25)
 
-                        Text("Cancel")
-                            .font(.headline)
-                    }
-                    .foregroundColor(fgColor)
-                
-                    Spacer()
+                            Text("Cancel")
+                                .font(.headline)
+                        }
+                        .foregroundColor(fgColor)
                     
-                    // SAVE BUTTON ////////////////////
-                    Button(action: {
-                        isPlanNameFocused = false
-                        if planViewModel.activePlanMode == "AddMode" {
-                            planViewModel.workoutPlans.append(planViewModel.activePlan)
-                            planViewModel.savePlans()
-                        } else if planViewModel.activePlanMode == "EditMode" {
-                            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
-                            planViewModel.savePlans()
+                        Spacer()
+                        
+                        // SAVE BUTTON ////////////////////
+                        Button(action: {
+                            isPlanNameFocused = false
+                            if planViewModel.activePlanMode == "AddMode" {
+                                planViewModel.workoutPlans.append(planViewModel.activePlan)
+                                planViewModel.savePlans()
+                            } else if planViewModel.activePlanMode == "EditMode" {
+                                planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                                planViewModel.savePlans()
+                            }
+                            self.presentationMode.wrappedValue.dismiss()
+                        }) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .resizable()
+                                    .frame(width: 20, height: 20)
+                                    .padding(.trailing, 3)
+                                Text("Save")
+    //                                .font(.headline)
+                                    .font(.system(size: 23))
+                                    .bold()
+                            }
+                            .frame(width: 109, height: 41)
+                            .background(fgColor)
+                            .foregroundColor(.black)
+                            .cornerRadius(500)
                         }
-                        self.presentationMode.wrappedValue.dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .resizable()
-                                .frame(width: 20, height: 20)
-                                .padding(.trailing, 3)
-                            Text("Save")
-//                                .font(.headline)
-                                .font(.system(size: 23))
-                                .bold()
-                        }
-                        .frame(width: 109, height: 41)
-                        .background(fgColor)
-                        .foregroundColor(.black)
-                        .cornerRadius(500)
-                    }
-//                    .padding(.horizontal, 45)
+    //                    .padding(.horizontal, 45)
 
+                        
+                        Spacer()
+                        
+                        // REORDER BUTTON
+                        Button(action: {
+                            isPlanNameFocused = false
+                            reorderDeleteViewPresented = true
+                        }) {
+    //                        Image(systemName: "arrow.up.arrow.down.circle.fill")
+    //                            .resizable()
+    //                            .frame(width: 25, height: 25)
+                            Text("Order")
+                                .font(.headline)
+                        }
+                        .foregroundColor(fgColor)
+                        .sheet(isPresented: $reorderDeleteViewPresented) {
+    //                        ReorderDeleteView(mode: "ExerciseMode")
+    //                            .environment(\.colorScheme, .dark)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.top, 5)
                     
                     Spacer()
-                    
-                    // REORDER BUTTON
-                    Button(action: {
-                        isPlanNameFocused = false
-                        reorderDeleteViewPresented = true
-                    }) {
-//                        Image(systemName: "arrow.up.arrow.down.circle.fill")
-//                            .resizable()
-//                            .frame(width: 25, height: 25)
-                        Text("Order")
-                            .font(.headline)
-                    }
-                    .foregroundColor(fgColor)
-                    .sheet(isPresented: $reorderDeleteViewPresented) {
-//                        ReorderDeleteView(mode: "ExerciseMode")
-//                            .environment(\.colorScheme, .dark)
-                    }
-                    
-                    Spacer()
-                    
+
                 }
                 .padding(.bottom, 15)
-                .frame(height: bottomToolbarHeight)
+                .frame(height: 150)
                 .background(BlurView(style: .systemUltraThinMaterial))
             }
             .edgesIgnoringSafeArea(.bottom)

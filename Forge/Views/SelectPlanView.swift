@@ -111,9 +111,10 @@ struct SelectPlanView: View {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                                 .resizable()
-                                .frame(width: 15, height: 15)
+                                .frame(width: 16, height: 16)
                                 .padding(.trailing, 3)
                             Text("New")
+                                .font(.system(size: 20))
                         }
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
@@ -133,9 +134,10 @@ struct SelectPlanView: View {
                         HStack {
                             Image(systemName: "arrow.up.arrow.down.circle.fill")
                                 .resizable()
-                                .frame(width: 15, height: 15)
+                                .frame(width: 16, height: 16)
                                 .padding(.trailing, 3)
-                            Text("Edit")
+                            Text("Order")
+                                .font(.system(size: 20))
                         }
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
