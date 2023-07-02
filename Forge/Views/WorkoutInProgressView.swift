@@ -42,6 +42,7 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(.white)
                                         .font(.system(size: 30))
                                     Spacer()
+                                    #warning ("Implement log change button")
                                     Image(systemName: "plusminus.circle.fill")
                                         .resizable()
                                         .frame(width: 25, height: 25)
@@ -56,7 +57,8 @@ struct WorkoutInProgressView: View {
 
                                         HStack(spacing: 0) {
                                             Button(action: {
-                                                // toggle set completion
+                                                #warning ("Implement set button")
+                                                
                                             }) {
                                                 Circle()
                                                     .stroke(lineWidth: 2)
@@ -136,6 +138,7 @@ struct WorkoutInProgressView: View {
             
             // Bottom Toolbar
             VStack {
+                #warning ("Implement toolbar buttons")
                 Spacer()
                 HStack {
                     
