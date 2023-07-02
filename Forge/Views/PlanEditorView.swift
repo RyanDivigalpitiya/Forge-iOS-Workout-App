@@ -107,7 +107,7 @@ struct PlanEditorView: View {
                                 .fontWeight(.bold)
                         }
                         
-                        Spacer().frame(height: 110)
+                        Spacer().frame(height: 130)
                     }
                     
                 }
@@ -259,7 +259,7 @@ struct PlanEditorView: View {
 struct PlanEditorView_Previews: PreviewProvider {
     static var previews: some View {
         PlanEditorView()
-            .environmentObject(PlanViewModel()) // mockPlans: mockWorkoutPlans
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans)) // mockPlans: mockWorkoutPlans
             .environmentObject(ExerciseViewModel())
             .preferredColorScheme(.dark)
     }

@@ -33,11 +33,6 @@ struct SelectPlanView: View {
                                         .font(.system(size: 40))
                                         .foregroundColor(fgColor)
                                     Spacer()
-                                    Image("Arrow-Right")
-                                        .resizable()
-                                        .frame(width: 33, height: 33)
-                                        .opacity(0.2)
-                                        .padding(.trailing, 9)
                                 }
                                 .padding(.top,5)
                                 
