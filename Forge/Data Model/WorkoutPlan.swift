@@ -18,4 +18,12 @@ struct WorkoutPlan: Identifiable, Encodable, Decodable {
         self.name = name
         self.exercises = exercises
     }
+    
+    //function to create copy of WorkoutPlan object
+    init(copy: WorkoutPlan) {
+        self.id = copy.id
+        self.name = copy.name
+        self.exercises = copy.exercises
+    }
+
 }

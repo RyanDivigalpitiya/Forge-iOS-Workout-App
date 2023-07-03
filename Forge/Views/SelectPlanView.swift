@@ -30,7 +30,7 @@ struct SelectPlanView: View {
                                 HStack {
                                     Text(planViewModel.workoutPlans[index].name)
                                         .fontWeight(.bold)
-                                        .font(.system(size: 40))
+                                        .font(.system(size: 30))
                                         .foregroundColor(fgColor)
                                     Spacer()
                                 }
@@ -64,7 +64,6 @@ struct SelectPlanView: View {
                                         Image(systemName: "pencil.circle.fill")
                                             .resizable()
                                             .frame(width: 20, height: 20)
-                                            .padding(.trailing, 15)
                                             .foregroundColor(.gray)
                                             .opacity(0.4)
                                     }
@@ -86,7 +85,7 @@ struct SelectPlanView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
                 }
-                .padding(.bottom, 100)
+                .padding(.bottom, 120)
             }
             
             VStack {

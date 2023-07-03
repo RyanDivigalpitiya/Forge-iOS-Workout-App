@@ -72,6 +72,7 @@ struct WorkoutInProgressView: View {
                                         
                                         ExerciseEditorView(selectedDetent: $selectedDetent)
                                             .presentationDetents([.medium, .large], selection: $selectedDetent)
+                                            .presentationDragIndicator(.hidden)
                                             .environment(\.colorScheme, .dark)
                                         
                                     }
@@ -238,6 +239,7 @@ struct WorkoutInProgressView: View {
                     .sheet(isPresented: $exerciseEditorIsPresented) {
                         ExerciseEditorView(selectedDetent: $selectedDetent)
                             .presentationDetents([.medium, .large], selection: $selectedDetent)
+                            .presentationDragIndicator(.hidden)
                             .environment(\.colorScheme, .dark)
                     }
                     
@@ -245,15 +247,29 @@ struct WorkoutInProgressView: View {
                     
                     // DONE BUTTON
                     Button(action: {
-                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
-                        planViewModel.savePlans()
                         
+//                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
+                        // save completed workout to persistant storage
                         let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
                         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                         completedWorkoutsViewModel.saveCompletedWorkouts()
-                    
-                        self.presentationMode.wrappedValue.dismiss()
+
+                        // update workout plans with any changes made to active workout plan during workout in progress (ie. log changes + added/re-ordered exercises)
+                        // (first, reset set completions)
                         
+                        for exerciseIndex in 0...planViewModel.activePlan.exercises.count-1 {
+                            for setIndex in 0...planViewModel.activePlan.exercises[exerciseIndex].sets.count-1 {
+                                planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
+                            }
+                            planViewModel.activePlan.exercises[exerciseIndex].completed = false
+                        }
+                        
+                        // save workout plan to persistant storage
+                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                        planViewModel.savePlans()
+                        
+                        self.presentationMode.wrappedValue.dismiss()
+                        // after dismissing this view, send user back to CompletedWorkoutsView
                         completedWorkoutsViewModel.isSelectPlanViewActive = false
                     }) {
                         Image(systemName: "checkmark.circle.fill")

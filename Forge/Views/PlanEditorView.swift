@@ -66,6 +66,7 @@ struct PlanEditorView: View {
                                             .fontWeight(.bold)
                                             .foregroundColor(fgColor)
                                             .font(.system(size: 30))
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                         Spacer()
                                         Image(systemName: "pencil.circle.fill")
                                             .resizable()
@@ -93,6 +94,7 @@ struct PlanEditorView: View {
                                 
                                 ExerciseEditorView(selectedDetent: $selectedDetent)
                                     .presentationDetents([.medium, .large], selection: $selectedDetent)
+                                    .presentationDragIndicator(.hidden)
                                     .environment(\.colorScheme, .dark)
                                 
                             }
@@ -144,6 +146,7 @@ struct PlanEditorView: View {
                             ExerciseEditorView(selectedDetent: $selectedDetent)
                                 .background(.black)
                                 .presentationDetents([.medium, .large], selection: $selectedDetent)
+                                .presentationDragIndicator(.hidden)
                                 .environment(\.colorScheme, .dark)
                         }
 
