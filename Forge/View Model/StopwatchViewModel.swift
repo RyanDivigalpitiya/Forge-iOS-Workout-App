@@ -4,10 +4,11 @@ import UIKit
 
 class StopwatchViewModel: ObservableObject {
     @Published var stopwatchText = "00:00:00"
-    @Published var breakTimeRemaining = 5 // This will represent the remaining time for the break timer
     @Published var isPaused = false
     @Published var currentTime: TimeInterval = 0
+    @Published var breakTimeRemaining = 60 // This will represent the remaining time for the break timer
 
+    var breakDuration = 60
     var stopwatchTimer: Cancellable? = nil
     var breakTimer: Cancellable? = nil  // New timer for the break
     var startDate = Date()
@@ -52,7 +53,7 @@ class StopwatchViewModel: ObservableObject {
     func stopTimer() {
         print("\nTIMER STOPPED\n")
         breakTimer?.cancel()  // Cancel the break timer
-        breakTimeRemaining = 5
+        breakTimeRemaining = breakDuration
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             let center = UNUserNotificationCenter.current()
@@ -86,7 +87,7 @@ class StopwatchViewModel: ObservableObject {
     func startBreakTimer() {
         print("\nTIMER STARTED\n")
         breakTimer?.cancel()
-        breakTimeRemaining = 5
+        breakTimeRemaining = breakDuration
         breakTimer = Timer.publish(every: 1, on: .current, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -110,7 +111,7 @@ class StopwatchViewModel: ObservableObject {
         content.sound = UNNotificationSound.default
         content.categoryIdentifier = "workoutCategory"
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(breakDuration), repeats: false)
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request) { (error) in
             if let error = error {
