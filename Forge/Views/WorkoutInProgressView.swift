@@ -279,14 +279,14 @@ struct WorkoutInProgressView: View {
                                 Text("Rest for ")
                                     .font(.system(size: 40))
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(fgColor)
                                 Spacer()
                             }
                             
                             ZStack {
                                 Circle()
                                     .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                                    .foregroundColor(Color(.systemGray5))
+                                    .foregroundColor(Color(.systemGray4))
                                 Circle()
                                     .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
                                     .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
@@ -326,19 +326,30 @@ struct WorkoutInProgressView: View {
                                 dismissBreakTimerView()
                                 
                             }) {
-                                Text("Cancel")
-                                    .font(.system(size: 15))
-                                    .fontWeight(.heavy)
-                                    .padding([.leading, .trailing], 15)
-                                    .padding([.top, .bottom], 7)
-                                    .background(Color(.systemGray3))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(1000)
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 30, height: 30)
+                                        .foregroundColor(Color(.systemGray4))
+                                    Image(systemName: "xmark")
+                                        .resizable()
+                                        .frame(width: 13, height: 13)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(fgColor)
+                                }
+
+//                                Text("Cancel")
+//                                    .font(.system(size: 15))
+//                                    .fontWeight(.heavy)
+//                                    .padding([.leading, .trailing], 15)
+//                                    .padding([.top, .bottom], 7)
+//                                    .background(fgColor)
+//                                    .foregroundColor(.white)
+//                                    .cornerRadius(1000)
                             }
                             Spacer()
                         }
                         .padding(.horizontal, 40)
-                        .padding(.vertical, 20)
+                        .padding(.bottom, 20)
                         .opacity(timerVisible ? 1 : 0)
                         
                         
