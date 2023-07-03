@@ -87,7 +87,7 @@ struct BreakTimerView: View {
             Spacer()
         }
         .padding(.horizontal, 40)
-        .background(.black)
+        .background(Color(.systemGray6))
     }
 }
 

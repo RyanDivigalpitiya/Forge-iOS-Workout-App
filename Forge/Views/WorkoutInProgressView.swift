@@ -33,6 +33,7 @@ struct WorkoutInProgressView: View {
     let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     let setButtonSize: CGFloat = 28
+    let screenWidth = UIScreen.main.bounds.width
     
     var body: some View {
         ZStack {
@@ -238,89 +239,101 @@ struct WorkoutInProgressView: View {
                     Spacer()
                     
                     // ADD BUTTON
-                    Button(action: {
+                    HStack {
+                        Button(action: {
                         exerciseViewModel.activeExercise = Exercise()
                         exerciseViewModel.activeExerciseMode = "AddMode"
                         self.exerciseEditorIsPresented = true
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .resizable()
-                            .frame(width: 15, height: 15)
-                            .padding(.trailing, 3)
-                        Text("Add")
-                            .font(.headline)
+                        }) {
+                            Text("Add")
+                                .font(.headline)
+                            Image(systemName: "plus.circle.fill")
+                                .resizable()
+                                .frame(width: 15, height: 15)
+                                .padding(.trailing, 3)
+                        }
+                        .foregroundColor(fgColor)
+                        .sheet(isPresented: $reorderDeleteViewPresented) {
+                            ReorderDeleteView(mode: "ExerciseMode")
+                                .environment(\.colorScheme, .dark)
+                        }
+                        .sheet(isPresented: $exerciseEditorIsPresented) {
+                            ExerciseEditorView(selectedDetent: $selectedDetent)
+                                .presentationDetents([.medium, .large], selection: $selectedDetent)
+                                .presentationDragIndicator(.hidden)
+                                .environment(\.colorScheme, .dark)
+                        }
                     }
-                    .foregroundColor(fgColor)
-                    .sheet(isPresented: $reorderDeleteViewPresented) {
-                        ReorderDeleteView(mode: "ExerciseMode")
-                            .environment(\.colorScheme, .dark)
-                    }
-                    .sheet(isPresented: $exerciseEditorIsPresented) {
-                        ExerciseEditorView(selectedDetent: $selectedDetent)
-                            .presentationDetents([.medium, .large], selection: $selectedDetent)
-                            .presentationDragIndicator(.hidden)
-                            .environment(\.colorScheme, .dark)
-                    }
+                    .frame(width: 0.33*screenWidth)
                     
-                    Spacer()
                     
                     // DONE BUTTON
-                    Button(action: {
-                        
-//                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
-                        // save completed workout to persistant storage
-                        let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
-                        completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
-                        completedWorkoutsViewModel.saveCompletedWorkouts()
+                    HStack {
+                        Button(action: {
+                            
+    //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
+                            // save completed workout to persistant storage
+                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
+                            completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
+                            completedWorkoutsViewModel.saveCompletedWorkouts()
 
-                        // update workout plans with any changes made to active workout plan during workout in progress (ie. log changes + added/re-ordered exercises)
-                        // (first, reset set completions)
-                        
-                        for exerciseIndex in 0...planViewModel.activePlan.exercises.count-1 {
-                            for setIndex in 0...planViewModel.activePlan.exercises[exerciseIndex].sets.count-1 {
-                                planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
+                            // update workout plans with any changes made to active workout plan during workout in progress (ie. log changes + added/re-ordered exercises)
+                            // (first, reset set completions)
+                            
+                            for exerciseIndex in 0...planViewModel.activePlan.exercises.count-1 {
+                                for setIndex in 0...planViewModel.activePlan.exercises[exerciseIndex].sets.count-1 {
+                                    planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
+                                }
+                                planViewModel.activePlan.exercises[exerciseIndex].completed = false
                             }
-                            planViewModel.activePlan.exercises[exerciseIndex].completed = false
+                            
+                            // save workout plan to persistant storage
+                            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                            planViewModel.savePlans()
+                            
+                            self.presentationMode.wrappedValue.dismiss()
+                            // after dismissing this view, send user back to CompletedWorkoutsView
+                            completedWorkoutsViewModel.isSelectPlanViewActive = false
+                        }) {
+                            HStack {
+                                Text("Done")
+    //                                .font(.headline)
+                                    .font(.system(size: 23))
+                                    .bold()
+                            }
+                            .frame(width: 90, height: 41)
+                            .background(fgColor)
+                            .foregroundColor(.black)
+                            .cornerRadius(500)
                         }
-                        
-                        // save workout plan to persistant storage
-                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
-                        planViewModel.savePlans()
-                        
-                        self.presentationMode.wrappedValue.dismiss()
-                        // after dismissing this view, send user back to CompletedWorkoutsView
-                        completedWorkoutsViewModel.isSelectPlanViewActive = false
-                    }) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .resizable()
-                            .frame(width: 15, height: 15)
-                            .padding(.trailing, 3)
-                        Text("Done")
-                            .font(.headline)
+                        .foregroundColor(fgColor)
                     }
-                    .foregroundColor(fgColor)
-                    
-                    Spacer()
+                    .frame(width: 0.2*screenWidth)
+
                     
                     // REORDER BUTTON
-                    Button(action: {
-                        reorderDeleteViewPresented = true
-                    }) {
-                        Image(systemName: "arrow.up.arrow.down.circle.fill")
-                            .resizable()
-                            .frame(width: 15, height: 15)
-                            .padding(.trailing, 3)
-                        Text("Edit")
-                            .font(.headline)
+                    HStack {
+                        Button(action: {
+                            reorderDeleteViewPresented = true
+                        }) {
+                            Image(systemName: "arrow.up.arrow.down.circle.fill")
+                                .resizable()
+                                .frame(width: 15, height: 15)
+                                .padding(.trailing, 3)
+                            Text("Edit")
+                                .font(.headline)
+                        }
+                        .foregroundColor(fgColor)
+                        .sheet(isPresented: $reorderDeleteViewPresented) {
+                            ReorderDeleteView(mode: "ExerciseMode")
+                                .environment(\.colorScheme, .dark)
+                        }
                     }
-                    .foregroundColor(fgColor)
-                    .sheet(isPresented: $reorderDeleteViewPresented) {
-                        ReorderDeleteView(mode: "ExerciseMode")
-                            .environment(\.colorScheme, .dark)
-                    }
-                    
+                    .frame(width: 0.33*screenWidth)
+
                     Spacer()
                 }
+                .padding(.bottom, 15)
                 .frame(height: bottomToolbarHeight)
                 .background(BlurView(style: .systemChromeMaterial))
             }
@@ -351,8 +364,6 @@ extension WorkoutInProgressView {
         if !(totalSets == 0 ){
             let  workoutCompletion = (Float(completedSets) / Float(totalSets))
             let workoutCompletionInt = Int(workoutCompletion*100)
-            print(workoutCompletion)
-            print(workoutCompletionInt)
             self.percentCompleted = workoutCompletionInt
         }  else  {
             self.percentCompleted = 0
