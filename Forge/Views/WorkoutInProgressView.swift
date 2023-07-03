@@ -16,6 +16,7 @@ struct WorkoutInProgressView: View {
     @State private var reorderDeleteViewPresented = false
     @State private var showBreakTimer = false
     @State var selectedDetent: PresentationDetent = .medium
+    @State var percentCompleted: Int = 0
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     
     // Animation + Feedback parameters
@@ -85,7 +86,8 @@ struct WorkoutInProgressView: View {
                                     ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
 
                                         HStack(spacing: 0) {
-                                            // SET BUTTON - marks planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed to TRUE OR FALSE
+                                            // SET BUTTON
+                                            // marks set.completed to TRUE OR FALSE
                                             Button(action: {
                                                 withAnimation(.easeOut(duration: 0.2)) {
                                                     planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
@@ -105,6 +107,7 @@ struct WorkoutInProgressView: View {
                                                     }
                                                     
                                                     feedbackGenerator.impactOccurred()
+                                                    calcPercentCompleted()
                                                 }
                                             }) {
                                                 if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
@@ -209,7 +212,7 @@ struct WorkoutInProgressView: View {
 //                            .padding(.leading,30)
 //                            .hidden()
                         
-                        Text("0% Complete  —  00:00:24")
+                        Text("\(percentCompleted)% Complete  —  00:00:24")
                             .fontWeight(.bold)
                         
                         Image(systemName: "pause.circle.fill")
@@ -324,14 +327,39 @@ struct WorkoutInProgressView: View {
             .edgesIgnoringSafeArea(.bottom)
         }
         .background(.black)
+        .onAppear{
+            calcPercentCompleted()
+        }
     }
 }
 
-// % Complete label\ animation functions
+// % Complete label + animation functions
 extension WorkoutInProgressView {
+    
+    private func calcPercentCompleted() {
+        var totalSets = 0
+        var completedSets = 0
+        for exercise in planViewModel.activePlan.exercises {
+            for set in exercise.sets {
+                totalSets += 1
+                if set.completed {
+                    completedSets += 1
+                }
+            }
+        }
+        
+        if !(totalSets == 0 ){
+            let  workoutCompletion = (Float(completedSets) / Float(totalSets))
+            let workoutCompletionInt = Int(workoutCompletion*100)
+            print(workoutCompletion)
+            print(workoutCompletionInt)
+            self.percentCompleted = workoutCompletionInt
+        }  else  {
+            self.percentCompleted = 0
+        }
+    }
 
     private func popUp() {
-//        feedbackGenerator.impactOccurred()
         withAnimation(.easeInOut(duration: popAnimationSpeed)) {
             popScaleEffect = popUpScaleSize
         }
@@ -342,7 +370,6 @@ extension WorkoutInProgressView {
     }
     
     private func popDown() {
-//        feedbackGenerator.impactOccurred()
         withAnimation(.easeInOut(duration: popAnimationSpeed)) {
             popScaleEffect = popDownScaleSize
         }
