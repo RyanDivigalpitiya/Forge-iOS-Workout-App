@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F1174E472A52A1C600526AB9 /* BreakTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1174E462A52A1C600526AB9 /* BreakTimerView.swift */; };
+		F1174E492A52B47B00526AB9 /* StopwatchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1174E482A52B47B00526AB9 /* StopwatchViewModel.swift */; };
 		F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94732A4BD118008155FA /* ExerciseEditorView.swift */; };
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */; };
@@ -33,6 +34,7 @@
 
 /* Begin PBXFileReference section */
 		F1174E462A52A1C600526AB9 /* BreakTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakTimerView.swift; sourceTree = "<group>"; };
+		F1174E482A52B47B00526AB9 /* StopwatchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopwatchViewModel.swift; sourceTree = "<group>"; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		F14E94772A4BEC29008155FA /* testingViews.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = testingViews.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
@@ -136,6 +138,7 @@
 				F1F850932A494DFD0093EE01 /* PlanViewModel.swift */,
 				F14E94752A4BD288008155FA /* ExerciseViewModel.swift */,
 				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
+				F1174E482A52B47B00526AB9 /* StopwatchViewModel.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -232,6 +235,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1174E492A52B47B00526AB9 /* StopwatchViewModel.swift in Sources */,
 				F1F850962A4956CA0093EE01 /* PlanEditorView.swift in Sources */,
 				F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */,
 				F1F8507D2A49249C0093EE01 /* CompletedWorkoutsView.swift in Sources */,

@@ -9,6 +9,7 @@ struct WorkoutInProgressView: View {
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
+    @StateObject private var stopwatchViewModel = StopwatchViewModel()
     
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
@@ -208,17 +209,23 @@ struct WorkoutInProgressView: View {
                     
                     HStack {
                         Spacer()
-//                        Image(systemName: "timer.circle.fill")
-//                            .foregroundColor(fgColor)
-//                            .padding(.leading,30)
-//                            .hidden()
                         
-                        Text("\(percentCompleted)% Complete  —  00:00:24")
+                        Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
                             .fontWeight(.bold)
-                        
-                        Image(systemName: "pause.circle.fill")
+//                            .font(Font.system(size: 15, design: .monospaced))
+                        Button( action: {
+                            stopwatchViewModel.startStopTapped()
+                        }) {
+                            HStack {
+                                if stopwatchViewModel.isPaused {
+                                    Image(systemName: "play.circle.fill")
+                                } else {
+                                    Image(systemName: "pause.circle.fill")
+                                }
+                            }
                             .foregroundColor(fgColor)
-//                            .padding(.trailing,30)
+                        }
+                        
                         Spacer()
                     }
                     .scaleEffect(popScaleEffect)
@@ -342,7 +349,12 @@ struct WorkoutInProgressView: View {
         .background(.black)
         .onAppear{
             calcPercentCompleted()
+            stopwatchViewModel.viewAppeared()
         }
+        .onDisappear {
+            stopwatchViewModel.viewDisappeared()
+        }
+
     }
 }
 
