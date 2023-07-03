@@ -29,11 +29,13 @@ struct WorkoutInProgressView: View {
     private var popDownScaleSize: CGFloat = 0.95
     let popAnimationSpeed: Double = 0.05
     let popAnimationDelay: Double = 0.05
+    @State private var scrollViewScaleEffect: CGFloat = 1.0
+    @State private var scrollViewVisible = true
 
     // break timer properties
     let timer = Timer.publish(every: 1, on: .main, in: .common)
     private var breakDuration = 60
-    @State private var topToolBarHeight: CGFloat = 130
+    @State private var topToolBarHeight: CGFloat = 140
     @State private var topToolBarCornerRadius: CGFloat = 0
     @State private var timerEnabled = false
     @State private var timerVisible = false
@@ -120,8 +122,9 @@ struct WorkoutInProgressView: View {
                                                         // present break timer
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//                                                                showBreakTimer = true
                                                                 withAnimation(.easeInOut(duration: 0.5)) {
+                                                                    scrollViewScaleEffect = 0.95
+                                                                    scrollViewVisible = false
                                                                     topToolBarHeight = screenHeight*0.8
                                                                     topToolBarCornerRadius = 30
                                                                     timerEnabled = true
@@ -213,53 +216,62 @@ struct WorkoutInProgressView: View {
                         Spacer().frame(height: 80)
                     }
                 }
+                .opacity(scrollViewVisible ? 1 : 0.5)
                 .disabled(timerEnabled)
             }
+            .scaleEffect(scrollViewScaleEffect)
             
             // Top Toolbar
-            VStack {
-                VStack(spacing:0) {
-                    Spacer().frame(height: 55)
-                    HStack {
-                        Spacer()
-                        Text("\(planViewModel.activePlan.name)")
-                            .font(.system(size: 30))
-                            .fontWeight(.bold)
-                            .foregroundColor(fgColor)
-                        Spacer()
-                    }
-                    .padding(.bottom,1)
+            VStack(spacing:0) {
+                VStack(spacing:0) { //extra vstack required for blur effect
                     
-                    HStack(spacing:0) {
-                        Spacer()
-                        
-                        Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
-                            .fontWeight(.bold)
-//                            .font(Font.system(size: 15, design: .monospaced))
-                        Button( action: {
-                            stopwatchViewModel.startStopTapped()
-                        }) {
-                            HStack {
-                                if stopwatchViewModel.isPaused {
-                                    Image(systemName: "play.circle.fill")
-                                } else {
-                                    Image(systemName: "pause.circle.fill")
-                                }
-                            }
-                            .foregroundColor(fgColor)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 10)
+                    Spacer().frame(height: 75)
+                    
+                    // Plan name + %complete + stop watch
+                    VStack(spacing:0) {
+                        HStack {
+                            Spacer()
+                            Text("\(planViewModel.activePlan.name)")
+                                .font(.system(size: 30))
+                                .fontWeight(.bold)
+                                .foregroundColor(fgColor)
+                            Spacer()
                         }
+                        .padding(.bottom,1)
+                        
+                        HStack(spacing:0) {
+                            Spacer()
+                            
+                            Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
+                                .fontWeight(.bold)
+    //                            .font(Font.system(size: 15, design: .monospaced))
+                            Button( action: {
+                                stopwatchViewModel.startStopTapped()
+                            }) {
+                                HStack {
+                                    if stopwatchViewModel.isPaused {
+                                        Image(systemName: "play.circle.fill")
+                                    } else {
+                                        Image(systemName: "pause.circle.fill")
+                                    }
+                                }
+                                .foregroundColor(fgColor)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 10)
+                            }
 
-                        Spacer()
+                            Spacer()
+                        }
+                        .padding(.bottom, 10)
+                        .padding(.top,5)
+                        .scaleEffect(popScaleEffect)
                     }
-                    .padding(.bottom, 10)
-                    .padding(.top,5)
-                    .scaleEffect(popScaleEffect)
+                    .frame(height: 130)
+                    
                     Spacer()
                     if timerEnabled {
                         
-                        // break timer
+                        // BREAK TIMER
                         VStack(spacing: 0) {
                             Spacer()
                             HStack{
@@ -267,7 +279,7 @@ struct WorkoutInProgressView: View {
                                 Text("Rest for ")
                                     .font(.system(size: 40))
                                     .fontWeight(.bold)
-                                    .foregroundColor(GlobalSettings.shared.fgColor)
+                                    .foregroundColor(.white)
                                 Spacer()
                             }
                             
@@ -315,11 +327,11 @@ struct WorkoutInProgressView: View {
                                 
                             }) {
                                 Text("Cancel")
-                                    .font(.system(size: 18))
+                                    .font(.system(size: 15))
                                     .fontWeight(.heavy)
-                                    .padding([.leading, .trailing], 19)
-                                    .padding([.top, .bottom], 13)
-                                    .background(GlobalSettings.shared.fgColor)
+                                    .padding([.leading, .trailing], 15)
+                                    .padding([.top, .bottom], 7)
+                                    .background(Color(.systemGray3))
                                     .foregroundColor(.white)
                                     .cornerRadius(1000)
                             }
@@ -482,8 +494,10 @@ extension WorkoutInProgressView {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             withAnimation(.easeInOut(duration: 0.5)) {
+                scrollViewVisible = true
+                scrollViewScaleEffect = 1.0
                 timerEnabled = false
-                topToolBarHeight = 130
+                topToolBarHeight = 140
                 topToolBarCornerRadius = 0
                 remainingTime = 60
             }
