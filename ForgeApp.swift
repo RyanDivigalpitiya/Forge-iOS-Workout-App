@@ -15,6 +15,7 @@ struct ForgeApp: App {
                 .environmentObject(CompletedWorkoutsViewModel())
                 .environmentObject(PlanViewModel())
                 .environmentObject(ExerciseViewModel())
+                .environmentObject(StopwatchViewModel())
                 .environment(\.colorScheme, .dark)
         }
     }

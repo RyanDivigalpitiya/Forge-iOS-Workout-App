@@ -9,7 +9,7 @@ struct WorkoutInProgressView: View {
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
-    @StateObject private var stopwatchViewModel = StopwatchViewModel()
+    @EnvironmentObject var stopwatchViewModel: StopwatchViewModel
     
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
@@ -349,10 +349,10 @@ struct WorkoutInProgressView: View {
         .background(.black)
         .onAppear{
             calcPercentCompleted()
-            stopwatchViewModel.viewAppeared()
+            stopwatchViewModel.startStopWatch()
         }
         .onDisappear {
-            stopwatchViewModel.viewDisappeared()
+            stopwatchViewModel.stopStopWatch()
         }
 
     }
@@ -410,6 +410,7 @@ struct WorkoutInProgressView_Previews: PreviewProvider {
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
+            .environmentObject(StopwatchViewModel())
             .preferredColorScheme(.dark)
     }
 }
