@@ -14,6 +14,7 @@ struct WorkoutInProgressView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
+    @State private var showBreakTimer = false
     @State var selectedDetent: PresentationDetent = .medium
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     
@@ -93,6 +94,16 @@ struct WorkoutInProgressView: View {
                                                     } else {
                                                         popDown()
                                                     }
+                                                    
+                                                    if !planViewModel.activePlan.exercises[exerciseIndex].completed {
+                                                        // present break timer
+                                                        if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
+                                                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                                                showBreakTimer = true
+                                                            }
+                                                        }
+                                                    }
+                                                    
                                                     feedbackGenerator.impactOccurred()
                                                 }
                                             }) {
@@ -120,6 +131,11 @@ struct WorkoutInProgressView: View {
                                         
                                             }
                                             .padding(.trailing, 3)
+                                            .sheet(isPresented: $showBreakTimer) {
+                                                BreakTimerView()
+                                                    .environment(\.colorScheme, .dark)
+                                            }
+
 
                                             ZStack {
                                                 SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true, displayLabelBKG: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? false : true)

@@ -5,7 +5,13 @@ struct Exercise: Identifiable, Encodable, Decodable {
     var name: String
     var sets: [Set] {
         didSet {
-            self.areSetsUnique = containsUniqueSets()
+            self.areSetsUnique = doesExerciseHaveUniqueSets()
+            // Check if all sets are completed
+            if sets.allSatisfy({ $0.completed }) {
+                self.completed = true
+            } else {
+                self.completed = false
+            }
         }
     }
     var areSetsUnique: Bool
@@ -18,7 +24,7 @@ struct Exercise: Identifiable, Encodable, Decodable {
         self.sets = [Set(), Set(), Set()]
         self.completed = false
         self.areSetsUnique = false
-        self.areSetsUnique = containsUniqueSets()
+        self.areSetsUnique = doesExerciseHaveUniqueSets()
     }
     
     // create new Exercise object with specified params
@@ -28,10 +34,10 @@ struct Exercise: Identifiable, Encodable, Decodable {
         self.sets = sets
         self.completed = false
         self.areSetsUnique = false
-        self.areSetsUnique = containsUniqueSets()
+        self.areSetsUnique = doesExerciseHaveUniqueSets()
     }
     
-    func containsUniqueSets() -> Bool {
+    func doesExerciseHaveUniqueSets() -> Bool {
         /**
         This function checks if the given array of `Set` objects has unique weights, reps or 'tillFailure' values.
 
