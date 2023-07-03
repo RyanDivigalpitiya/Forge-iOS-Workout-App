@@ -25,9 +25,15 @@ struct BreakTimerView: View {
         .background(Color(.systemGray6))
         .onAppear{
             stopwatchViewModel.startTimer()
+            stopwatchViewModel.sendNotification()
         }
         .onDisappear {
             stopwatchViewModel.stopTimer()
+        }
+        .onReceive(stopwatchViewModel.breakTimeElapsedPublisher) { elapsed in
+            if elapsed {
+                presentationMode.wrappedValue.dismiss()
+            }
         }
     }
 }

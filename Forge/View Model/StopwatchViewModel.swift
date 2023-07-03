@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class StopwatchViewModel: ObservableObject {
     @Published var stopwatchText = "00:00:00"
@@ -12,6 +13,13 @@ class StopwatchViewModel: ObservableObject {
     var startDate = Date()
     var isRunning = true
     var timeElapsedWhenStopped: TimeInterval = 0
+    
+    var breakTimeElapsedPublisher: AnyPublisher<Bool, Never> {
+          $breakTimeRemaining
+              .map { $0 == 0 }
+              .eraseToAnyPublisher()
+      }
+
     
     func startStopTapped() {
         if isRunning {
@@ -42,7 +50,18 @@ class StopwatchViewModel: ObservableObject {
     }
     
     func stopTimer() {
+        print("\nTIMER STOPPED\n")
         breakTimer?.cancel()  // Cancel the break timer
+        breakTimeRemaining = 5
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            let center = UNUserNotificationCenter.current()
+            center.getPendingNotificationRequests { requests in
+                let idsToRemove = requests.filter { $0.content.categoryIdentifier == "workoutCategory" }.map { $0.identifier }
+                center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
+            }
+        }
+
     }
     
     private func startStopwatch() {
@@ -64,8 +83,9 @@ class StopwatchViewModel: ObservableObject {
             }
     }
     
-    private func startBreakTimer() {
-        // Reset the break time to _ seconds when starting
+    func startBreakTimer() {
+        print("\nTIMER STARTED\n")
+        breakTimer?.cancel()
         breakTimeRemaining = 5
         breakTimer = Timer.publish(every: 1, on: .current, in: .common)
             .autoconnect()
@@ -74,9 +94,32 @@ class StopwatchViewModel: ObservableObject {
                 if self.breakTimeRemaining > 0 {
                     self.breakTimeRemaining -= 1
                 } else {
-                    // If the break time reaches 0, we stop the break timer
+                    print("\nTimer is about to complete.\n")
                     self.breakTimer?.cancel()
+                    print("\nTimer cancelled. Should send notification now.\n")
+//                    self.sendNotification() // Send notification to user that timer is over and to start next set
                 }
             }
     }
+
+    
+    func sendNotification() {
+        print("\nsendNotification called!\n")
+        let content = UNMutableNotificationContent()
+        content.title = "Start your next set!"
+        content.sound = UNNotificationSound.default
+        content.categoryIdentifier = "workoutCategory"
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { (error) in
+            if let error = error {
+                print("\nError scheduling notification: \(error)\n")
+            } else {
+                print("\nNotification scheduled!\n")
+            }
+        }
+    }
+
+
 }
