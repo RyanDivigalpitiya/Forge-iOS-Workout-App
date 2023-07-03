@@ -31,9 +31,13 @@ struct WorkoutInProgressView: View {
     let popAnimationDelay: Double = 0.05
 
     // break timer properties
-    private var breakDuration = 60
-    @State private var remainingTime: Int = 60
     let timer = Timer.publish(every: 1, on: .main, in: .common)
+    private var breakDuration = 60
+    @State private var topToolBarHeight: CGFloat = 130
+    @State private var topToolBarCornerRadius: CGFloat = 0
+    @State private var timerEnabled = false
+    @State private var timerVisible = false
+    @State private var remainingTime: Int = 60
     @State private var timerSubscription: Cancellable? = nil
     @State private var totalTime: Int = 60
     @State private var appState: UIApplication.State = UIApplication.shared.applicationState
@@ -47,10 +51,6 @@ struct WorkoutInProgressView: View {
     let setButtonSize: CGFloat = 28
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
-    @State private var topToolBarHeight: CGFloat = 130
-    @State private var topToolBarCornerRadius: CGFloat = 0
-    @State private var timerEnabled = false
-    @State private var timerVisible = false
 
     
     var body: some View {
@@ -163,10 +163,6 @@ struct WorkoutInProgressView: View {
                                         
                                             }
                                             .padding(.trailing, 3)
-                                            .sheet(isPresented: $showBreakTimer) {
-                                                BreakTimerView()
-                                                    .environment(\.colorScheme, .dark)
-                                            }
 
 
                                             ZStack {
@@ -217,7 +213,7 @@ struct WorkoutInProgressView: View {
                         Spacer().frame(height: 80)
                     }
                 }
-                
+                .disabled(timerEnabled)
             }
             
             // Top Toolbar
@@ -314,15 +310,6 @@ struct WorkoutInProgressView: View {
                             }
                             
                             Button(action: {
-                                // Cancel timer subscription
-                                timerSubscription?.cancel()
-
-                                // Remove scheduled notification
-                                let center = UNUserNotificationCenter.current()
-                                center.getPendingNotificationRequests { requests in
-                                    let idsToRemove = requests.filter { $0.content.categoryIdentifier == "workoutCategory" }.map { $0.identifier }
-                                    center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
-                                }
 
                                 dismissBreakTimerView()
                                 
@@ -377,10 +364,7 @@ struct WorkoutInProgressView: View {
                                 .padding(.trailing, 3)
                         }
                         .foregroundColor(fgColor)
-                        .sheet(isPresented: $reorderDeleteViewPresented) {
-                            ReorderDeleteView(mode: "ExerciseMode")
-                                .environment(\.colorScheme, .dark)
-                        }
+                        .disabled(timerEnabled)
                         .sheet(isPresented: $exerciseEditorIsPresented) {
                             ExerciseEditorView(selectedDetent: $selectedDetent)
                                 .presentationDetents([.medium, .large], selection: $selectedDetent)
@@ -394,6 +378,7 @@ struct WorkoutInProgressView: View {
                     // DONE BUTTON
                     HStack {
                         Button(action: {
+                            dismissBreakTimerView()
                             
     //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                             // save completed workout to persistant storage
@@ -448,6 +433,7 @@ struct WorkoutInProgressView: View {
                                 .font(.headline)
                         }
                         .foregroundColor(fgColor)
+                        .disabled(timerEnabled)
                         .sheet(isPresented: $reorderDeleteViewPresented) {
                             ReorderDeleteView(mode: "ExerciseMode")
                                 .environment(\.colorScheme, .dark)
@@ -479,6 +465,17 @@ struct WorkoutInProgressView: View {
 extension WorkoutInProgressView {
     
     func dismissBreakTimerView() {
+        // Cancel timer subscription
+        timerSubscription?.cancel()
+
+        // Remove scheduled notification
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { requests in
+            let idsToRemove = requests.filter { $0.content.categoryIdentifier == "workoutCategory" }.map { $0.identifier }
+            center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
+        }
+
+        
         withAnimation(.easeInOut(duration: 0.5)) {
             timerVisible = false
         }
