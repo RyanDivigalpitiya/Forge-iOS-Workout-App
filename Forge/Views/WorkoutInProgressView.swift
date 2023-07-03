@@ -1,4 +1,6 @@
 import SwiftUI
+import Combine
+import UIKit
 
 struct WorkoutInProgressView: View {
     
@@ -8,6 +10,8 @@ struct WorkoutInProgressView: View {
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
+    //-////////////////////////////////////////////////////////
+    @EnvironmentObject var stopwatchViewModel: StopwatchViewModel
     
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
@@ -26,6 +30,15 @@ struct WorkoutInProgressView: View {
     let popAnimationSpeed: Double = 0.05
     let popAnimationDelay: Double = 0.05
 
+    // break timer properties
+    private var breakDuration = 60
+    @State private var remainingTime: Int = 60
+    let timer = Timer.publish(every: 1, on: .main, in: .common)
+    @State private var timerSubscription: Cancellable? = nil
+    @State private var totalTime: Int = 60
+    @State private var appState: UIApplication.State = UIApplication.shared.applicationState
+    @State private var startDate = Date()
+
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -36,7 +49,8 @@ struct WorkoutInProgressView: View {
     let screenHeight = UIScreen.main.bounds.height
     @State private var topToolBarHeight: CGFloat = 130
     @State private var topToolBarCornerRadius: CGFloat = 0
-    @State private var showTimer = false
+    @State private var timerEnabled = false
+    @State private var timerVisible = false
 
     
     var body: some View {
@@ -107,10 +121,15 @@ struct WorkoutInProgressView: View {
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
 //                                                                showBreakTimer = true
-                                                                withAnimation(.easeInOut(duration: 0.7)) {
+                                                                withAnimation(.easeInOut(duration: 0.5)) {
                                                                     topToolBarHeight = screenHeight*0.8
                                                                     topToolBarCornerRadius = 30
-                                                                    showTimer = true
+                                                                    timerEnabled = true
+                                                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                                                            timerVisible = true
+                                                                        }
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -218,19 +237,112 @@ struct WorkoutInProgressView: View {
                     HStack(spacing:0) {
                         Spacer()
                         
-                        Text("\(percentCompleted)% Complete")
+                        Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
                             .fontWeight(.bold)
 //                            .font(Font.system(size: 15, design: .monospaced))
-                        
+                        Button( action: {
+                            stopwatchViewModel.startStopTapped()
+                        }) {
+                            HStack {
+                                if stopwatchViewModel.isPaused {
+                                    Image(systemName: "play.circle.fill")
+                                } else {
+                                    Image(systemName: "pause.circle.fill")
+                                }
+                            }
+                            .foregroundColor(fgColor)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 10)
+                        }
+
                         Spacer()
                     }
                     .padding(.bottom, 10)
                     .padding(.top,5)
                     .scaleEffect(popScaleEffect)
                     Spacer()
-                    if showTimer {
-                        BreakTimerView()
-                            .opacity(showTimer ? 1 : 0)
+                    if timerEnabled {
+                        
+                        // break timer
+                        VStack(spacing: 0) {
+                            Spacer()
+                            HStack{
+                                Spacer()
+                                Text("Rest for ")
+                                    .font(.system(size: 40))
+                                    .fontWeight(.bold)
+                                    .foregroundColor(GlobalSettings.shared.fgColor)
+                                Spacer()
+                            }
+                            
+                            ZStack {
+                                Circle()
+                                    .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                                    .foregroundColor(Color(.systemGray5))
+                                Circle()
+                                    .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
+                                    .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                                    .foregroundColor(GlobalSettings.shared.fgColor)
+                                    .rotationEffect(Angle(degrees: -90))
+                                    .animation(.linear(duration: 1), value: remainingTime)
+                                Text("\(remainingTime) s")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(GlobalSettings.shared.fgColor)
+                                    .fontWeight(.bold)
+                            }
+                            .padding(.vertical, 50)
+                            .onReceive(timer) { _ in
+                                if remainingTime > 0 {
+                                    remainingTime -= 1
+                                } else {
+                                    triggerHapticFeedback()
+                                    // shrink the view
+                                    dismissBreakTimerView()
+                                }
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                                updateRemainingTime()
+                            }
+
+                            .onAppear {
+                                totalTime = remainingTime
+                                sendNotification()
+                                timerSubscription = timer.connect()
+                            }
+                            .onDisappear {
+                                timerSubscription?.cancel()
+                            }
+                            
+                            Button(action: {
+                                // Cancel timer subscription
+                                timerSubscription?.cancel()
+
+                                // Remove scheduled notification
+                                let center = UNUserNotificationCenter.current()
+                                center.getPendingNotificationRequests { requests in
+                                    let idsToRemove = requests.filter { $0.content.categoryIdentifier == "workoutCategory" }.map { $0.identifier }
+                                    center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
+                                }
+
+                                dismissBreakTimerView()
+                                
+                            }) {
+                                Text("Cancel")
+                                    .font(.system(size: 18))
+                                    .fontWeight(.heavy)
+                                    .padding([.leading, .trailing], 19)
+                                    .padding([.top, .bottom], 13)
+                                    .background(GlobalSettings.shared.fgColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(1000)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 20)
+                        .opacity(timerVisible ? 1 : 0)
+                        
+                        
                     }
                 }
                 .frame(height: topToolBarHeight)
@@ -285,7 +397,7 @@ struct WorkoutInProgressView: View {
                             
     //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                             // save completed workout to persistant storage
-                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
+                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan, elapsedTime: stopwatchViewModel.currentTime)
                             completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                             completedWorkoutsViewModel.saveCompletedWorkouts()
 
@@ -354,8 +466,10 @@ struct WorkoutInProgressView: View {
         .background(.black)
         .onAppear{
             calcPercentCompleted()
+            stopwatchViewModel.startStopWatch()
         }
         .onDisappear {
+            stopwatchViewModel.stopStopWatch()
         }
 
     }
@@ -363,6 +477,50 @@ struct WorkoutInProgressView: View {
 
 // % Complete label + animation functions
 extension WorkoutInProgressView {
+    
+    func dismissBreakTimerView() {
+        withAnimation(.easeInOut(duration: 0.5)) {
+            timerVisible = false
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                timerEnabled = false
+                topToolBarHeight = 130
+                topToolBarCornerRadius = 0
+                remainingTime = 60
+            }
+        }
+    }
+    
+    func sendNotification() {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = "Start your next set!"
+        content.sound = UNNotificationSound.default
+        content.categoryIdentifier = "workoutCategory"
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remainingTime), repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        center.add(request) { (error) in
+            if let error = error {
+                print("Error scheduling notification: \(error)")
+            }
+        }
+    }
+
+    func updateRemainingTime() {
+        let elapsedTime = Date().timeIntervalSince(startDate)
+        let newRemainingTime = max(0, totalTime - Int(elapsedTime))
+        remainingTime = newRemainingTime
+    }
+
+    func triggerHapticFeedback() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+    }
+
     
     private func calcPercentCompleted() {
         var totalSets = 0

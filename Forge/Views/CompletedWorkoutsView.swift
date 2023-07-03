@@ -34,7 +34,7 @@ struct CompletedWorkoutsView: View {
                         Text("Duration: \(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
                             .font(.subheadline)
                             .fontWeight(.bold)
-                            .foregroundColor(Color(.systemGray3))
+                            .foregroundColor(Color(.systemGray2))
                             .padding(.bottom, 2)
 
 
@@ -44,7 +44,7 @@ struct CompletedWorkoutsView: View {
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }
             .navigationBarTitle(Text("History"))
-            .navigationBarTitleTextColor(Color(.systemGray3))
+            .navigationBarTitleTextColor(Color(.systemGray2))
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
                     NavigationLink(destination: SelectPlanView(), isActive: $completedWorkoutsViewModel.isSelectPlanViewActive) {

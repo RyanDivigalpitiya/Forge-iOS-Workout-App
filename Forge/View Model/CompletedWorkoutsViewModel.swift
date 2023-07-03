@@ -48,14 +48,17 @@ extension CompletedWorkoutsViewModel {
     
     func format(timeInterval: TimeInterval) -> String {
         let totalSeconds = Int(timeInterval)
+        let seconds = totalSeconds % 60
         let totalMinutes = totalSeconds / 60
         let minutes = totalMinutes % 60
         let hours = totalMinutes / 60
         
         if hours > 0 {
             return "\(hours) hour\(hours > 1 ? "s" : ""), \(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
-        } else {
+        } else if minutes > 0 {
             return "\(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
+        } else {
+            return "\(seconds) second\(seconds > 1 || seconds == 0 ? "s" : "")"
         }
     }
 
