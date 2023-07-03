@@ -113,7 +113,7 @@ struct ExerciseEditorView: View {
                                     Circle()
                                         .frame(width: 28, height: 28)
                                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
-                                    Image(systemName: "plus")
+                                    Image(systemName: "arrow.up")
                                         .resizable()
                                         .frame(width: 13, height: 13)
                                         .fontWeight(.bold)
@@ -403,9 +403,11 @@ struct ExerciseEditorView: View {
                                         
                                         // DELETE BUTTON
                                         Button(action: {
-                                            heteroSets_Weights.remove(at: setIndex)
-                                            heteroSets_Reps.remove(at: setIndex)
-                                            heteroSets_Failure.remove(at: setIndex)
+                                            if heteroSets_Weights.count > 1{
+                                                heteroSets_Weights.remove(at: setIndex)
+                                                heteroSets_Reps.remove(at: setIndex)
+                                                heteroSets_Failure.remove(at: setIndex)
+                                            }
                                             
                                         }) {
                                             Image(systemName: "trash.fill")
@@ -526,6 +528,7 @@ struct ExerciseEditorView: View {
                                                     .bold()
                                                     .padding(buttonPlusMinusSize)
                                             }
+                                            .disabled(heteroSets_Failure[setIndex] ? true : false)
                                             
                                             Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
                                             
@@ -545,6 +548,7 @@ struct ExerciseEditorView: View {
                                                     .bold()
                                                     .padding(buttonPlusMinusSize)
                                             }
+                                            .disabled(heteroSets_Failure[setIndex] ? true : false)
                                             
                                             Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
                                             

@@ -8,8 +8,6 @@ struct WorkoutInProgressView: View {
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
-    //-////////////////////////////////////////////////////////
-    @EnvironmentObject var stopwatchViewModel: StopwatchViewModel
     
     
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
@@ -35,6 +33,11 @@ struct WorkoutInProgressView: View {
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     let setButtonSize: CGFloat = 28
     let screenWidth = UIScreen.main.bounds.width
+    let screenHeight = UIScreen.main.bounds.height
+    @State private var topToolBarHeight: CGFloat = 130
+    @State private var topToolBarCornerRadius: CGFloat = 0
+    @State private var showTimer = false
+
     
     var body: some View {
         ZStack {
@@ -103,7 +106,12 @@ struct WorkoutInProgressView: View {
                                                         // present break timer
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                                                showBreakTimer = true
+//                                                                showBreakTimer = true
+                                                                withAnimation(.easeInOut(duration: 0.7)) {
+                                                                    topToolBarHeight = screenHeight*0.8
+                                                                    topToolBarCornerRadius = 30
+                                                                    showTimer = true
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -210,30 +218,25 @@ struct WorkoutInProgressView: View {
                     HStack(spacing:0) {
                         Spacer()
                         
-                        Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
+                        Text("\(percentCompleted)% Complete")
                             .fontWeight(.bold)
 //                            .font(Font.system(size: 15, design: .monospaced))
-                        Button( action: {
-                            stopwatchViewModel.startStopTapped()
-                        }) {
-                            HStack {
-                                if stopwatchViewModel.isPaused {
-                                    Image(systemName: "play.circle.fill")
-                                } else {
-                                    Image(systemName: "pause.circle.fill")
-                                }
-                            }
-                            .foregroundColor(fgColor)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 10)
-                        }
                         
                         Spacer()
                     }
+                    .padding(.bottom, 10)
+                    .padding(.top,5)
                     .scaleEffect(popScaleEffect)
+                    Spacer()
+                    if showTimer {
+                        BreakTimerView()
+                            .opacity(showTimer ? 1 : 0)
+                    }
                 }
+                .frame(height: topToolBarHeight)
 //                .padding(.bottom, 15)
                 .background(BlurView(style: .systemChromeMaterial))
+                .cornerRadius(topToolBarCornerRadius)
                 
                 Spacer()
             }
@@ -282,7 +285,7 @@ struct WorkoutInProgressView: View {
                             
     //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                             // save completed workout to persistant storage
-                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan, elapsedTime: stopwatchViewModel.currentTime)
+                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
                             completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                             completedWorkoutsViewModel.saveCompletedWorkouts()
 
@@ -351,10 +354,8 @@ struct WorkoutInProgressView: View {
         .background(.black)
         .onAppear{
             calcPercentCompleted()
-            stopwatchViewModel.startStopWatch()
         }
         .onDisappear {
-            stopwatchViewModel.stopStopWatch()
         }
 
     }
