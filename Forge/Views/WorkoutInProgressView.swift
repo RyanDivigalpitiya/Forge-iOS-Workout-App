@@ -195,7 +195,7 @@ struct WorkoutInProgressView: View {
             
             // Top Toolbar
             VStack {
-                VStack {
+                VStack(spacing:0) {
                     Spacer().frame(height: 55)
                     HStack {
                         Spacer()
@@ -207,7 +207,7 @@ struct WorkoutInProgressView: View {
                     }
                     .padding(.bottom,1)
                     
-                    HStack {
+                    HStack(spacing:0) {
                         Spacer()
                         
                         Text("\(percentCompleted)% Complete  —  \(stopwatchViewModel.stopwatchText)")
@@ -224,13 +224,15 @@ struct WorkoutInProgressView: View {
                                 }
                             }
                             .foregroundColor(fgColor)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 10)
                         }
                         
                         Spacer()
                     }
                     .scaleEffect(popScaleEffect)
                 }
-                .padding(.bottom, 15)
+//                .padding(.bottom, 15)
                 .background(BlurView(style: .systemChromeMaterial))
                 
                 Spacer()
