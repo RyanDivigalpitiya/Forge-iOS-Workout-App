@@ -17,28 +17,10 @@ class CompletedWorkoutsViewModel: ObservableObject {
         self.completedWorkouts = workouts
         self.isSelectPlanViewActive = false
     }
-    
-    // loads completedWorkouts from persistant storage (from UserDefaults)
-    func loadCompletedWorkouts() -> [CompletedWorkout] {
-        if let pastWorkoutData = UserDefaults.standard.data(forKey: "completedWorkouts") {
-            if let decodedData = try? JSONDecoder().decode([CompletedWorkout].self, from: pastWorkoutData) {
-                return decodedData
-            } else { return [] }
-        } else { return [] }
-    }
-    
-    // saves completedWorkouts to persistant storage (UserDefaults)
-    func saveCompletedWorkouts() {
-        if let encodedData = try? JSONEncoder().encode(completedWorkouts) {
-            UserDefaults.standard.set(encodedData, forKey: "completedWorkouts")
-        }
-    }
-    
-    func deleteCompletedWorkouts(at offsets: IndexSet) {
-        let originalIndices = offsets.map { completedWorkouts.count - 1 - $0 }
-        completedWorkouts.remove(atOffsets: IndexSet(originalIndices))
-        saveCompletedWorkouts()
-    }
+}
+
+// FUNCTIONS THAT FORMAT DATA TO BE PRESENTED IN A VIEW
+extension CompletedWorkoutsViewModel {
     
     func numberOfDaysString(from date: Date) -> String {
         /*
@@ -63,5 +45,45 @@ class CompletedWorkoutsViewModel: ObservableObject {
             }
         }
     }
+    
+    func format(timeInterval: TimeInterval) -> String {
+        let totalSeconds = Int(timeInterval)
+        let totalMinutes = totalSeconds / 60
+        let minutes = totalMinutes % 60
+        let hours = totalMinutes / 60
+        
+        if hours > 0 {
+            return "\(hours) hour\(hours > 1 ? "s" : ""), \(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
+        } else {
+            return "\(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
+        }
+    }
+
 }
+
+// SAVING / LOADING PERSISTANT STORAGE
+extension CompletedWorkoutsViewModel {
+    // loads completedWorkouts from persistant storage (from UserDefaults)
+    func loadCompletedWorkouts() -> [CompletedWorkout] {
+        if let pastWorkoutData = UserDefaults.standard.data(forKey: "completedWorkouts") {
+            if let decodedData = try? JSONDecoder().decode([CompletedWorkout].self, from: pastWorkoutData) {
+                return decodedData
+            } else { return [] }
+        } else { return [] }
+    }
+    
+    // saves completedWorkouts to persistant storage (UserDefaults)
+    func saveCompletedWorkouts() {
+        if let encodedData = try? JSONEncoder().encode(completedWorkouts) {
+            UserDefaults.standard.set(encodedData, forKey: "completedWorkouts")
+        }
+    }
+    
+    func deleteCompletedWorkouts(at offsets: IndexSet) {
+        let originalIndices = offsets.map { completedWorkouts.count - 1 - $0 }
+        completedWorkouts.remove(atOffsets: IndexSet(originalIndices))
+        saveCompletedWorkouts()
+    }
+}
+
 

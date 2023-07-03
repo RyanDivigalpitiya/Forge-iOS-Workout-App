@@ -13,18 +13,33 @@ struct CompletedWorkoutsView: View {
         NavigationView {
             List {
                 ForEach(completedWorkoutsViewModel.completedWorkouts) { completedWorkout in
-                    VStack(alignment: .leading) {
-                        Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color(.systemGray3))
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
+//                            Text("·")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.bottom, 2)
+                        
                         
                         Text(completedWorkout.workout.name)
                             .font(.title)
                             .fontWeight(.bold)
                             .foregroundColor(fgColor)
+                            .padding(.top,0)
+                            .padding(.bottom, 5)
+                        
+                        Text("Duration: \(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color(.systemGray3))
+                            .padding(.bottom, 2)
+
+
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 10)
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }

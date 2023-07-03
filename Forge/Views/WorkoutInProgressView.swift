@@ -280,7 +280,7 @@ struct WorkoutInProgressView: View {
                             
     //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                             // save completed workout to persistant storage
-                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan)
+                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan, elapsedTime: stopwatchViewModel.currentTime)
                             completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                             completedWorkoutsViewModel.saveCompletedWorkouts()
 

@@ -4,6 +4,7 @@ import Combine
 class StopwatchViewModel: ObservableObject {
     @Published var stopwatchText = "00:00:00"
     @Published var isPaused = false
+    @Published var currentTime: TimeInterval = 0 
     
     var stopwatchTimer: Cancellable? = nil
     var startDate = Date()
@@ -38,6 +39,7 @@ class StopwatchViewModel: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 let elapsed = Date().timeIntervalSince(self.startDate)
+                self.currentTime = elapsed  // Update the currentTime property.
                 if Int(elapsed) >= 359999 {
                     self.stopwatchTimer?.cancel()
                     self.stopwatchText = "99:59:59"
@@ -50,4 +52,5 @@ class StopwatchViewModel: ObservableObject {
             }
     }
 }
+
 
