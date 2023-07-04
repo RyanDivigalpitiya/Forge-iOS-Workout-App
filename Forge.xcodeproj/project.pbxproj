@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F1174E472A52A1C600526AB9 /* BreakTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1174E462A52A1C600526AB9 /* BreakTimerView.swift */; };
 		F1174E492A52B47B00526AB9 /* StopwatchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1174E482A52B47B00526AB9 /* StopwatchViewModel.swift */; };
+		F14BFCBD2A53BAEB0065A4DC /* WorkoutStartingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14BFCBC2A53BAEB0065A4DC /* WorkoutStartingTimer.swift */; };
 		F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94732A4BD118008155FA /* ExerciseEditorView.swift */; };
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */; };
@@ -34,8 +34,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F1174E462A52A1C600526AB9 /* BreakTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakTimerView.swift; sourceTree = "<group>"; };
 		F1174E482A52B47B00526AB9 /* StopwatchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopwatchViewModel.swift; sourceTree = "<group>"; };
+		F14BFCBC2A53BAEB0065A4DC /* WorkoutStartingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStartingTimer.swift; sourceTree = "<group>"; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		F14E94772A4BEC29008155FA /* testingViews.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = testingViews.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
@@ -127,7 +127,7 @@
 				F19EDD7C2A511EFF00B2E974 /* SetView.swift */,
 				F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */,
 				F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */,
-				F1174E462A52A1C600526AB9 /* BreakTimerView.swift */,
+				F14BFCBC2A53BAEB0065A4DC /* WorkoutStartingTimer.swift */,
 				F14E94772A4BEC29008155FA /* testingViews.playground */,
 			);
 			path = Views;
@@ -245,6 +245,7 @@
 				F1F8508E2A493C460093EE01 /* CompletedWorkout.swift in Sources */,
 				F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */,
 				F1F850832A4926AF0093EE01 /* WorkoutPlan.swift in Sources */,
+				F14BFCBD2A53BAEB0065A4DC /* WorkoutStartingTimer.swift in Sources */,
 				F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */,
 				F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */,
 				F17247672A4D156600937621 /* Set.swift in Sources */,
@@ -257,7 +258,6 @@
 				F17247632A4CE4A800937621 /* WorkoutInProgressView.swift in Sources */,
 				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
 				F1E2F2442A52D2470076290D /* AppDelegate.swift in Sources */,
-				F1174E472A52A1C600526AB9 /* BreakTimerView.swift in Sources */,
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -156,6 +156,7 @@ struct SelectPlanView: View {
                     }
                     .sheet(isPresented: $reorderDeleteViewPresented) {
                         ReorderDeleteView(mode: "PlanMode")
+                            .presentationDetents([.medium, .large])
                             .environment(\.colorScheme, .dark)
                     }
                     

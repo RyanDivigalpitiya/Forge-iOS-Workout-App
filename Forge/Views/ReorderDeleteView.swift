@@ -14,7 +14,7 @@ struct ReorderDeleteView: View {
     
     var body: some View {
         VStack {
-            Text(mode == "PlanMode" ? "Delete or Reorder Plans" : "Delete or Reorder Exercises")
+            Text(mode == "PlanMode" ? "Reorder or Delete Plans" : "Reorder or Delete Exercises")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(fgColor)
@@ -27,7 +27,7 @@ struct ReorderDeleteView: View {
                 .padding(.top,0)
             
             HStack {
-                Text("Press")
+                Text("Tap")
                     .fontWeight(.bold)
                     .padding(.top,0)
                     
