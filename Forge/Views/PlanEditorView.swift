@@ -64,7 +64,7 @@ struct PlanEditorView: View {
                                 VStack{
                                     HStack {
                                         Text(planViewModel.activePlan.exercises[exerciseIndex].name)
-                                            .multilineTextAlignment(.leading) 
+                                            .multilineTextAlignment(.leading)
                                             .fontWeight(.bold)
                                             .foregroundColor(fgColor)
                                             .font(.system(size: 30))
