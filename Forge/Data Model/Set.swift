@@ -16,12 +16,12 @@ struct Set: Identifiable, Encodable, Decodable {
         self.completed = false
     }
     
-    init(weight: Float, reps: Int, tillFailure: Bool) {
+    init(weight: Float, reps: Int, tillFailure: Bool, completed: Bool) {
         self.id = UUID()
         self.weight = weight
         self.reps = reps
         self.tillFailure = tillFailure
-        self.completed = false
+        self.completed = completed
     }
 }
     

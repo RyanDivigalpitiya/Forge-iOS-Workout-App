@@ -3,16 +3,16 @@ import Foundation
 // Mock data is used for Preview Structs to populate UI + before loading/saving persistant storage is implemented.
 // This file contains only mock data used for these purposes and will be deleted when app is shipped.
 
-let set1 = Set(weight: 25, reps: 12, tillFailure: false)
-let set2 = Set(weight: 30, reps: 10, tillFailure: false)
-let set3 = Set(weight: 35, reps: 8, tillFailure: false)
-let set3_f = Set(weight: 35, reps: 8, tillFailure: true)
+let set1 = Set(weight: 25, reps: 12, tillFailure: false, completed: false)
+let set2 = Set(weight: 30, reps: 10, tillFailure: false, completed: false)
+let set3 = Set(weight: 35, reps: 8, tillFailure: false, completed: false)
+let set3_f = Set(weight: 35, reps: 8, tillFailure: true, completed: false)
 
 let mockSets1 = [set1,set2,set3,set3_f]
 
-let set4 = Set(weight: 100, reps: 12, tillFailure: false)
-let set5 = Set(weight: 100, reps: 12, tillFailure: false)
-let set6 = Set(weight: 100, reps: 12, tillFailure: false)
+let set4 = Set(weight: 100, reps: 12, tillFailure: false, completed: false)
+let set5 = Set(weight: 100, reps: 12, tillFailure: false, completed: false)
+let set6 = Set(weight: 100, reps: 12, tillFailure: false, completed: false)
 
 let mockSets2 = [set4,set5,set6]
 

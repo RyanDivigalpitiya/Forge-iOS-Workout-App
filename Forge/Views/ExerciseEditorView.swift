@@ -690,7 +690,7 @@ extension ExerciseEditorView {
                 let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
                 let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
                 if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index])
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index], completed: planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed)
                     newSets.append(newSet)
                 }
             }
@@ -700,8 +700,8 @@ extension ExerciseEditorView {
             let inputtedReps = Int(homoSelectedReps.dropLast(5))
             
             if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                for _ in 0...unwrappedSets-1 {
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false)
+                for index in 0...unwrappedSets-1 {
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false, completed: planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed)
                     newSets.append(newSet)
                 }
             }

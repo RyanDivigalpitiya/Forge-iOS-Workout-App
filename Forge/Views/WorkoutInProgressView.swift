@@ -39,6 +39,7 @@ struct WorkoutInProgressView: View {
     @State private var topToolBarCornerRadius: CGFloat = 0
     @State private var timerEnabled = false
     @State private var timerVisible = false
+    @State private var isScrollViewDisabled = false
     @State private var remainingTime: Int = 60
     @State private var timerSubscription: Cancellable? = nil
     @State private var totalTime: Int = 60
@@ -110,6 +111,7 @@ struct WorkoutInProgressView: View {
                                             // SET BUTTON
                                             // marks set.completed to TRUE OR FALSE
                                             Button(action: {
+                                                
                                                 withAnimation(.easeOut(duration: 0.2)) {
                                                     planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
                                                     if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
@@ -119,8 +121,8 @@ struct WorkoutInProgressView: View {
                                                     }
                                                     
                                                     if !planViewModel.activePlan.exercises[exerciseIndex].completed {
-                                                        // present break timer
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
+                                                            isScrollViewDisabled = true
                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                                                 withAnimation(.easeInOut(duration: 0.5)) {
                                                                     scrollViewScaleEffect = 0.95
@@ -217,7 +219,7 @@ struct WorkoutInProgressView: View {
                     }
                 }
                 .opacity(scrollViewVisible ? 1 : 0.5)
-                .disabled(timerEnabled)
+                .disabled(isScrollViewDisabled)
             }
             .scaleEffect(scrollViewScaleEffect)
             
@@ -505,6 +507,7 @@ extension WorkoutInProgressView {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             withAnimation(.easeInOut(duration: 0.5)) {
+                isScrollViewDisabled = false
                 scrollViewVisible = true
                 scrollViewScaleEffect = 1.0
                 timerEnabled = false
