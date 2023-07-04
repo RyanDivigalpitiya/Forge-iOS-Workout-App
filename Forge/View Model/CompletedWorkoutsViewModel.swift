@@ -83,8 +83,7 @@ extension CompletedWorkoutsViewModel {
     }
     
     func deleteCompletedWorkouts(at offsets: IndexSet) {
-        let originalIndices = offsets.map { completedWorkouts.count - 1 - $0 }
-        completedWorkouts.remove(atOffsets: IndexSet(originalIndices))
+        completedWorkouts.remove(atOffsets: offsets)
         saveCompletedWorkouts()
     }
 }

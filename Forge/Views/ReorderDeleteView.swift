@@ -14,7 +14,7 @@ struct ReorderDeleteView: View {
     
     var body: some View {
         VStack {
-            Text(mode == "PlanMode" ? "Edit Order of Plans" : "Edit Order of Exercises")
+            Text(mode == "PlanMode" ? "Delete or Reorder Plans" : "Delete or Reorder Exercises")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(fgColor)
@@ -92,5 +92,10 @@ struct ReorderDeleteView: View {
 struct ReorderDeleteView_Previews: PreviewProvider {
     static var previews: some View {
         ReorderDeleteView()
+            .environmentObject(CompletedWorkoutsViewModel())
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+            .environmentObject(ExerciseViewModel())
+            .environmentObject(StopwatchViewModel())
+            .preferredColorScheme(.dark)
     }
 }

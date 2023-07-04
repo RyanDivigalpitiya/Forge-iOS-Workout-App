@@ -40,9 +40,9 @@ let mockExercises3 = [exercise7,exercise8,exercise9]
 
 let workoutPlan3 = WorkoutPlan(name: "Shoulders", exercises: mockExercises3)
 
-let completedWorkout1 = CompletedWorkout(date: Date(), workout: workoutPlan1, elapsedTime: 1800)
-let completedWorkout2 = CompletedWorkout(date: Date(), workout: workoutPlan2, elapsedTime: 2500)
-let completedWorkout3 = CompletedWorkout(date: Date(), workout: workoutPlan3, elapsedTime: 500)
+let completedWorkout1 = CompletedWorkout(date: Date(), workout: workoutPlan1, elapsedTime: 1800, completion: "100%")
+let completedWorkout2 = CompletedWorkout(date: Date(), workout: workoutPlan2, elapsedTime: 2500, completion: "87%")
+let completedWorkout3 = CompletedWorkout(date: Date(), workout: workoutPlan3, elapsedTime: 500, completion: "50%")
 
 let mockWorkoutPlans = [workoutPlan1,workoutPlan2,workoutPlan3]
 let mockCompletedWorkouts = [completedWorkout1,completedWorkout2,completedWorkout3]

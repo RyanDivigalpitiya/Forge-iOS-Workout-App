@@ -63,7 +63,7 @@ struct WorkoutInProgressView: View {
                 ScrollView {
                     
                     LazyVStack {
-                        Spacer().frame(height: 85)
+                        Spacer().frame(height: 95)
                         
                         ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
                             
@@ -382,7 +382,8 @@ struct WorkoutInProgressView: View {
                         self.exerciseEditorIsPresented = true
                         }) {
                             Text("Add")
-                                .font(.headline)
+                                .font(.system(size: 18))
+                                .fontWeight(.bold)
                             Image(systemName: "plus.circle.fill")
                                 .resizable()
                                 .frame(width: 15, height: 15)
@@ -407,7 +408,12 @@ struct WorkoutInProgressView: View {
                             
     //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                             // save completed workout to persistant storage
-                            let completedWorkout = CompletedWorkout(date: Date(), workout: planViewModel.activePlan, elapsedTime: stopwatchViewModel.currentTime)
+                            let completedWorkout = CompletedWorkout(
+                                                    date: Date(),
+                                                    workout: planViewModel.activePlan,
+                                                    elapsedTime: stopwatchViewModel.currentTime,
+                                                    completion: "\(percentCompleted)%"
+                            )
                             completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
                             completedWorkoutsViewModel.saveCompletedWorkouts()
 
@@ -432,10 +438,10 @@ struct WorkoutInProgressView: View {
                             HStack {
                                 Text("Done")
     //                                .font(.headline)
-                                    .font(.system(size: 23))
+                                    .font(.system(size: 20))
                                     .bold()
                             }
-                            .frame(width: 90, height: 41)
+                            .frame(width: 75, height: 35)
                             .background(fgColor)
                             .foregroundColor(.black)
                             .cornerRadius(500)
@@ -455,12 +461,14 @@ struct WorkoutInProgressView: View {
                                 .frame(width: 15, height: 15)
                                 .padding(.trailing, 3)
                             Text("Edit")
-                                .font(.headline)
+                                .font(.system(size: 18))
+                                .fontWeight(.bold)
                         }
                         .foregroundColor(fgColor)
                         .disabled(timerEnabled)
                         .sheet(isPresented: $reorderDeleteViewPresented) {
                             ReorderDeleteView(mode: "ExerciseMode")
+                                .presentationDetents([.medium, .large])
                                 .environment(\.colorScheme, .dark)
                         }
                     }

@@ -39,55 +39,27 @@ extension PlanViewModel {
             UserDefaults.standard.set(encodedData, forKey: "workoutPlans")
         }
     }
+
+    // handles re-ordering of plans
+    func movePlan(from source: IndexSet, to destination: Int) {
+        self.workoutPlans.move(fromOffsets: source, toOffset: destination)
+        self.savePlans()
+    }
+        
+    // handles deleting exercises while editing/adding plan
+    func deletePlan(at offsets: IndexSet) {
+        self.workoutPlans.remove(atOffsets: offsets)
+        self.savePlans()
+    }
     
     // handles re-ordering of exerices while editing/adding plan
     func moveExercise(from source: IndexSet, to destination: Int) {
-        /*
-         we have to duplicate the exercises, re-order it,
-         then assign the duplicated exericses to the plan-being-edited, otherwise,
-         the model view will not detect & publish the change to the corresponding view
-         */
-        var reorderedExercises = Array(self.activePlan.exercises)
-        reorderedExercises.move(fromOffsets: source, toOffset: destination)
-        self.activePlan.exercises = reorderedExercises
-    }
-    
-    // handles re-ordering of plans
-    func movePlan(from source: IndexSet, to destination: Int) {
-        /*
-         we have to duplicate the exercises, re-order it,
-         then assign the duplicated exericses to the plan-being-edited, otherwise,
-         the model view will not detect & publish the change to the corresponding view
-         */
-        var reorderedPlans = Array(self.workoutPlans)
-        reorderedPlans.move(fromOffsets: source, toOffset: destination)
-        self.workoutPlans = reorderedPlans
-        self.savePlans()
+        self.activePlan.exercises.move(fromOffsets: source, toOffset: destination)
     }
     
     // handles deleting exercises while editing/adding plan
     func deleteExercise(at offsets: IndexSet) {
-         /*
-          we have to duplicate the plans, delete the plan @ index,
-          then assign the duplicated plans to workoutPlans, otherwise
-          the model view will not detect & publish the change to the corresponding view
-          */
-        var exercisesAfterRemoval = Array(self.activePlan.exercises)
-        exercisesAfterRemoval.remove(atOffsets: offsets)
-        self.activePlan.exercises = exercisesAfterRemoval
-    }
-    
-    // handles deleting exercises while editing/adding plan
-    func deletePlan(at offsets: IndexSet) {
-         /*
-          we have to duplicate the plans, delete the plan @ index,
-          then assign the duplicated plans to workoutPlans, otherwise
-          the model view will not detect & publish the change to the corresponding view
-          */
-        var plansAfterRemoval = Array(self.workoutPlans)
-        plansAfterRemoval.remove(atOffsets: offsets)
-        self.workoutPlans = plansAfterRemoval
-        self.savePlans()
+        self.activePlan.exercises.remove(atOffsets: offsets)
     }
 }
 
