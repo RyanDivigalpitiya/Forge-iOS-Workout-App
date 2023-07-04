@@ -12,7 +12,8 @@ struct CompletedWorkoutsView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(completedWorkoutsViewModel.completedWorkouts) { completedWorkout in
+                ForEach(completedWorkoutsViewModel.completedWorkouts.indices.reversed(), id: \.self) { completedWorkoutIndex in
+                    let completedWorkout = completedWorkoutsViewModel.completedWorkouts[completedWorkoutIndex]
                     VStack(alignment: .leading, spacing: 0) {
                         HStack {
                             Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))

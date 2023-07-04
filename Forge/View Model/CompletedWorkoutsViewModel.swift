@@ -83,7 +83,10 @@ extension CompletedWorkoutsViewModel {
     }
     
     func deleteCompletedWorkouts(at offsets: IndexSet) {
-        completedWorkouts.remove(atOffsets: offsets)
+        // completed workouts in the list are displayed in reverse order, so must compute actualIndicies:
+        let actualIndices = offsets.map { completedWorkouts.count - 1 - $0 }
+        // remove items at actual indices
+        completedWorkouts.remove(atOffsets: IndexSet(actualIndices))
         saveCompletedWorkouts()
     }
 }

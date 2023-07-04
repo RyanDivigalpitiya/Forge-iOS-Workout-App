@@ -26,55 +26,73 @@ struct SelectPlanView: View {
                             planViewModel.activePlanIndex = index
                             workoutInProgressViewPresented = true
                         }) {
-                            VStack {
-                                HStack {
-                                    Text(planViewModel.workoutPlans[index].name)
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 30))
+                            HStack(spacing:0){
+                                
+                                // PLAN NUMBER
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 29, height: 29)
+                                        .foregroundColor(Color.gray.opacity(0.2))
+                                    Text("\(index+1)")
                                         .foregroundColor(fgColor)
-                                    Spacer()
+                                        .fontWeight(.bold)
+                                        .font(.system(size: 16))
                                 }
-                                .padding(.top,5)
+                                .padding(.trailing,15)
+                                .padding(.leading, 5)
+                                .padding(.bottom, 56)
                                 
-                                
-                                Divider()
-                                
-                                HStack {
-                                    // NUMBER OF EXERCISES
-                                    Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
-                                        .foregroundColor(Color.gray.opacity(0.5))
-                                        .fontWeight(.bold)
-                                    Text("·")
-                                        .foregroundColor(Color.gray.opacity(0.5))
-                                        .fontWeight(.bold)
-                                        .padding(.horizontal, 1)
-                                    // DURATION OF WORKOUT
-                                    Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
-                                        .foregroundColor(Color.gray.opacity(0.5))
-                                        .fontWeight(.bold)
-                                    Spacer()
-                                    
-                                    // EDIT BUTTON //////////////////
-                                    Button( action: {
-                                        planViewModel.activePlan = planViewModel.workoutPlans[index]
-                                        planViewModel.activePlanMode = "EditMode"
-                                        planViewModel.activePlanIndex = index
-                                        self.planEditorIsPresented = true
-                                    }) {
-                                        Image(systemName: "pencil.circle.fill")
-                                            .resizable()
-                                            .frame(width: 20, height: 20)
-                                            .foregroundColor(.gray)
-                                            .opacity(0.4)
+                                VStack {
+                                    HStack {
+                                        Text(planViewModel.workoutPlans[index].name)
+                                            .fontWeight(.bold)
+                                            .font(.system(size: 30))
+                                            .foregroundColor(fgColor)
+                                        Spacer()
                                     }
+                                    .padding(.top,5)
+                                    
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        // EDIT BUTTON //////////////////
+                                        Button( action: {
+                                            planViewModel.activePlan = planViewModel.workoutPlans[index]
+                                            planViewModel.activePlanMode = "EditMode"
+                                            planViewModel.activePlanIndex = index
+                                            self.planEditorIsPresented = true
+                                        }) {
+                                            Image(systemName: "pencil.circle.fill")
+                                                .resizable()
+                                                .frame(width: 15, height: 15)
+                                                .foregroundColor(.gray)
+                                                .opacity(0.4)
+                                                .padding(.trailing, 4)
+                                        }
+                                        // NUMBER OF EXERCISES
+                                        Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                        Text("·")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                            .padding(.horizontal, 1)
+                                        // DURATION OF WORKOUT
+                                        Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                        Spacer()
+                                                                                
+                                    }
+                                    .padding(.top,15)
                                     
                                 }
-                                .padding(.top,15)
-                                
+                                .padding(5)
                             }
-                            .padding(5)
                         }
-                        .padding()
+                        .padding(.vertical)
+                        .padding(.leading)
                         .background(bgColor)
                         .cornerRadius(15)
                         .fullScreenCover(isPresented: $workoutInProgressViewPresented) {
