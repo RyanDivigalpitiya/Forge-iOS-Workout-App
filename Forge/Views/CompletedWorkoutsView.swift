@@ -30,11 +30,12 @@ struct CompletedWorkoutsView: View {
                             .fontWeight(.bold)
                             .foregroundColor(fgColor)
                             .padding(.top, 3)
-                            .padding(.bottom, 7)
+                            .padding(.bottom, 9)
                         
                         HStack {
-                            Text("Duration: \(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
-                            Text("·")
+                            Image(systemName: "clock.fill")
+                            Text("\(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
+                            Image(systemName: "checkmark.circle.fill").padding(.leading,7)
                             Text("Completion: \(completedWorkout.completion)")
                         }
                         .font(.subheadline)
@@ -42,7 +43,7 @@ struct CompletedWorkoutsView: View {
                         .foregroundColor(Color(.systemGray2))
                         .padding(.bottom, 2)
                     }
-                    .padding(.vertical, 15)
+                    .padding(.vertical, 12)
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }

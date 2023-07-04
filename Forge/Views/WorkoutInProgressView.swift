@@ -51,6 +51,7 @@ struct WorkoutInProgressView: View {
     private var popDownScaleSize: CGFloat = 0.95
     let popAnimationSpeed: Double = 0.05
     let popAnimationDelay: Double = 0.05
+    @State private var isDoneCheckMarkVisible: Bool = false
     @State private var scrollViewVisible = true
     // Starting timer animation parameters
     @State var isStartingTimerDone: Bool = false
@@ -486,22 +487,43 @@ struct WorkoutInProgressView: View {
                                     planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                     planViewModel.savePlans()
                                     
-                                    self.presentationMode.wrappedValue.dismiss()
-                                    // after dismissing this view, send user back to CompletedWorkoutsView
-                                    completedWorkoutsViewModel.isSelectPlanViewActive = false
-                                    // reset the starting countdown timer
+                                    triggerHapticFeedback()
+                                    withAnimation(.easeInOut(duration: 1)) {
+                                        isDoneCheckMarkVisible = true
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                        self.presentationMode.wrappedValue.dismiss()
+                                        // after dismissing this view, send user back to CompletedWorkoutsView
+                                        completedWorkoutsViewModel.isSelectPlanViewActive = false
+                                        // reset the starting countdown timer
+                                    }
+                                    
                                     
                                 }) {
-                                    HStack {
-                                        Text("Done")
-            //                                .font(.headline)
-                                            .font(.system(size: 20))
-                                            .bold()
+                                    ZStack{
+                                        HStack {
+                                            Text("Done")
+                                                .font(.system(size: 20))
+                                                .bold()
+                                        }
+                                        .frame(width: 75, height: 35)
+                                        .background(fgColor)
+                                        .foregroundColor(.black)
+                                        .cornerRadius(500)
+                                        .opacity(isDoneCheckMarkVisible ? 0 : 1)
+                                        
+                                        HStack {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 20))
+                                                .bold()
+                                        }
+                                        .frame(width: 75, height: 35)
+                                        .background(fgColor)
+                                        .foregroundColor(.black)
+                                        .cornerRadius(500)
+                                        .opacity(isDoneCheckMarkVisible ? 1 : 0)
                                     }
-                                    .frame(width: 75, height: 35)
-                                    .background(fgColor)
-                                    .foregroundColor(.black)
-                                    .cornerRadius(500)
+                                    
                                 }
                                 .foregroundColor(fgColor)
                             }

@@ -301,6 +301,7 @@ struct PlanEditorView: View {
                         .foregroundColor(fgColor)
                         .sheet(isPresented: $reorderDeleteViewPresented) {
                             ReorderDeleteView(mode: "ExerciseMode")
+                                .presentationDetents([.medium, .large])
                                 .environment(\.colorScheme, .dark)
                         }
                         

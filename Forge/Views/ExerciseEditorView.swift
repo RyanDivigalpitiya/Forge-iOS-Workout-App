@@ -692,7 +692,8 @@ extension ExerciseEditorView {
                 if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
                     
                     var completedValue  = false
-                    if index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
+                    if planViewModel.activePlan.exercises.count > 0  &&
+                        index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
                         completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
                     } else {
                         completedValue = false
@@ -711,7 +712,8 @@ extension ExerciseEditorView {
                 for index in 0...unwrappedSets-1 {
                     
                     var completedValue  = false
-                    if index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
+                    if planViewModel.activePlan.exercises.count > 0  &&
+                        index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
                         completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
                     } else {
                         completedValue = false
