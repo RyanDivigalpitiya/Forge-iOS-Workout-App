@@ -8,21 +8,11 @@ class PlanViewModel: ObservableObject {
     @Published var activePlanIndex: Int
     @Published var activePlanMode: String
     
-    // Animation states
-    @Published var isStartingTimerDone: Bool
-    @Published var shouldShowWorkout: Bool
-    @Published var isWorkoutOpacityFull: Bool
-    @Published var scrollViewScaleEffect: CGFloat
-    
     init() {
         self.workoutPlans = []
         self.activePlan = WorkoutPlan()
         self.activePlanIndex = 0
         self.activePlanMode = "AddMode"
-        self.isStartingTimerDone = false
-        self.shouldShowWorkout = false
-        self.isWorkoutOpacityFull = false
-        self.scrollViewScaleEffect = 0.95
         self.workoutPlans = loadPlans()
     }
     
@@ -30,10 +20,6 @@ class PlanViewModel: ObservableObject {
         self.workoutPlans = mockPlans
         self.activePlan = mockPlans[0]
         self.activePlanIndex = 0
-        self.isStartingTimerDone = false
-        self.shouldShowWorkout = false
-        self.isWorkoutOpacityFull = false
-        self.scrollViewScaleEffect = 0.95
         self.activePlanMode = "AddMode"
     }
 }
@@ -79,14 +65,7 @@ extension PlanViewModel {
 
 // data manipulation to passed to views
 extension PlanViewModel {
-    
-    func resetAnimationParams() {
-        self.isStartingTimerDone = false
-        self.shouldShowWorkout = false
-        self.isWorkoutOpacityFull = false
-        self.scrollViewScaleEffect = 0.95
-    }
-    
+        
     func calculateWorkoutDuration(for plan: WorkoutPlan) -> Int {
         /**
         This function calculates the estimated duration of a workout based on a given `WorkoutPlan`.

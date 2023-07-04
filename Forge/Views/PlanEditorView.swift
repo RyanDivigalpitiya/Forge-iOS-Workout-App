@@ -19,9 +19,10 @@ struct PlanEditorView: View {
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
-    let setsFontSize = GlobalSettings.shared.setsFontSize // Font size used for text in set rows
-    let setsSpacing: CGFloat = 5
     let screenHeight = UIScreen.main.bounds.height
+    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
+    let setsSpacing: CGFloat = 3
+
 
     
     var body: some View {
@@ -63,6 +64,7 @@ struct PlanEditorView: View {
                                 VStack{
                                     HStack {
                                         Text(planViewModel.activePlan.exercises[exerciseIndex].name)
+                                            .multilineTextAlignment(.leading) 
                                             .fontWeight(.bold)
                                             .foregroundColor(fgColor)
                                             .font(.system(size: 30))
@@ -77,13 +79,90 @@ struct PlanEditorView: View {
                                     if planViewModel.activePlan.exercises[exerciseIndex].areSetsUnique { // heterogenous set: display each unqiue set
                                         VStack(spacing: 25) {
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
+                                                let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
+                                                
+                                                // SET ROW (UNIQUE)
+                                                HStack {
+                                                    if setIndex+1 > 9 {
+                                                        Text("Set \(setIndex+1)")
+                                                            .font(.system(size: 16))
+                                                            .foregroundColor(.white)
+                                                            .frame(width: 67, height: 28)
+                                                            .background(fgColor)
+                                                            .cornerRadius(5)
+                                                            .padding(.trailing, setsSpacing+2)
+                                                    } else {
+                                                        Text("Set \(setIndex+1)")
+                                                            .font(.system(size: 16))
+                                                            .foregroundColor(.white)
+                                                            .frame(width: 58, height: 28)
+                                                            .background(fgColor)
+                                                            .cornerRadius(5)
+                                                            .padding(.trailing, setsSpacing+2)
 
-                                                SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true, displayLabelBKG: true)
+                                                    }
+                                                    Text("\(Int(set.weight)) lb")
+                                                        .foregroundColor(.white)
+                                                        .padding(.trailing, setsSpacing)
+                                                    Image(systemName: "xmark")
+                                                        .resizable()
+                                                        .frame(width: 10, height: 10)
+                                                        .padding(.top,3)
+                                                        .foregroundColor(.gray)
+                                                        .opacity(0.6)
+                                                        .padding(.trailing, setsSpacing)
+                                                        
+                                                    if set.tillFailure {
+                                                        Text("Until Failure").foregroundColor(.gray).opacity(0.6)
+                                                    } else {
+                                                        Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
+                                                    }
+                                                    Spacer()
+                                                }
+                                                .fontWeight(.bold)
+                                                .font(.system(size: setsFontSize))
+
+                                                
                                             }
                                         }
                                     } else { // homogenous set: display 1 row: weight x reps x sets
-                                        
-                                        SetView(setIndex: 0, exerciseIndex: exerciseIndex, uniqueSets: false, displayLabelBKG: true)
+                                        HStack {
+                                            if planViewModel.activePlan.exercises[exerciseIndex].sets.count > 9 {
+                                                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
+                                                    .font(.system(size: 16))
+                                                    .foregroundColor(.white)
+                                                    .frame(width: 67, height: 28)
+                                                    .background(fgColor)
+                                                    .cornerRadius(5)
+                                                    .padding(.trailing, setsSpacing+2)
+                                            } else {
+                                                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
+                                                    .font(.system(size: 16))
+                                                    .foregroundColor(.white)
+                                                    .frame(width: 58, height: 28)
+                                                    .background(fgColor)
+                                                    .cornerRadius(5)
+                                                    .padding(.trailing, setsSpacing+2)
+
+                                            }
+                                            Text("\(Int(planViewModel.activePlan.exercises[exerciseIndex].sets[0].weight)) lb")
+                                                .foregroundColor(.white)
+                                                .padding(.trailing, setsSpacing)
+                                            Image(systemName: "xmark")
+                                                .resizable()
+                                                .frame(width: 10, height: 10)
+                                                .padding(.top,3)
+                                                .foregroundColor(.gray)
+                                                .opacity(0.6)
+                                                .padding(.trailing, setsSpacing)
+                                            Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets[0].reps) reps")
+                                                .foregroundColor(.gray)
+                                                .opacity(0.6)
+                                            Spacer()
+                                        }
+                                        .padding(.top, -8)
+                                        .fontWeight(.bold)
+                                        .font(.system(size: setsFontSize))
                                     }
                                 }
                             }
@@ -221,8 +300,8 @@ struct PlanEditorView: View {
                         }
                         .foregroundColor(fgColor)
                         .sheet(isPresented: $reorderDeleteViewPresented) {
-    //                        ReorderDeleteView(mode: "ExerciseMode")
-    //                            .environment(\.colorScheme, .dark)
+                            ReorderDeleteView(mode: "ExerciseMode")
+                                .environment(\.colorScheme, .dark)
                         }
                         
                         Spacer()

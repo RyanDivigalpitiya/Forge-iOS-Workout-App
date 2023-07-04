@@ -21,15 +21,6 @@ struct WorkoutInProgressView: View {
     @State var selectedDetent: PresentationDetent = .medium
     @State var percentCompleted: Int = 0
     private let availableDetents: [PresentationDetent] = [.medium, .large]
-    
-    // Animation + Feedback parameters
-    let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
-    @State private var popScaleEffect: CGFloat = 1.0
-    private var popUpScaleSize: CGFloat = 1.05
-    private var popDownScaleSize: CGFloat = 0.95
-    let popAnimationSpeed: Double = 0.05
-    let popAnimationDelay: Double = 0.05
-    @State private var scrollViewVisible = true
 
     // break timer properties
     let timer = Timer.publish(every: 1, on: .main, in: .common)
@@ -45,12 +36,36 @@ struct WorkoutInProgressView: View {
     @State private var appState: UIApplication.State = UIApplication.shared.applicationState
     @State private var startDate = Date()
 
-    
+    // Starting Workout Timer properties
+    private var workoutStartingTime = 3 // 3 second workoutStartingtimer
+    let workoutStartingtimer = Timer.publish(every: 1, on: .main, in: .common)
+    @State private var workoutStartingTimerRemainingTime: Int = 3
+    @State private var workoutStartingTimerSubscription: Cancellable? = nil
+    @State private var workoutStartingTimerTotalTime: Int = 3
+    @State private var workoutTimerContentViewOpacity: Double = 0.0
+
+    // Animation + Feedback parameters
+    let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
+    @State private var popScaleEffect: CGFloat = 1.0
+    private var popUpScaleSize: CGFloat = 1.05
+    private var popDownScaleSize: CGFloat = 0.95
+    let popAnimationSpeed: Double = 0.05
+    let popAnimationDelay: Double = 0.05
+    @State private var scrollViewVisible = true
+    // Starting timer animation parameters
+    @State var isStartingTimerDone: Bool = false
+    @State var shouldShowWorkout: Bool = false
+    @State var isWorkoutOpacityFull: Bool = false
+    @State var scrollViewScaleEffect: CGFloat = 0.95
+
+
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
     let setButtonSize: CGFloat = 28
+    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
+    let setsSpacing: CGFloat = 3
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
 
@@ -58,7 +73,7 @@ struct WorkoutInProgressView: View {
     var body: some View {
         ZStack {
             // Workout In Progress Content
-            if planViewModel.shouldShowWorkout{
+            if shouldShowWorkout{
                 ZStack {
                     // Exercise List
                     VStack {
@@ -81,7 +96,6 @@ struct WorkoutInProgressView: View {
                                             
                                             // LOG CHANGE BUTTON
                                             Button(action: {
-                                                #warning ("Test log change functionality")
                                                 exerciseViewModel.activeExerciseMode = "LogMode"
                                                 exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
                                                 exerciseViewModel.activeExerciseIndex = exerciseIndex
@@ -108,7 +122,6 @@ struct WorkoutInProgressView: View {
                                         // EXERCISE SETS
                                         VStack(spacing: 0){
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
-
                                                 HStack(spacing: 0) {
                                                     // SET BUTTON
                                                     // marks set.completed to TRUE OR FALSE
@@ -127,7 +140,7 @@ struct WorkoutInProgressView: View {
                                                                     isScrollViewDisabled = true
                                                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                                                         withAnimation(.easeInOut(duration: 0.5)) {
-                                                                            planViewModel.scrollViewScaleEffect = 0.95
+                                                                            scrollViewScaleEffect = 0.95
                                                                             scrollViewVisible = false
                                                                             topToolBarHeight = screenHeight*0.8
                                                                             topToolBarCornerRadius = 30
@@ -171,10 +184,54 @@ struct WorkoutInProgressView: View {
                                                     }
                                                     .padding(.trailing, 3)
 
-
+                                                    
                                                     ZStack {
-                                                        SetView(setIndex: setIndex, exerciseIndex: exerciseIndex, uniqueSets: true, displayLabelBKG: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? false : true)
-                                                            .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 0.5 : 1)
+                                                       let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
+                                                        
+                                                        HStack {
+                                                            if setIndex+1 > 9 {
+                                                                Text("Set \(setIndex+1)")
+                                                                    .font(.system(size: 16))
+                                                                    .foregroundColor(.white)
+                                                                    .frame(width: 67, height: 28)
+                                                                    .background(set.completed ? Color.clear : fgColor)
+                                                                    .cornerRadius(5)
+                                                                    .padding(.trailing, setsSpacing+2)
+                                                            } else {
+                                                                Text("Set \(setIndex+1)")
+                                                                    .font(.system(size: 16))
+                                                                    .foregroundColor(.white)
+                                                                    .frame(width: 58, height: 28)
+                                                                    .background(set.completed ? Color.clear : fgColor)
+                                                                    .cornerRadius(5)
+                                                                    .padding(.trailing, setsSpacing+2)
+
+                                                            }
+                                                            Text("\(Int(set.weight)) lb")
+                                                                .foregroundColor(.white)
+                                                                .padding(.trailing, setsSpacing)
+                                                            Image(systemName: "xmark")
+                                                                .resizable()
+                                                                .frame(width: 10, height: 10)
+                                                                .padding(.top,3)
+                                                                .foregroundColor(.gray)
+                                                                .opacity(0.6)
+                                                                .padding(.trailing, setsSpacing)
+                                                                
+                                                            if set.tillFailure {
+                                                                Text("Until Failure").foregroundColor(.gray).opacity(0.6)
+                                                            } else {
+                                                                Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
+                                                            }
+                                                            Spacer()
+                                                        }
+                                                        .fontWeight(.bold)
+                                                        .font(.system(size: setsFontSize))
+                                                        .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 0.5 : 1)
+                                                        
+                                                        
+                                                        
+                                                        
                                                         HStack {
                                                             Rectangle()
                                                                 .frame(width: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? .infinity : 0, height:2)
@@ -213,17 +270,14 @@ struct WorkoutInProgressView: View {
                                 }
                                 .padding(.horizontal, 15)
                                 .padding(.vertical, 8)
-
-                                
-                                
-                                
+    
                                 Spacer().frame(height: 80)
                             }
                         }
                         .opacity(scrollViewVisible ? 1 : 0.5)
                         .disabled(isScrollViewDisabled)
                     }
-                    .scaleEffect(planViewModel.scrollViewScaleEffect)
+                    .scaleEffect(scrollViewScaleEffect)
                     
                     // Top Toolbar
                     VStack(spacing:0) {
@@ -370,7 +424,6 @@ struct WorkoutInProgressView: View {
                     
                     // Bottom Toolbar
                     VStack {
-                        #warning ("Implement toolbar buttons")
                         Spacer()
                         HStack {
                             
@@ -433,8 +486,6 @@ struct WorkoutInProgressView: View {
                                     planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                     planViewModel.savePlans()
                                     
-                                    planViewModel.resetAnimationParams()
-                                    
                                     self.presentationMode.wrappedValue.dismiss()
                                     // after dismissing this view, send user back to CompletedWorkoutsView
                                     completedWorkoutsViewModel.isSelectPlanViewActive = false
@@ -488,7 +539,7 @@ struct WorkoutInProgressView: View {
                     }
                     .edgesIgnoringSafeArea(.bottom)
                 }
-                .opacity(planViewModel.isWorkoutOpacityFull ? 1 : 0)
+                .opacity(isWorkoutOpacityFull ? 1 : 0)
                 .background(.black)
                 .onAppear{
                     calcPercentCompleted()
@@ -499,20 +550,112 @@ struct WorkoutInProgressView: View {
                 }
             }
             
-            if !planViewModel.shouldShowWorkout {
-                WorkoutStartingTimer()
-                    .opacity(planViewModel.isStartingTimerDone ? 0 : 1)
+            if !shouldShowWorkout {
+                VStack(spacing: 0) {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text("Starting in ...")
+                            .font(.system(size: 40))
+                            .fontWeight(.bold)
+                            .foregroundColor(GlobalSettings.shared.fgColor)
+                            .opacity(workoutTimerContentViewOpacity)
+                        Spacer()
+                    }
+                    Button(action: {
+                        workoutStartingTimerRemainingTime = 0
+                    }) {
+                        ZStack {
+                            Circle()
+                                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                                .foregroundColor(Color(.systemGray5))
+                            Circle()
+                                .trim(from: 0, to: CGFloat(workoutStartingTimerRemainingTime) / CGFloat(workoutStartingTimerTotalTime))
+                                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                                .foregroundColor(GlobalSettings.shared.fgColor)
+                                .rotationEffect(Angle(degrees: -90))
+                                .animation(.easeOut(duration: 1), value: workoutStartingTimerRemainingTime)
+                            Text("\(workoutStartingTimerRemainingTime)")
+                                .font(.system(size: 60))
+                                .foregroundColor(GlobalSettings.shared.fgColor)
+                                .fontWeight(.bold)
+                        }
+                        .opacity(workoutTimerContentViewOpacity)
+                        .onAppear {
+                            withAnimation(.easeIn(duration: 0.5)) {
+                                workoutTimerContentViewOpacity = 1.0
+                            }
+                            self.startTimer()
+
+                        }
+                        .padding(.vertical, 50)
+                        .onReceive(workoutStartingtimer) { _ in
+                            if workoutStartingTimerRemainingTime > 0 {
+                                workoutStartingTimerRemainingTime -= 1
+                                if workoutStartingTimerRemainingTime == 0 {
+                                    triggerHapticFeedback()
+        //                            print("reached here.")
+                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                        isStartingTimerDone = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                            shouldShowWorkout = true
+                                        }
+                                    }
+                                }
+                            } else {
+                                triggerHapticFeedback()
+        //                        print("reached here.")
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    isStartingTimerDone = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        shouldShowWorkout = true
+                                    }
+                                }
+                            }
+                        }
+                        .onAppear {
+                            workoutStartingTimerTotalTime = workoutStartingTimerRemainingTime
+                        }
+                        .onDisappear {
+                            workoutStartingTimerSubscription?.cancel()
+                        }
+
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 40)
+                .background(.black)
+                .opacity(isStartingTimerDone ? 0 : 1)
             }
         }
-        .onAppear {
-            planViewModel.scrollViewScaleEffect = 0.95
-        }
-
     }
 }
 
 // % Complete label + animation functions
 extension WorkoutInProgressView {
+    
+    func startTimer() {
+        workoutStartingTimerSubscription = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { _ in
+            if workoutStartingTimerRemainingTime > 0 {
+                workoutStartingTimerRemainingTime -= 1
+            } else {
+//                triggerHapticFeedback()
+//                print("reached here.")
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    isStartingTimerDone = true
+                    shouldShowWorkout = true
+                    withAnimation(.easeInOut(duration: 1)) {
+                        isWorkoutOpacityFull = true
+                        scrollViewScaleEffect = 1.0
+                    }
+                }
+                workoutStartingTimerSubscription?.cancel()
+                triggerHapticFeedback()
+            }
+        }
+    }
+
     
     func dismissBreakTimerView() {
         // Cancel timer subscription
@@ -534,7 +677,7 @@ extension WorkoutInProgressView {
             withAnimation(.easeInOut(duration: 0.5)) {
                 isScrollViewDisabled = false
                 scrollViewVisible = true
-                planViewModel.scrollViewScaleEffect = 1.0
+                scrollViewScaleEffect = 1.0
                 timerEnabled = false
                 topToolBarHeight = 140
                 topToolBarCornerRadius = 0

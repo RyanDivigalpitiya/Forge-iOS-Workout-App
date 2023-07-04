@@ -10,12 +10,12 @@ struct WorkoutStartingTimer: View {
     //-/////////////////////////////////////////////////
 
     
-    private var workoutStartingTime = 3 // 3 second timer
-    let timer = Timer.publish(every: 1, on: .main, in: .common)
-    @State private var remainingTime: Int = 3
-    @State private var timerSubscription: Cancellable? = nil
-    @State private var totalTime: Int = 3
-    @State private var viewOpacity: Double = 0.0
+    private var workoutStartingTime = 3 // 3 second workoutStartingtimer
+    let workoutStartingtimer = Timer.publish(every: 1, on: .main, in: .common)
+    @State private var workoutStartingTimerRemainingTime: Int = 3
+    @State private var workoutStartingTimerSubscription: Cancellable? = nil
+    @State private var workoutStartingTimerTotalTime: Int = 3
+    @State private var workoutTimerContentViewOpacity: Double = 0.0
 
     func triggerHapticFeedback() {
         let generator = UINotificationFeedbackGenerator()
@@ -24,105 +24,107 @@ struct WorkoutStartingTimer: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            HStack {
-                Spacer()
-                Text("Starting in ...")
-                    .font(.system(size: 40))
-                    .fontWeight(.bold)
-                    .foregroundColor(GlobalSettings.shared.fgColor)
-                    .opacity(viewOpacity)
-                Spacer()
-            }
-            Button(action: {
-                remainingTime = 0
-            }) {
-                ZStack {
-                    Circle()
-                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .foregroundColor(Color(.systemGray5))
-                    Circle()
-                        .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
-                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .foregroundColor(GlobalSettings.shared.fgColor)
-                        .rotationEffect(Angle(degrees: -90))
-                        .animation(.easeOut(duration: 1), value: remainingTime)
-                    Text("\(remainingTime)")
-                        .font(.system(size: 60))
-                        .foregroundColor(GlobalSettings.shared.fgColor)
-                        .fontWeight(.bold)
-                }
-                .opacity(viewOpacity)
-                .onAppear {
-                    withAnimation(.easeIn(duration: 0.5)) {
-                        viewOpacity = 1.0
-                    }
-                    self.startTimer()
-
-                }
-                .padding(.vertical, 50)
-                .onReceive(timer) { _ in
-                    if remainingTime > 0 {
-                        remainingTime -= 1
-                        if remainingTime == 0 {
-                            triggerHapticFeedback()
-//                            print("reached here.")
-                            withAnimation(.easeInOut(duration: 0.5)) {
-                                planViewModel.isStartingTimerDone = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    planViewModel.shouldShowWorkout = true
-                                }
-                            }
-                        }
-                    } else {
-                        triggerHapticFeedback()
-//                        print("reached here.")
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            planViewModel.isStartingTimerDone = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                planViewModel.shouldShowWorkout = true
-                            }
-                        }
-                    }
-                }
-                .onAppear {
-                    totalTime = remainingTime
-                }
-                .onDisappear {
-                    timerSubscription?.cancel()
-                }
-
-            }
-
-
-            Spacer()
-        }
-        .padding(.horizontal, 40)
+//        VStack(spacing: 0) {
+//            Spacer()
+//            HStack {
+//                Spacer()
+//                Text("Starting in ...")
+//                    .font(.system(size: 40))
+//                    .fontWeight(.bold)
+//                    .foregroundColor(GlobalSettings.shared.fgColor)
+//                    .opacity(workoutTimerContentViewOpacity)
+//                Spacer()
+//            }
+//            Button(action: {
+//                workoutStartingTimerRemainingTime = 0
+//            }) {
+//                ZStack {
+//                    Circle()
+//                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+//                        .foregroundColor(Color(.systemGray5))
+//                    Circle()
+//                        .trim(from: 0, to: CGFloat(workoutStartingTimerRemainingTime) / CGFloat(workoutStartingTimerTotalTime))
+//                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+//                        .foregroundColor(GlobalSettings.shared.fgColor)
+//                        .rotationEffect(Angle(degrees: -90))
+//                        .animation(.easeOut(duration: 1), value: workoutStartingTimerRemainingTime)
+//                    Text("\(workoutStartingTimerRemainingTime)")
+//                        .font(.system(size: 60))
+//                        .foregroundColor(GlobalSettings.shared.fgColor)
+//                        .fontWeight(.bold)
+//                }
+//                .opacity(workoutTimerContentViewOpacity)
+//                .onAppear {
+//                    withAnimation(.easeIn(duration: 0.5)) {
+//                        workoutTimerContentViewOpacity = 1.0
+//                    }
+//                    self.startTimer()
+//
+//                }
+//                .padding(.vertical, 50)
+//                .onReceive(workoutStartingtimer) { _ in
+//                    if workoutStartingTimerRemainingTime > 0 {
+//                        workoutStartingTimerRemainingTime -= 1
+//                        if workoutStartingTimerRemainingTime == 0 {
+//                            triggerHapticFeedback()
+////                            print("reached here.")
+//                            withAnimation(.easeInOut(duration: 0.5)) {
+//                                isStartingTimerDone = true
+//                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                                    planViewModel.shouldShowWorkout = true
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        triggerHapticFeedback()
+////                        print("reached here.")
+//                        withAnimation(.easeInOut(duration: 0.5)) {
+//                            isStartingTimerDone = true
+//                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                                planViewModel.shouldShowWorkout = true
+//                            }
+//                        }
+//                    }
+//                }
+//                .onAppear {
+//                    workoutStartingTimerTotalTime = workoutStartingTimerRemainingTime
+//                }
+//                .onDisappear {
+//                    workoutStartingTimerSubscription?.cancel()
+//                }
+//
+//            }
+//
+//
+//            Spacer()
+//        }
+//        .padding(.horizontal, 40)
+//        .background(.black)
+        Text("")
     }
 
-    func startTimer() {
-        timerSubscription = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { _ in
-            if remainingTime > 0 {
-                remainingTime -= 1
-            } else {
+//    func startTimer() {
+//        workoutStartingTimerSubscription = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { _ in
+//            if workoutStartingTimerRemainingTime > 0 {
+//                workoutStartingTimerRemainingTime -= 1
+//            } else {
+////                triggerHapticFeedback()
+////                print("reached here.")
+//                withAnimation(.easeInOut(duration: 0.5)) {
+//                    isStartingTimerDone = true
+//                    shouldShowWorkout = true
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                        withAnimation(.easeInOut(duration: 1)) {
+//                            isWorkoutOpacityFull = true
+//                            scrollViewScaleEffect = 1.0
+//                        }
+//                    }
+//                }
+//                workoutStartingTimerSubscription?.cancel()
 //                triggerHapticFeedback()
-//                print("reached here.")
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    planViewModel.isStartingTimerDone = true
-                    planViewModel.shouldShowWorkout = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        withAnimation(.easeInOut(duration: 1)) {
-                            planViewModel.isWorkoutOpacityFull = true
-                            planViewModel.scrollViewScaleEffect = 1.0
-                        }
-                    }
-                }
-                timerSubscription?.cancel()
-                triggerHapticFeedback()
-            }
-        }
-    }
+//            }
+//        }
+//    }
 }
 
 

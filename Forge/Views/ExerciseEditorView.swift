@@ -690,7 +690,15 @@ extension ExerciseEditorView {
                 let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
                 let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
                 if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index], completed: planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed)
+                    
+                    var completedValue  = false
+                    if index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
+                        completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
+                    } else {
+                        completedValue = false
+                    }
+                    
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index], completed: completedValue)
                     newSets.append(newSet)
                 }
             }
@@ -701,7 +709,16 @@ extension ExerciseEditorView {
             
             if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
                 for index in 0...unwrappedSets-1 {
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false, completed: planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed)
+                    
+                    var completedValue  = false
+                    if index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
+                        completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
+                    } else {
+                        completedValue = false
+                    }
+
+                    
+                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false, completed: completedValue)
                     newSets.append(newSet)
                 }
             }
