@@ -73,6 +73,8 @@ struct WorkoutInProgressView: View {
     @State private var elapsedTime: Int = 0
     @State private var stopwatchRunning = false
     
+    @State private var isWorkoutDone: Bool = false
+    
     var body: some View {
         ZStack {
             // Workout In Progress Content
@@ -471,6 +473,7 @@ struct WorkoutInProgressView: View {
                                     dismissBreakTimerView()
                                     stopwatchRunning = false
                                     pauseStopwatch()
+                                    isWorkoutDone = true
                                     
             //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
                                     // save completed workout to persistant storage
@@ -669,6 +672,7 @@ struct WorkoutInProgressView: View {
                 .opacity(isStartingTimerDone ? 0 : 1)
             }
         }
+        .disabled(isWorkoutDone)
     }
 }
 
