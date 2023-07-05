@@ -35,6 +35,17 @@ struct SelectPlanView: View {
                                             .font(.system(size: 30))
                                             .foregroundColor(fgColor)
                                         Spacer()
+                                        HStack {
+                                            Text("START")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.black)
+                                                .fontWeight(.bold)
+                                        }
+                                        .padding(8)
+                                        .padding(.horizontal,1)
+                                        .background(fgColor)
+                                        .cornerRadius(5)
+
                                     }
                                     .padding(.top,5)
                                     
@@ -42,6 +53,27 @@ struct SelectPlanView: View {
                                     Divider()
                                     
                                     HStack {
+                                        // NUMBER OF EXERCISES
+                                        Image(systemName: "dumbbell.fill")
+                                            .resizable()
+                                            .frame(width: 18, height: 13)
+                                            .foregroundColor(.gray)
+                                            .opacity(0.4)
+                                            .padding(.vertical, 15)
+                                        Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                        // DURATION OF WORKOUT
+                                        Image(systemName: "clock.fill")
+                                            .resizable()
+                                            .frame(width: 13, height: 13)
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .padding(.leading, 10)
+                                        Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                            .padding(.leading, -3)
+                                        Spacer()
                                         // EDIT BUTTON //////////////////
                                         Button( action: {
                                             planViewModel.activePlan = planViewModel.workoutPlans[index]
@@ -52,36 +84,15 @@ struct SelectPlanView: View {
                                             Image(systemName: "pencil.circle.fill")
                                                 .resizable()
                                                 .frame(width: 15, height: 15)
-                                                .foregroundColor(.gray)
-                                                .opacity(0.4)
+                                                .foregroundColor(Color.gray.opacity(0.5))
                                                 .padding(.trailing, 2)
                                                 .padding(.vertical, 15)
                                         }
-                                        // NUMBER OF EXERCISES
-                                        Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .fontWeight(.bold)
-                                        Text("·")
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .fontWeight(.bold)
-                                            .padding(.horizontal, 1)
-                                        // DURATION OF WORKOUT
-                                        Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .fontWeight(.bold)
-                                        Spacer()
-                                            
-                                        Text("START")
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .fontWeight(.bold)
-                                        Image(systemName: "arrow.right.circle.fill")
-                                            .resizable()
-                                            .frame(width: 15, height: 15)
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .padding(.trailing, 20)
+
                                     }
                                 }
                                 .padding(.leading, 5)
+                                .padding(.trailing, 20)
                                 .padding(.top, 5)
                                 .padding(.bottom, -9)
                             }

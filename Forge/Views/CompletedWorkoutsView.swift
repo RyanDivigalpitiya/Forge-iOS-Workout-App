@@ -34,9 +34,16 @@ struct CompletedWorkoutsView: View {
                         
                         HStack {
                             Image(systemName: "clock.fill")
+                                .resizable()
+                                .frame(width: 13, height: 13)
                             Text("\(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
-                            Image(systemName: "checkmark.circle.fill").padding(.leading,7)
+                                .padding(.leading, -3)
+                            Image(systemName: "checkmark.circle.fill")
+                                .resizable()
+                                .frame(width: 13, height: 13)
+                                .padding(.leading,7)
                             Text("Completion: \(completedWorkout.completion)")
+                                .padding(.leading, -3)
                         }
                         .font(.subheadline)
                         .fontWeight(.bold)
