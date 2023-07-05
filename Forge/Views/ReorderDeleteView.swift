@@ -95,7 +95,6 @@ struct ReorderDeleteView_Previews: PreviewProvider {
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
-            .environmentObject(StopwatchViewModel())
             .preferredColorScheme(.dark)
     }
 }
