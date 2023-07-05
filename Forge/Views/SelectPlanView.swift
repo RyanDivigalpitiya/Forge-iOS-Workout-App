@@ -54,7 +54,8 @@ struct SelectPlanView: View {
                                                 .frame(width: 15, height: 15)
                                                 .foregroundColor(.gray)
                                                 .opacity(0.4)
-                                                .padding(.trailing, 4)
+                                                .padding(.trailing, 2)
+                                                .padding(.vertical, 15)
                                         }
                                         // NUMBER OF EXERCISES
                                         Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
@@ -69,13 +70,20 @@ struct SelectPlanView: View {
                                             .foregroundColor(Color.gray.opacity(0.5))
                                             .fontWeight(.bold)
                                         Spacer()
-                                        
+                                            
+                                        Text("START")
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .fontWeight(.bold)
+                                        Image(systemName: "arrow.right.circle.fill")
+                                            .resizable()
+                                            .frame(width: 15, height: 15)
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .padding(.trailing, 20)
                                     }
-                                    .padding(.top,15)
-                                    
                                 }
                                 .padding(.leading, 5)
-                                .padding(.vertical, 5)
+                                .padding(.top, 5)
+                                .padding(.bottom, -9)
                             }
                         }
                         .padding(.vertical)
