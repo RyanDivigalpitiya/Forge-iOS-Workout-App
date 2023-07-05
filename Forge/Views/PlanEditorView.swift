@@ -14,6 +14,7 @@ struct PlanEditorView: View {
     @State private var reorderDeleteViewPresented = false
     @State var selectedDetent: PresentationDetent = .medium
     private let availableDetents: [PresentationDetent] = [.medium, .large]
+    @State private var isDoneCheckMarkVisible: Bool = false
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -265,25 +266,43 @@ struct PlanEditorView: View {
                                 planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                 planViewModel.savePlans()
                             }
-                            self.presentationMode.wrappedValue.dismiss()
-                        }) {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .resizable()
-                                    .frame(width: 20, height: 20)
-                                    .padding(.trailing, 3)
-                                Text("Save")
-    //                                .font(.headline)
-                                    .font(.system(size: 23))
-                                    .bold()
-                            }
-                            .frame(width: 109, height: 41)
-                            .background(fgColor)
-                            .foregroundColor(.black)
-                            .cornerRadius(500)
-                        }
-    //                    .padding(.horizontal, 45)
+                            
 
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.prepare()
+                            generator.notificationOccurred(.success)
+
+                            withAnimation(.easeInOut(duration: 1)) {
+                                isDoneCheckMarkVisible = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                self.presentationMode.wrappedValue.dismiss()
+                            }
+                        }) {
+                            ZStack{
+                                HStack {
+                                    Text("Save")
+                                        .font(.system(size: 20))
+                                        .bold()
+                                }
+                                .frame(width: 75, height: 35)
+                                .background(fgColor)
+                                .foregroundColor(.black)
+                                .cornerRadius(500)
+                                .opacity(isDoneCheckMarkVisible ? 0 : 1)
+
+                                HStack {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 20))
+                                        .bold()
+                                }
+                                .frame(width: 75, height: 35)
+                                .background(fgColor)
+                                .foregroundColor(.black)
+                                .cornerRadius(500)
+                                .opacity(isDoneCheckMarkVisible ? 1 : 0)
+                            }
+                        }
                         
                         Spacer()
                         

@@ -28,20 +28,6 @@ struct SelectPlanView: View {
                         }) {
                             HStack(spacing:0){
                                 
-                                // PLAN NUMBER
-                                ZStack {
-                                    Circle()
-                                        .frame(width: 29, height: 29)
-                                        .foregroundColor(Color.gray.opacity(0.2))
-                                    Text("\(index+1)")
-                                        .foregroundColor(fgColor)
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 16))
-                                }
-                                .padding(.trailing,15)
-                                .padding(.leading, 5)
-                                .padding(.bottom, 56)
-                                
                                 VStack {
                                     HStack {
                                         Text(planViewModel.workoutPlans[index].name)
@@ -83,12 +69,13 @@ struct SelectPlanView: View {
                                             .foregroundColor(Color.gray.opacity(0.5))
                                             .fontWeight(.bold)
                                         Spacer()
-                                                                                
+                                        
                                     }
                                     .padding(.top,15)
                                     
                                 }
-                                .padding(5)
+                                .padding(.leading, 5)
+                                .padding(.vertical, 5)
                             }
                         }
                         .padding(.vertical)
@@ -99,6 +86,7 @@ struct SelectPlanView: View {
                             WorkoutInProgressView()
                                 .environment(\.colorScheme, .dark)
                         }
+                        
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
