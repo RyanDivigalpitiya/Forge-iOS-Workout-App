@@ -497,6 +497,7 @@ struct WorkoutInProgressView: View {
                                     }
                                     
                                     // save workout plan to persistant storage
+                                    planViewModel.activePlan.lastCompleted = Date()
                                     planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                     planViewModel.savePlans()
                                     

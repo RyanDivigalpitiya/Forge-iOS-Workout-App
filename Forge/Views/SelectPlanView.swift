@@ -5,6 +5,9 @@ struct SelectPlanView: View {
     //-/////////////////////////////////////////////////
     @EnvironmentObject var planViewModel: PlanViewModel
     //-/////////////////////////////////////////////////
+    @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
+    //-////////////////////////////////////////////////
+    
     
     @State private var planEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
@@ -29,25 +32,41 @@ struct SelectPlanView: View {
                             HStack(spacing:0){
                                 
                                 VStack {
-                                    HStack {
-                                        Text(planViewModel.workoutPlans[index].name)
-                                            .fontWeight(.bold)
-                                            .font(.system(size: 30))
-                                            .foregroundColor(fgColor)
-                                        Spacer()
+                                    VStack {
                                         HStack {
-                                            Text("START")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.black)
+                                            Text(planViewModel.workoutPlans[index].name)
                                                 .fontWeight(.bold)
-                                        }
-                                        .padding(8)
-                                        .padding(.horizontal,1)
-                                        .background(fgColor)
-                                        .cornerRadius(5)
+                                                .font(.system(size: 30))
+                                                .foregroundColor(fgColor)
+                                            Spacer()
+                                            HStack {
+                                                Text("START")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.black)
+                                                    .fontWeight(.bold)
+                                            }
+                                            .padding(8)
+                                            .padding(.horizontal,1)
+                                            .background(fgColor)
+                                            .cornerRadius(5)
 
+                                        }
+                                        .padding(.top,5)
+                                        
+                                        if let lastComleted = planViewModel.workoutPlans[index].lastCompleted {
+                                            HStack {
+                                                Text("Last Completed: ")
+                                                    .foregroundColor(Color.gray.opacity(0.5))
+                                                    .fontWeight(.bold)
+                                                Text(completedWorkoutsViewModel.numberOfDaysString(from: lastComleted))
+                                                    .foregroundColor(.white)
+                                                    .fontWeight(.bold)
+                                                Spacer()
+                                            }
+                                            .padding(.top, 1)
+                                            .padding(.bottom, 13)
+                                        }
                                     }
-                                    .padding(.top,5)
                                     
                                     
                                     Divider()
@@ -101,6 +120,23 @@ struct SelectPlanView: View {
                         .padding(.leading)
                         .background(bgColor)
                         .cornerRadius(15)
+                        .contextMenu {
+                            VStack {
+                                ForEach(planViewModel.workoutPlans[index].exercises) { exercise in
+                                    Text(exercise.name)
+                                }
+                                Divider()
+                                Button( action: {
+                                    planViewModel.activePlan = planViewModel.workoutPlans[index]
+                                    planViewModel.activePlanIndex = index
+                                    workoutInProgressViewPresented = true
+                                }) {
+                                    Text("Start")
+                                    Image(systemName: "play.circle")
+                                }
+                            }
+                        }
+
                         .fullScreenCover(isPresented: $workoutInProgressViewPresented) {
                             WorkoutInProgressView()
                                 .environment(\.colorScheme, .dark)
@@ -108,7 +144,7 @@ struct SelectPlanView: View {
                         
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 13)
                 }
                 .padding(.bottom, 120)
             }

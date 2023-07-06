@@ -55,7 +55,7 @@ struct CompletedWorkoutsView: View {
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }
             .navigationBarTitle(Text("History"))
-            .navigationBarTitleTextColor(Color(.systemGray2))
+            .navigationBarTitleTextColor(fgColor)
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
                     NavigationLink(destination: SelectPlanView(), isActive: $completedWorkoutsViewModel.isSelectPlanViewActive) {
