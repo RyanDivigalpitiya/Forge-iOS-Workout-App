@@ -1,6 +1,6 @@
 # Forge-iOS-Workout-App
 
-Welcome to my weight-lifting workout app for iSO! This application that I am developing is a sideproject of mine where I'll be experimenting with large langauge models (LLM), specifically to see if I can use [QLoRA](https://huggingface.co/blog/4bit-transformers-bitsandbytes) to deploy an LLM to my iPhone. 
+Welcome to my weight-lifting workout app for iOS! This application that I am developing is a sideproject of mine where I'll be experimenting with large langauge models (LLM), specifically to see if I can use [QLoRA](https://huggingface.co/blog/4bit-transformers-bitsandbytes) to deploy an LLM to my iPhone. 
 I will be attempting to locally deploy a QLoRA large language model using Apple's CoreML framework to generate workout plans on the fly - details can be found here: [ryan-div.com/workout-app](https://www.ryan-div.com/side-projects-freelancing-gigs/watchos-workout-app) 
 
 ## Goals:
