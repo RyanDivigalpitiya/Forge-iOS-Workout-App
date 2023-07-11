@@ -7,9 +7,9 @@ I will be attempting to locally deploy a QLoRA large language model using Apple'
 
 - **Natural Language Processing**: One of the key features of the workout app is its ability to understand natural language inputs. For example, if you have a workout routine typed up in your iOS's Notes app, my app will interpret it and convert it into a structured workout plan managed by the app. 
 
-- **Local Language Model**: The app uses a locally-deployed Large Language Model (LLM) for processing your input and generating workout plans. This ensures fast processing and respects user privacy, as all the processing happens on your device, and your data never leaves it. 
+- **Local Language Model**: The plan is to attempt to use a locally-deployed Large Language Model (LLM) for processing your input and generating workout plans. This ensures fast processing and respects user privacy, as all the processing happens on your device, and your data never leaves it. 
 
-- **Server-side Language Model**: If Apple's CoreML cannot support QLoRA, then I will pivot to using a server-side model that the app will for it's features that rely on workout plan generation.
+- **Server-side Language Model**: If Apple's CoreML cannot support QLoRA (meaning, I cannot deploy the LLM to my iPhone), then I will pivot to using a server-side model that the app will for it's features that rely on workout plan generation.
 
 - **User-friendly Interface**: Built using SwiftUI, the app provides a smooth, intuitive, and minimal user experience, making it easy to plan and track your workouts.
 
