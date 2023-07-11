@@ -19,6 +19,10 @@ I will be attempting to locally deploy a QLoRA large language model using Apple'
 
 2. **Convert From Notes**: Simply upload a workout routine you have written down in iOS's Notes app. Forge's LLM will interpret your notes and convert them into a structured workout plan fully managed and tracked by the app.
 
+## Approach to building my app:
+
+![Figure from ryan-div.com](https://uploads-ssl.webflow.com/5ee2bc2fae275c68fb94f279/64acf2fe4be6747454823283_Workout%20App%20Diagram.png)
+
 ## **Stay tuned for final release :)**
 
 ## Contributing
