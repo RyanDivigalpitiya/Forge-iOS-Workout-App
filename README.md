@@ -21,7 +21,7 @@ I will be attempting to locally deploy a QLoRA large language model using Apple'
 
 ## Approach to building my app:
 
-![Figure from ryan-div.com](https://uploads-ssl.webflow.com/5ee2bc2fae275c68fb94f279/64adc31b596ad0d0db574a52_phone%20daig.png)
+![Figure from ryan-div.com](https://uploads-ssl.webflow.com/5ee2bc2fae275c68fb94f279/64add1582f6ddd6e0ff62d8b_phone%20diagram.png)
 
 ## **Stay tuned for final release :)**
 
