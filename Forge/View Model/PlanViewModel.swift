@@ -70,11 +70,11 @@ extension PlanViewModel {
         /**
         This function calculates the estimated duration of a workout based on a given `WorkoutPlan`.
 
-        The function starts with some constants: a 60-second break timer after each set and a 2-second duration per rep within a set.
+        The function starts with some constants: a 60-second break timer after each set and a 3-second duration per rep within a set.
 
         It then iterates through each `Exercise` in the plan, and for each exercise, it iterates through its `Set` objects. For each set, the function adds the total time for the reps (rep count multiplied by rep time) plus the break time to a running total for the exercise.
 
-        After calculating the total time for each exercise, the function subtracts the last break time (since there is no break after the last set of an exercise) and adds the result to a running total for the entire workout.
+        After calculating the total time for each exercise, the function subtracts the last break time (since there is no break after the last set of an exercise) and adds the result to a running total for the entire workout, right before adding in the time it takes to find and setup the exercise.
 
         If the final workout time is more than 60 seconds, the function converts it to minutes by dividing by 60. If the final workout time is less than 60 seconds, the function rounds down to 0, as this function does not account for second-accuracy estimation of workout duration.
 
@@ -85,19 +85,19 @@ extension PlanViewModel {
         - The estimated workout duration in minutes. If the workout duration is less than a minute, it returns 0.
         */
 
-        
+        let timeInbetweenSets = 60*5 // 5 minutes in-between exercises
         let breakTime = 60 // 60 second break timer
-        let repTime = 2 // 2 seconds per rep
+        let repTime = 3 // 3 seconds per rep
         
         //loop through sets and exercises while adding duration length to "workoutTime":
-        var workoutTime = 0
+        var workoutTime = timeInbetweenSets // 5 minutes to find + set up the first exercise
         for exercise in plan.exercises {
             var exerciseTime = 0
             for set in exercise.sets {
                 let repCount = set.reps
                 exerciseTime = exerciseTime + repCount*repTime + breakTime
             }
-            workoutTime = workoutTime + (exerciseTime-60)
+            workoutTime = workoutTime + exerciseTime + timeInbetweenSets - breakTime
         }
         
         if workoutTime > 60 {
