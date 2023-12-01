@@ -237,7 +237,7 @@ struct WorkoutInProgressView: View {
                                                         
                                                         
                                                         
-                                                        
+                                                        // line strikethrough when a set is completed
                                                         HStack {
                                                             Rectangle()
                                                                 .frame(width: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? .infinity : 0, height:2)

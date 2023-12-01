@@ -6,6 +6,8 @@ struct CompletedWorkoutsView: View {
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-//////////////////////////////////////////
     
+    @State private var historyViewIsPresented = false
+    
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
@@ -13,44 +15,57 @@ struct CompletedWorkoutsView: View {
         NavigationView {
             List {
                 ForEach(completedWorkoutsViewModel.completedWorkouts.indices.reversed(), id: \.self) { completedWorkoutIndex in
-                    let completedWorkout = completedWorkoutsViewModel.completedWorkouts[completedWorkoutIndex]
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack {
-                            Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
-//                            Text("·")
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 2)
-                        
-                        
-                        Text(completedWorkout.workout.name)
-                            .font(.title)
+                    
+                    Button(action: {
+                        completedWorkoutsViewModel.activePlan = completedWorkoutsViewModel.completedWorkouts[completedWorkoutIndex]
+                        historyViewIsPresented = true
+                    }) {
+                        let completedWorkout = completedWorkoutsViewModel.completedWorkouts[completedWorkoutIndex]
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text(completedWorkoutsViewModel.numberOfDaysString(from: completedWorkout.dateCompleted))
+                            }
+                            .font(.subheadline)
                             .fontWeight(.bold)
-                            .foregroundColor(fgColor)
-                            .padding(.top, 3)
-                            .padding(.bottom, 9)
-                        
-                        HStack {
-                            Image(systemName: "clock.fill")
-                                .resizable()
-                                .frame(width: 13, height: 13)
-                            Text("\(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
-                                .padding(.leading, -3)
-                            Image(systemName: "checkmark.circle.fill")
-                                .resizable()
-                                .frame(width: 13, height: 13)
-                                .padding(.leading,7)
-                            Text("Completion: \(completedWorkout.completion)")
-                                .padding(.leading, -3)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 2)
+                            
+                            
+                            Text(completedWorkout.workout.name)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(fgColor)
+                                .padding(.top, 3)
+                                .padding(.bottom, 9)
+                            
+                            HStack {
+                                Image(systemName: "clock.fill")
+                                    .resizable()
+                                    .frame(width: 13, height: 13)
+                                Text("\(completedWorkoutsViewModel.format(timeInterval: completedWorkout.elapsedTime))")
+                                    .padding(.leading, -3)
+                                Image(systemName: "checkmark.circle.fill")
+                                    .resizable()
+                                    .frame(width: 13, height: 13)
+                                    .padding(.leading,7)
+                                Text("Completion: \(completedWorkout.completion)")
+                                    .padding(.leading, -3)
+                            }
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color(.systemGray2))
+                            .padding(.bottom, 2)
                         }
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(.systemGray2))
-                        .padding(.bottom, 2)
+                        .padding(.vertical, 12)
+
                     }
-                    .padding(.vertical, 12)
+                    .sheet(isPresented: $historyViewIsPresented) {
+                        
+                        HistoryView()
+                            .presentationDragIndicator(.hidden)
+                            .environment(\.colorScheme, .dark)
+                        
+                    }
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }

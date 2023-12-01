@@ -16,8 +16,8 @@ let set6 = Set(weight: 100, reps: 12, tillFailure: false, completed: false)
 
 let mockSets2 = [set4,set5,set6]
 
-let exercise1 = Exercise(name: "Loooonng Sentence Bicep Curls", sets: mockSets1)
-let exercise2 = Exercise(name: "Pull Ups", sets: mockSets2)
+let exercise1 = Exercise(name: "Bicep Curls", sets: mockSets1)
+let exercise2 = Exercise(name: "Loooonng Sentence Pull Ups", sets: mockSets2)
 let exercise3 = Exercise(name: "Back Rows", sets: mockSets2)
 
 let mockExercises1 = [exercise1,exercise2,exercise3]

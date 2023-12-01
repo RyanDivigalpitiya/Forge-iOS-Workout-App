@@ -7,6 +7,14 @@ struct CompletedWorkout: Identifiable, Encodable, Decodable {
     var workout: WorkoutPlan
     var completion: String
     
+    init() {
+        self.id = UUID()
+        self.dateCompleted = Date()
+        self.elapsedTime = TimeInterval()
+        self.workout = WorkoutPlan()
+        self.completion = "0 Minutes"
+    }
+    
     // create new  CompletedWorkouts object with specified params
     init(date: Date, workout: WorkoutPlan, elapsedTime: TimeInterval, completion: String) {
         self.id = UUID()

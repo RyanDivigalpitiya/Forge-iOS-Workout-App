@@ -4,11 +4,13 @@ class CompletedWorkoutsViewModel: ObservableObject {
     
     @Published var completedWorkouts: [CompletedWorkout]
     @Published var isSelectPlanViewActive: Bool
+    @Published var activePlan: CompletedWorkout
     
     // default initializer
     init() {
         self.completedWorkouts = []
         self.isSelectPlanViewActive = false
+        self.activePlan = CompletedWorkout()
         self.completedWorkouts = loadCompletedWorkouts()
     }
     
@@ -16,6 +18,7 @@ class CompletedWorkoutsViewModel: ObservableObject {
     init(mockCompletedWorkouts workouts: [CompletedWorkout]) {
         self.completedWorkouts = workouts
         self.isSelectPlanViewActive = false
+        self.activePlan = completedWorkout2
     }
 }
 
@@ -61,7 +64,12 @@ extension CompletedWorkoutsViewModel {
             return "\(seconds) second\(seconds > 1 || seconds == 0 ? "s" : "")"
         }
     }
-
+    
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d, yyyy" // specify the format
+        return formatter.string(from: date)
+    }
 }
 
 // SAVING / LOADING PERSISTANT STORAGE
