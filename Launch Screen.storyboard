@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="yO2-Zh-Tlu">
-    <device id="retina6_12" orientation="portrait" appearance="light"/>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24128" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="yO2-Zh-Tlu">
+    <device id="retina6_54" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21678"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -10,21 +11,22 @@
         <!--View Controller-->
         <scene sceneID="lqM-5W-OrV">
             <objects>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="0hO-Kz-DLm" userLabel="First Responder" sceneMemberID="firstResponder"/>
                 <viewController id="yO2-Zh-Tlu" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="lrW-re-zti">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <rect key="frame" x="0.0" y="0.0" width="420" height="912"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="9" translatesAutoresizingMaskIntoConstraints="NO" id="e0o-38-XJR">
-                                <rect key="frame" x="0.0" y="832" width="393" height="0.0"/>
+                                <rect key="frame" x="0.0" y="892" width="420" height="0.0"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" image="Launch Screen Logo" translatesAutoresizingMaskIntoConstraints="NO" id="Qz6-o7-qfq">
-                                <rect key="frame" x="110" y="329" width="172" height="87"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Launch Screen Logo" translatesAutoresizingMaskIntoConstraints="NO" id="Qz6-o7-qfq">
+                                <rect key="frame" x="160" y="162.66666666666666" width="100" height="386.66666666666674"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="100" id="34s-03-80y"/>
+                                </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="lIS-Kr-Jgz"/>
@@ -32,12 +34,15 @@
                         <constraints>
                             <constraint firstItem="lIS-Kr-Jgz" firstAttribute="centerX" secondItem="e0o-38-XJR" secondAttribute="centerX" id="ce3-2Q-x3g"/>
                             <constraint firstAttribute="bottom" secondItem="e0o-38-XJR" secondAttribute="bottom" constant="20" id="dRR-Cr-afQ"/>
-                            <constraint firstItem="e0o-38-XJR" firstAttribute="leading" secondItem="lIS-Kr-Jgz" secondAttribute="leading" constant="20" symbolic="YES" id="xaY-BS-AyG"/>
+                            <constraint firstItem="Qz6-o7-qfq" firstAttribute="centerY" secondItem="lrW-re-zti" secondAttribute="centerY" constant="-100" id="wUl-sw-uHf"/>
+                            <constraint firstItem="e0o-38-XJR" firstAttribute="leading" secondItem="lIS-Kr-Jgz" secondAttribute="leading" symbolic="YES" id="xaY-BS-AyG"/>
+                            <constraint firstItem="Qz6-o7-qfq" firstAttribute="centerX" secondItem="lrW-re-zti" secondAttribute="centerX" id="xuF-K1-wEN"/>
                         </constraints>
                     </view>
                 </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="0hO-Kz-DLm" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="112" y="211"/>
+            <point key="canvasLocation" x="224" y="201"/>
         </scene>
     </scenes>
     <resources>

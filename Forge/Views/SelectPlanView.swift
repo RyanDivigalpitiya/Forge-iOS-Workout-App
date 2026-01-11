@@ -38,6 +38,8 @@ struct SelectPlanView: View {
                                                 .fontWeight(.bold)
                                                 .font(.system(size: 30))
                                                 .foregroundColor(fgColor)
+                                                .multilineTextAlignment(.leading)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
                                             Spacer()
                                             HStack {
                                                 Text("START")

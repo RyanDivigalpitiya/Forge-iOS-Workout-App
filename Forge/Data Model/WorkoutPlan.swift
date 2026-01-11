@@ -26,6 +26,7 @@ struct WorkoutPlan: Identifiable, Encodable, Decodable {
         self.id = copy.id
         self.name = copy.name
         self.exercises = copy.exercises
+        self.lastCompleted = copy.lastCompleted
     }
 
 }

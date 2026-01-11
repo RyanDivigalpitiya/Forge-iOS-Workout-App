@@ -12,7 +12,7 @@ struct CompletedWorkoutsView: View {
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 ForEach(completedWorkoutsViewModel.completedWorkouts.indices.reversed(), id: \.self) { completedWorkoutIndex in
                     
@@ -71,17 +71,24 @@ struct CompletedWorkoutsView: View {
             }
             .navigationBarTitle(Text("History"))
             .navigationBarTitleTextColor(fgColor)
+            .navigationDestination(isPresented: $completedWorkoutsViewModel.isSelectPlanViewActive) {
+                SelectPlanView()
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
-                    NavigationLink(destination: SelectPlanView(), isActive: $completedWorkoutsViewModel.isSelectPlanViewActive) {
+                    Button {
+                        completedWorkoutsViewModel.isSelectPlanViewActive = true
+                    } label: {
                         HStack {
                             Image(systemName: "figure.run")
                                 .resizable()
-                                .frame(width: 24, height: 24)
+                                .frame(width: 24, height: 30)
                                 .padding(.trailing, 3)
                             Text("Start Workout")
                         }
+                        .padding(15)
                     }
+                    .padding(5)
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(fgColor)

@@ -49,6 +49,7 @@ struct PlanEditorView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 30))
+                    .submitLabel(.done)
                 
                 // LIST OF EXERCISES
                 ScrollView {
@@ -215,11 +216,12 @@ struct PlanEditorView: View {
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                Text("Add Exercise").fontWeight(.bold)
+                                Text("New Exercise").fontWeight(.bold)
                             }
                             .padding(.horizontal)
                             .padding(.top)
                             .padding(.bottom, 8)
+                            .padding(.trailing, 10)
                             .foregroundColor(fgColor)
                         }
                         .sheet(isPresented: $exerciseEditorIsPresented) {
@@ -251,6 +253,7 @@ struct PlanEditorView: View {
 
                             Text("Cancel")
                                 .font(.headline)
+                                .frame(width: 55)
                         }
                         .foregroundColor(fgColor)
                     
@@ -316,6 +319,7 @@ struct PlanEditorView: View {
     //                            .frame(width: 25, height: 25)
                             Text("Order")
                                 .font(.headline)
+                                .frame(width: 55)
                         }
                         .foregroundColor(fgColor)
                         .sheet(isPresented: $reorderDeleteViewPresented) {

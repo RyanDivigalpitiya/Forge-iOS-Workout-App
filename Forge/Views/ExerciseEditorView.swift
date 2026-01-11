@@ -145,6 +145,7 @@ struct ExerciseEditorView: View {
                         .multilineTextAlignment(.center)
                         .font(.system(size: 23))
                         .padding(.bottom, 10)
+                        .submitLabel(.done)
                 }
             
                 // HOMOGENOUS SET SELECTORS
