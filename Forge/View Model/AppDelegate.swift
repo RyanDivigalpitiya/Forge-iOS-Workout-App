@@ -11,12 +11,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
 
-        if UIApplication.shared.applicationState == .active {
-            // App is in foreground, don't show the notification
-            completionHandler([])
-        } else {
-            // App is in background, show the notification
-            completionHandler([.alert, .sound])
-        }
+        // This method is only called when app is in foreground
+        // Allow notifications to show even when app is active
+        completionHandler([.alert, .sound, .badge])
+    }
+    
+    // Called when user taps on notification
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        print("Notification received: \(response.notification.request.content.title)")
+        completionHandler()
     }
 }

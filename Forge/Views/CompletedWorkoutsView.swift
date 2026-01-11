@@ -59,21 +59,16 @@ struct CompletedWorkoutsView: View {
                         .padding(.vertical, 12)
 
                     }
-                    .sheet(isPresented: $historyViewIsPresented) {
-                        
-                        HistoryView()
-                            .presentationDragIndicator(.hidden)
-                            .environment(\.colorScheme, .dark)
-                        
-                    }
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
             }
+            .sheet(isPresented: $historyViewIsPresented) {
+                HistoryView()
+                    .presentationDragIndicator(.hidden)
+                    .environment(\.colorScheme, .dark)
+            }
             .navigationBarTitle(Text("History"))
             .navigationBarTitleTextColor(fgColor)
-            .navigationDestination(isPresented: $completedWorkoutsViewModel.isSelectPlanViewActive) {
-                SelectPlanView()
-            }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
                     Button {
@@ -82,17 +77,19 @@ struct CompletedWorkoutsView: View {
                         HStack {
                             Image(systemName: "figure.run")
                                 .resizable()
-                                .frame(width: 24, height: 30)
+                                .frame(width: 24, height: 24)
                                 .padding(.trailing, 3)
                             Text("Start Workout")
                         }
-                        .padding(15)
                     }
-                    .padding(5)
+                    .padding(10)
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(fgColor)
                 }
+            }
+            .navigationDestination(isPresented: $completedWorkoutsViewModel.isSelectPlanViewActive) {
+                SelectPlanView()
             }
         }
         .accentColor(fgColor)
