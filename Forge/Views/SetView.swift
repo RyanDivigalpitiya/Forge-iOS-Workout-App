@@ -26,7 +26,7 @@ struct SetView: View {
                 if setIndex+1 > 9 {
                     Text("Set \(setIndex+1)")
                         .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .foregroundColor(bgColor)
                         .frame(width: 67, height: 28)
                         .background(displayLabelBKG ? fgColor : Color.clear)
                         .cornerRadius(5)
@@ -34,7 +34,7 @@ struct SetView: View {
                 } else {
                     Text("Set \(setIndex+1)")
                         .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .foregroundColor(bgColor)
                         .frame(width: 58, height: 28)
                         .background(displayLabelBKG ? fgColor : Color.clear)
                         .cornerRadius(5)

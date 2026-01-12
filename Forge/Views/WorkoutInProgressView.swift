@@ -198,7 +198,7 @@ struct WorkoutInProgressView: View {
                                                             if setIndex+1 > 9 {
                                                                 Text("Set \(setIndex+1)")
                                                                     .font(.system(size: 16))
-                                                                    .foregroundColor(.white)
+                                                                    .foregroundColor(bgColor)
                                                                     .frame(width: 67, height: 28)
                                                                     .background(set.completed ? Color.clear : fgColor)
                                                                     .cornerRadius(5)
@@ -206,7 +206,7 @@ struct WorkoutInProgressView: View {
                                                             } else {
                                                                 Text("Set \(setIndex+1)")
                                                                     .font(.system(size: 16))
-                                                                    .foregroundColor(.white)
+                                                                    .foregroundColor(bgColor)
                                                                     .frame(width: 58, height: 28)
                                                                     .background(set.completed ? Color.clear : fgColor)
                                                                     .cornerRadius(5)
@@ -525,6 +525,12 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(.black)
                                         .cornerRadius(500)
                                         .opacity(isDoneCheckMarkVisible ? 0 : 1)
+                                        .shadow(
+                                            color: fgColor.opacity(0.7), // color + transparency
+                                            radius: 10,                  // blur
+                                            x: 0,                        // horizontal offset
+                                            y: 0                         // vertical offset
+                                        )
                                         
                                         HStack {
                                             Image(systemName: "checkmark")
@@ -620,10 +626,22 @@ struct WorkoutInProgressView: View {
                                 .foregroundColor(GlobalSettings.shared.fgColor)
                                 .rotationEffect(Angle(degrees: -90))
                                 .animation(.easeOut(duration: 1), value: workoutStartingTimerRemainingTime)
+                                .shadow(
+                                    color: fgColor.opacity(0.7), // color + transparency
+                                    radius: 10,                  // blur
+                                    x: 0,                        // horizontal offset
+                                    y: 0                         // vertical offset
+                                )
                             Text("\(workoutStartingTimerRemainingTime)")
                                 .font(.system(size: 60))
                                 .foregroundColor(GlobalSettings.shared.fgColor)
                                 .fontWeight(.bold)
+                                .shadow(
+                                    color: fgColor.opacity(0.7), // color + transparency
+                                    radius: 10,                  // blur
+                                    x: 0,                        // horizontal offset
+                                    y: 0                         // vertical offset
+                                )
                         }
                         .opacity(workoutTimerContentViewOpacity)
                         .onAppear {

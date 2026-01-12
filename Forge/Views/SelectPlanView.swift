@@ -51,7 +51,12 @@ struct SelectPlanView: View {
                                             .padding(.horizontal,1)
                                             .background(fgColor)
                                             .cornerRadius(5)
-
+                                            .shadow(
+                                                color: fgColor.opacity(0.4), // color + transparency
+                                                radius: 15,                  // blur
+                                                x: 0,                        // horizontal offset
+                                                y: 0                         // vertical offset
+                                            )
                                         }
                                         .padding(.top,5)
                                         

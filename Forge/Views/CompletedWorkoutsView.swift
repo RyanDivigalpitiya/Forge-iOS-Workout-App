@@ -77,13 +77,14 @@ struct CompletedWorkoutsView: View {
                         HStack {
                             Image(systemName: "figure.run")
                                 .resizable()
-                                .frame(width: 24, height: 24)
+                                .frame(width: 15, height: 20)
                                 .padding(.trailing, 3)
                             Text("Start Workout")
                         }
                     }
-                    .padding(10)
-                    .font(.title)
+                    .padding(5)
+                    .padding(.horizontal, 10)
+                    .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(fgColor)
                 }

@@ -344,9 +344,9 @@ struct PlanEditorView: View {
             if planViewModel.activePlan.exercises.count == 0 {
                 VStack {
                     HStack {
-                        Text("Tap").fontWeight(.bold)
+                        Text("Tap")
                         Image(systemName: "plus.circle.fill")
-                        Text("Add Exercise").fontWeight(.bold)
+                        Text("New Exercise").fontWeight(.bold)
                         Text("to add exercises")
                     }
                     .padding(.bottom, 10)
