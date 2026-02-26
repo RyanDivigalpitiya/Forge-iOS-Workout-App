@@ -34,6 +34,8 @@ struct WorkoutInProgressView: View {
     @State private var totalTime: Int = 60
     @State private var appState: UIApplication.State = UIApplication.shared.applicationState
     @State private var startDate = Date()
+    @State private var breakTimerStartDate: Date? = nil
+    private let workoutRestNotificationIdentifier = "workoutRestTimerNotification"
 
     // Starting Workout Timer properties
     private var workoutStartingTime = 3 // 3 second workoutStartingtimer
@@ -368,9 +370,8 @@ struct WorkoutInProgressView: View {
                                     }
                                     .padding(.vertical, 50)
                                     .onReceive(timer) { _ in
-                                        if remainingTime > 0 {
-                                            remainingTime -= 1
-                                        } else {
+                                        updateRemainingTime()
+                                        if remainingTime == 0 {
                                             triggerHapticFeedback()
                                             // shrink the view
                                             dismissBreakTimerView()
@@ -381,7 +382,9 @@ struct WorkoutInProgressView: View {
                                     }
 
                                     .onAppear {
+                                        remainingTime = breakDuration
                                         totalTime = remainingTime
+                                        breakTimerStartDate = Date()
                                         sendNotification()
                                         timerSubscription = timer.connect()
                                     }
@@ -738,13 +741,11 @@ extension WorkoutInProgressView {
     func dismissBreakTimerView() {
         // Cancel timer subscription
         timerSubscription?.cancel()
+        breakTimerStartDate = nil
 
         // Remove scheduled notification
         let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { requests in
-            let idsToRemove = requests.filter { $0.content.categoryIdentifier == "workoutCategory" }.map { $0.identifier }
-            center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
-        }
+        center.removePendingNotificationRequests(withIdentifiers: [workoutRestNotificationIdentifier])
 
         
         withAnimation(.easeInOut(duration: 0.5)) {
@@ -767,12 +768,12 @@ extension WorkoutInProgressView {
     func sendNotification() {
         let center = UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()
-        content.title = "Start your next set!"
+        content.title = "Start your next workout!"
         content.sound = UNNotificationSound.default
         content.categoryIdentifier = "workoutCategory"
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remainingTime), repeats: false)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: workoutRestNotificationIdentifier, content: content, trigger: trigger)
         center.add(request) { (error) in
             if let error = error {
                 print("Error scheduling notification: \(error)")
@@ -781,7 +782,8 @@ extension WorkoutInProgressView {
     }
 
     func updateRemainingTime() {
-        let elapsedTime = Date().timeIntervalSince(startDate)
+        guard let breakTimerStartDate else { return }
+        let elapsedTime = Date().timeIntervalSince(breakTimerStartDate)
         let newRemainingTime = max(0, totalTime - Int(elapsedTime))
         remainingTime = newRemainingTime
     }

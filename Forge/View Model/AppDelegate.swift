@@ -11,8 +11,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
 
-        // This method is only called when app is in foreground
-        // Allow notifications to show even when app is active
+        // Suppress rest-timer notifications while the app is active.
+        if notification.request.content.categoryIdentifier == "workoutCategory" {
+            completionHandler([])
+            return
+        }
+
         completionHandler([.alert, .sound, .badge])
     }
     
