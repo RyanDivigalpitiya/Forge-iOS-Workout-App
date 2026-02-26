@@ -88,7 +88,7 @@ struct PlanEditorView: View {
                                                     if setIndex+1 > 9 {
                                                         Text("Set \(setIndex+1)")
                                                             .font(.system(size: 16))
-                                                            .foregroundColor(.white)
+                                                            .foregroundColor(bgColor)
                                                             .frame(width: 67, height: 28)
                                                             .background(fgColor)
                                                             .cornerRadius(5)
@@ -96,7 +96,7 @@ struct PlanEditorView: View {
                                                     } else {
                                                         Text("Set \(setIndex+1)")
                                                             .font(.system(size: 16))
-                                                            .foregroundColor(.white)
+                                                            .foregroundColor(bgColor)
                                                             .frame(width: 58, height: 28)
                                                             .background(fgColor)
                                                             .cornerRadius(5)
@@ -132,7 +132,7 @@ struct PlanEditorView: View {
                                             if planViewModel.activePlan.exercises[exerciseIndex].sets.count > 9 {
                                                 Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
                                                     .font(.system(size: 16))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(bgColor)
                                                     .frame(width: 67, height: 28)
                                                     .background(fgColor)
                                                     .cornerRadius(5)
@@ -140,7 +140,7 @@ struct PlanEditorView: View {
                                             } else {
                                                 Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
                                                     .font(.system(size: 16))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(bgColor)
                                                     .frame(width: 58, height: 28)
                                                     .background(fgColor)
                                                     .cornerRadius(5)
