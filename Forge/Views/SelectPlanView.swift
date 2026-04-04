@@ -22,111 +22,102 @@ struct SelectPlanView: View {
             ScrollView {
                 VStack {
                     ForEach(planViewModel.workoutPlans.indices, id: \.self) { index in
-                        
-                        Button(action: {
-                            // set active Plan to workoutPlans[index] + bring up WorkoutInProgressView
-                            planViewModel.activePlan = planViewModel.workoutPlans[index]
-                            planViewModel.activePlanIndex = index
-                            workoutInProgressViewPresented = true
-                        }) {
-                            HStack(spacing:0){
-                                
+                        HStack(spacing:0){
+                            VStack {
                                 VStack {
-                                    VStack {
-                                        HStack {
-                                            Text(planViewModel.workoutPlans[index].name)
-                                                .fontWeight(.bold)
-                                                .font(.system(size: 30))
-                                                .foregroundColor(fgColor)
-                                                .multilineTextAlignment(.leading)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                            Spacer()
-                                            HStack {
-                                                Text("START")
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(.black)
-                                                    .fontWeight(.bold)
-                                            }
-                                            .padding(8)
-                                            .padding(.horizontal,1)
-                                            .background(fgColor)
-                                            .cornerRadius(5)
-                                            .shadow(
-                                                color: fgColor.opacity(0.4), // color + transparency
-                                                radius: 15,                  // blur
-                                                x: 0,                        // horizontal offset
-                                                y: 0                         // vertical offset
-                                            )
-                                        }
-                                        .padding(.top,5)
-                                        
-                                        if let lastComleted = planViewModel.workoutPlans[index].lastCompleted {
-                                            HStack {
-                                                Text("Last Completed: ")
-                                                    .foregroundColor(Color.gray.opacity(0.5))
-                                                    .fontWeight(.bold)
-                                                Text(completedWorkoutsViewModel.numberOfDaysString(from: lastComleted))
-                                                    .foregroundColor(.white)
-                                                    .fontWeight(.bold)
-                                                Spacer()
-                                            }
-                                            .padding(.top, 1)
-                                            .padding(.bottom, 13)
-                                        }
-                                    }
-                                    
-                                    
-                                    Divider()
-                                    
                                     HStack {
-                                        // NUMBER OF EXERCISES
-                                        Image(systemName: "dumbbell.fill")
-                                            .resizable()
-                                            .frame(width: 18, height: 13)
-                                            .foregroundColor(.gray)
-                                            .opacity(0.4)
-                                            .padding(.vertical, 15)
-                                        Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
-                                            .foregroundColor(Color.gray.opacity(0.5))
+                                        Text(planViewModel.workoutPlans[index].name)
                                             .fontWeight(.bold)
-                                        // DURATION OF WORKOUT
-                                        Image(systemName: "clock.fill")
-                                            .resizable()
-                                            .frame(width: 13, height: 13)
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .padding(.leading, 10)
-                                        Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
-                                            .foregroundColor(Color.gray.opacity(0.5))
-                                            .fontWeight(.bold)
-                                            .padding(.leading, -3)
+                                            .font(.system(size: 30))
+                                            .foregroundColor(fgColor)
+                                            .multilineTextAlignment(.leading)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                         Spacer()
-                                        // EDIT BUTTON //////////////////
-                                        Button( action: {
-                                            planViewModel.activePlan = planViewModel.workoutPlans[index]
-                                            planViewModel.activePlanMode = "EditMode"
-                                            planViewModel.activePlanIndex = index
-                                            self.planEditorIsPresented = true
-                                        }) {
-                                            Image(systemName: "pencil.circle.fill")
-                                                .resizable()
-                                                .frame(width: 15, height: 15)
-                                                .foregroundColor(Color.gray.opacity(0.5))
-                                                .padding(.trailing, 2)
-                                                .padding(.vertical, 15)
+                                        HStack {
+                                            Text("START")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.black)
+                                                .fontWeight(.bold)
                                         }
-
+                                        .padding(8)
+                                        .padding(.horizontal,1)
+                                        .background(fgColor)
+                                        .cornerRadius(5)
+                                        .shadow(
+                                            color: fgColor.opacity(0.4), // color + transparency
+                                            radius: 15,                  // blur
+                                            x: 0,                        // horizontal offset
+                                            y: 0                         // vertical offset
+                                        )
+                                    }
+                                    .padding(.top,5)
+                                    
+                                    if let lastComleted = planViewModel.workoutPlans[index].lastCompleted {
+                                        HStack {
+                                            Text("Last Completed: ")
+                                                .foregroundColor(Color.gray.opacity(0.5))
+                                                .fontWeight(.bold)
+                                            Text(completedWorkoutsViewModel.numberOfDaysString(from: lastComleted))
+                                                .foregroundColor(.white)
+                                                .fontWeight(.bold)
+                                            Spacer()
+                                        }
+                                        .padding(.top, 1)
+                                        .padding(.bottom, 13)
                                     }
                                 }
-                                .padding(.leading, 5)
-                                .padding(.trailing, 20)
-                                .padding(.top, 5)
-                                .padding(.bottom, -9)
+                                
+                                
+                                Divider()
+                                
+                                HStack {
+                                    // NUMBER OF EXERCISES
+                                    Image(systemName: "dumbbell.fill")
+                                        .resizable()
+                                        .frame(width: 18, height: 13)
+                                        .foregroundColor(.gray)
+                                        .opacity(0.4)
+                                        .padding(.vertical, 15)
+                                    Text(String(planViewModel.workoutPlans[index].exercises.count) + " Exercises")
+                                        .foregroundColor(Color.gray.opacity(0.5))
+                                        .fontWeight(.bold)
+                                    // DURATION OF WORKOUT
+                                    Image(systemName: "clock.fill")
+                                        .resizable()
+                                        .frame(width: 13, height: 13)
+                                        .foregroundColor(Color.gray.opacity(0.5))
+                                        .padding(.leading, 10)
+                                    Text(String(planViewModel.calculateWorkoutDuration(for: planViewModel.workoutPlans[index])) + " min")
+                                        .foregroundColor(Color.gray.opacity(0.5))
+                                        .fontWeight(.bold)
+                                        .padding(.leading, -3)
+                                    Spacer()
+                                    // EDIT BUTTON //////////////////
+                                    Button( action: {
+                                        startEditingPlan(at: index)
+                                    }) {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .resizable()
+                                            .frame(width: 15, height: 15)
+                                            .foregroundColor(Color.gray.opacity(0.5))
+                                            .padding(.trailing, 2)
+                                            .padding(.vertical, 15)
+                                    }
+                                }
                             }
+                            .padding(.leading, 5)
+                            .padding(.trailing, 20)
+                            .padding(.top, 5)
+                            .padding(.bottom, -9)
                         }
                         .padding(.vertical)
                         .padding(.leading)
                         .background(bgColor)
                         .cornerRadius(15)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            startWorkout(at: index)
+                        }
                         .contextMenu {
                             VStack {
                                 ForEach(planViewModel.workoutPlans[index].exercises) { exercise in
@@ -134,26 +125,22 @@ struct SelectPlanView: View {
                                 }
                                 Divider()
                                 Button( action: {
-                                    planViewModel.activePlan = planViewModel.workoutPlans[index]
-                                    planViewModel.activePlanIndex = index
-                                    workoutInProgressViewPresented = true
+                                    startWorkout(at: index)
                                 }) {
                                     Text("Start")
                                     Image(systemName: "play.circle")
                                 }
                             }
                         }
-
-                        .fullScreenCover(isPresented: $workoutInProgressViewPresented) {
-                            WorkoutInProgressView()
-                                .environment(\.colorScheme, .dark)
-                        }
-                        
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 13)
                 }
                 .padding(.bottom, 120)
+            }
+            .fullScreenCover(isPresented: $workoutInProgressViewPresented) {
+                WorkoutInProgressView()
+                    .environment(\.colorScheme, .dark)
             }
             
             VStack {
@@ -220,6 +207,23 @@ struct SelectPlanView: View {
         }
         .navigationBarTitle(Text("Select Plan"))
         .ignoresSafeArea(.all, edges: .bottom)
+    }
+}
+
+private extension SelectPlanView {
+    func startWorkout(at index: Int) {
+        guard planViewModel.workoutPlans.indices.contains(index) else { return }
+        planViewModel.activePlan = planViewModel.workoutPlans[index]
+        planViewModel.activePlanIndex = index
+        workoutInProgressViewPresented = true
+    }
+    
+    func startEditingPlan(at index: Int) {
+        guard planViewModel.workoutPlans.indices.contains(index) else { return }
+        planViewModel.activePlan = planViewModel.workoutPlans[index]
+        planViewModel.activePlanMode = "EditMode"
+        planViewModel.activePlanIndex = index
+        planEditorIsPresented = true
     }
 }
 

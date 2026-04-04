@@ -492,8 +492,8 @@ struct WorkoutInProgressView: View {
                                     // update workout plans with any changes made to active workout plan during workout in progress (ie. log changes + added/re-ordered exercises)
                                     // (first, reset set completions)
                                     
-                                    for exerciseIndex in 0...planViewModel.activePlan.exercises.count-1 {
-                                        for setIndex in 0...planViewModel.activePlan.exercises[exerciseIndex].sets.count-1 {
+                                    for exerciseIndex in planViewModel.activePlan.exercises.indices {
+                                        for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
                                             planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
                                         }
                                         planViewModel.activePlan.exercises[exerciseIndex].completed = false
@@ -501,7 +501,9 @@ struct WorkoutInProgressView: View {
                                     
                                     // save workout plan to persistant storage
                                     planViewModel.activePlan.lastCompleted = Date()
-                                    planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                                    if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
+                                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+                                    }
                                     planViewModel.savePlans()
                                     
                                     triggerHapticFeedback()

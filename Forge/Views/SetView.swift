@@ -81,19 +81,25 @@ struct SetView: View {
                         .padding(.trailing, setsSpacing+2)
 
                 }
-                Text("\(Int(planViewModel.activePlan.exercises[exerciseIndex].sets[0].weight)) lb")
-                    .foregroundColor(.white)
-                    .padding(.trailing, setsSpacing)
-                Image(systemName: "xmark")
-                    .resizable()
-                    .frame(width: 10, height: 10)
-                    .padding(.top,3)
-                    .foregroundColor(.gray)
-                    .opacity(0.6)
-                    .padding(.trailing, setsSpacing)
-                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets[0].reps) reps")
-                    .foregroundColor(.gray)
-                    .opacity(0.6)
+                if let firstSet = planViewModel.activePlan.exercises[exerciseIndex].sets.first {
+                    Text("\(Int(firstSet.weight)) lb")
+                        .foregroundColor(.white)
+                        .padding(.trailing, setsSpacing)
+                    Image(systemName: "xmark")
+                        .resizable()
+                        .frame(width: 10, height: 10)
+                        .padding(.top,3)
+                        .foregroundColor(.gray)
+                        .opacity(0.6)
+                        .padding(.trailing, setsSpacing)
+                    Text("\(firstSet.reps) reps")
+                        .foregroundColor(.gray)
+                        .opacity(0.6)
+                } else {
+                    Text("No sets")
+                        .foregroundColor(.gray)
+                        .opacity(0.6)
+                }
                 Spacer()
             }
             .padding(.top, -8)

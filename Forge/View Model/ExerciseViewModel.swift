@@ -30,6 +30,8 @@ class ExerciseViewModel: ObservableObject {
         Returns:
         - A `Bool` indicating whether the array of sets contains unique weights, reps or 'tillFailure' values (`true`), or all sets are identical in these terms (`false`).
         */
+        guard !sets.isEmpty else { return false }
+        
         // compare weight values
         let weight = sets[0].weight
         for set in sets {

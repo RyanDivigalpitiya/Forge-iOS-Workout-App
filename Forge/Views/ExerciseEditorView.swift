@@ -23,9 +23,16 @@ struct ExerciseEditorView: View {
     @State private var heteroSets_Weights: [String] = ["5 lbs", "5 lbs", "5 lbs"]
     @State private var heteroSets_Reps: [String] = ["12 reps", "12 reps", "12 reps"]
     @State private var heteroSets_Failure: [Bool] = [false, false, false]
-    let setsRange = Array(1...50).reversed().map { "\($0) sets" }
-    let weightRange = stride(from: 500, through: -100, by: -5).map { "\($0) lbs" }
-    let repsRange = Array(1...500).reversed().map { "\($0) reps" }
+    private let minSets = 1
+    private let maxSets = 50
+    private let minWeight = -100
+    private let maxWeight = 500
+    private let weightStep = 5
+    private let minReps = 1
+    private let maxReps = 500
+    var setsRange: [String] { Array(minSets...maxSets).reversed().map { "\($0) sets" } }
+    var weightRange: [String] { stride(from: maxWeight, through: minWeight, by: -weightStep).map { "\($0) lbs" } }
+    var repsRange: [String] { Array(minReps...maxReps).reversed().map { "\($0) reps" } }
     //- ////////////////////////////////////////////////////////////////////////////
     
     // Toggle for changing individual sets
@@ -188,7 +195,7 @@ struct ExerciseEditorView: View {
                             // INCREMENT BUTTON
                             Button(action: {
                                 if var num = Int(homoSelectedSets.dropLast(5)) {
-                                    if num < 999{
+                                    if num < maxSets {
                                         num += 1
                                         homoSelectedSets = "\(num) sets"
                                         feedbackGenerator.impactOccurred()
@@ -232,8 +239,8 @@ struct ExerciseEditorView: View {
                             // DECREMENT BUTTON
                             Button(action: {
                                 if var num = Int(homoSelectedWeight.dropLast(4)) {
-                                    if num > -956 {
-                                        num -= 5
+                                    if num > minWeight {
+                                        num -= weightStep
                                         homoSelectedWeight = "\(num) lbs"
                                         feedbackGenerator.impactOccurred()
                                     }
@@ -251,8 +258,8 @@ struct ExerciseEditorView: View {
                             // INCREMENT BUTTON
                             Button(action: {
                                 if var num = Int(homoSelectedWeight.dropLast(4)) {
-                                    if num < 956{
-                                        num += 5
+                                    if num < maxWeight {
+                                        num += weightStep
                                         homoSelectedWeight = "\(num) lbs"
                                         feedbackGenerator.impactOccurred()
                                     }
@@ -314,7 +321,7 @@ struct ExerciseEditorView: View {
                             Button(action: {
                                 // INCREMENT BUTTON
                                 if var num = Int(homoSelectedReps.dropLast(5)) {
-                                    if num < 999 {
+                                    if num < maxReps {
                                         num += 1
                                         homoSelectedReps = "\(num) reps"
                                         feedbackGenerator.impactOccurred()
@@ -424,7 +431,7 @@ struct ExerciseEditorView: View {
                                             let count = newValue.count
                                             // compute new height
                                             heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
-                                            homoSelectedSets = "\(newValue.count) sets"
+                                            homoSelectedSets = "\(normalizedSetCount(for: newValue.count)) sets"
                                         }
                                     }
                                     .padding(.trailing,10)
@@ -444,8 +451,8 @@ struct ExerciseEditorView: View {
                                             // DECREMENT BUTTON
                                             Button(action: {
                                                 if var num = Int(heteroSets_Weights[setIndex].dropLast(4)) {
-                                                    if num > -956 {
-                                                        num -= 5
+                                                    if num > minWeight {
+                                                        num -= weightStep
                                                         heteroSets_Weights[setIndex] = "\(num) lbs"
                                                         feedbackGenerator.impactOccurred()
                                                     }
@@ -463,8 +470,8 @@ struct ExerciseEditorView: View {
                                             // INCREMENT BUTTON
                                             Button(action: {
                                                 if var num = Int(heteroSets_Weights[setIndex].dropLast(4)) {
-                                                    if num < 956{
-                                                        num += 5
+                                                    if num < maxWeight {
+                                                        num += weightStep
                                                         heteroSets_Weights[setIndex] = "\(num) lbs"
                                                         feedbackGenerator.impactOccurred()
                                                     }
@@ -536,7 +543,7 @@ struct ExerciseEditorView: View {
                                             Button(action: {
                                                 // INCREMENT BUTTON
                                                 if var num = Int(heteroSets_Reps[setIndex].dropLast(5)) {
-                                                    if num < 999 {
+                                                    if num < maxReps {
                                                         num += 1
                                                         heteroSets_Reps[setIndex] = "\(num) reps"
                                                         feedbackGenerator.impactOccurred()
@@ -580,6 +587,7 @@ struct ExerciseEditorView: View {
                     }
                     // ADD SET BUTTON
                     Button(action: {
+                        guard heteroSets_Weights.count < maxSets else { return }
                         if let unwrappedLastWeight = heteroSets_Weights.last {
                             heteroSets_Weights.append(unwrappedLastWeight)
                         }
@@ -602,7 +610,7 @@ struct ExerciseEditorView: View {
                         let count = newValue.count
                         // compute new height
                         heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
-                        homoSelectedSets = "\(newValue.count) sets"
+                        homoSelectedSets = "\(normalizedSetCount(for: newValue.count)) sets"
                     }
                     .padding(.top, 20)
                     
@@ -641,8 +649,9 @@ struct ExerciseEditorView: View {
             // initialize UI dimensions, labels + toggle based on activeExercise and activeMode
             // name field
             exerciseName = exerciseViewModel.activeExercise.name
+            let sourceSets = exerciseViewModel.activeExercise.sets.isEmpty ? [Set()] : exerciseViewModel.activeExercise.sets
             // heterogenousSetMaxViewHeight
-            let count = exerciseViewModel.activeExercise.sets.count
+            let count = sourceSets.count
             heterogenousSetMaxViewHeight = CGFloat((Int(heterogenousSetRowHeight)*count)+80)
             //areSetsUnique  = true // for testing UI purposes
             // whether areSetsUnique toggle is switched to false/true (ie. should view show homogenous exercise or heterogenous set rows)
@@ -658,16 +667,21 @@ struct ExerciseEditorView: View {
             heteroSets_Weights.removeAll()
             heteroSets_Reps.removeAll()
             heteroSets_Failure.removeAll()
-            for index in 0...exerciseViewModel.activeExercise.sets.count-1 {
-                heteroSets_Weights.append("\(Int(exerciseViewModel.activeExercise.sets[index].weight)) lbs")
-                heteroSets_Reps.append("\(exerciseViewModel.activeExercise.sets[index].reps) reps")
-                heteroSets_Failure.append(exerciseViewModel.activeExercise.sets[index].tillFailure)
+            for set in sourceSets {
+                heteroSets_Weights.append("\(normalizedWeight(for: set.weight)) lbs")
+                heteroSets_Reps.append("\(normalizedReps(for: set.reps)) reps")
+                heteroSets_Failure.append(set.tillFailure)
             }
             
             // assign homoSelected_ data values from activeExercise's data
-            homoSelectedSets    = "\(exerciseViewModel.activeExercise.sets.count) sets"
-            homoSelectedWeight  = "\(Int(exerciseViewModel.activeExercise.sets[0].weight)) lbs"
-            homoSelectedReps    = "\(exerciseViewModel.activeExercise.sets[0].reps) reps"
+            homoSelectedSets    = "\(normalizedSetCount(for: sourceSets.count)) sets"
+            if let firstSet = sourceSets.first {
+                homoSelectedWeight  = "\(normalizedWeight(for: firstSet.weight)) lbs"
+                homoSelectedReps    = "\(normalizedReps(for: firstSet.reps)) reps"
+            } else {
+                homoSelectedWeight  = "5 lbs"
+                homoSelectedReps    = "12 reps"
+            }
             // -  //////////////////////////////////// //////////////////////////////////
             
             homoHeteroControlsAreConnected = true
@@ -685,22 +699,28 @@ extension ExerciseEditorView {
         
         // create list of sets that were edited
         var newSets: [Set] = []
+        let existingExerciseIndex = exerciseViewModel.activeExerciseIndex
+        let existingExercise = planViewModel.activePlan.exercises.indices.contains(existingExerciseIndex)
+            ? planViewModel.activePlan.exercises[existingExerciseIndex]
+            : nil
         
         if areSetsUnique {
-            for index in 0...heteroSets_Weights.count-1 {
+            for index in heteroSets_Weights.indices {
+                guard heteroSets_Reps.indices.contains(index), heteroSets_Failure.indices.contains(index) else { continue }
                 let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
                 let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
                 if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
+                    let clampedWeight = Float(normalizedWeight(for: unwrappedWeight))
+                    let clampedReps = normalizedReps(for: unwrappedReps)
                     
                     var completedValue  = false
-                    if planViewModel.activePlan.exercises.count > 0  &&
-                        index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
-                        completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
+                    if let existingExercise, index < existingExercise.sets.count {
+                        completedValue = existingExercise.sets[index].completed
                     } else {
                         completedValue = false
                     }
                     
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: heteroSets_Failure[index], completed: completedValue)
+                    let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: heteroSets_Failure[index], completed: completedValue)
                     newSets.append(newSet)
                 }
             }
@@ -710,21 +730,28 @@ extension ExerciseEditorView {
             let inputtedReps = Int(homoSelectedReps.dropLast(5))
             
             if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                for index in 0...unwrappedSets-1 {
+                let clampedSets = normalizedSetCount(for: unwrappedSets)
+                let clampedWeight = Float(normalizedWeight(for: unwrappedWeight))
+                let clampedReps = normalizedReps(for: unwrappedReps)
+                
+                for index in 0..<clampedSets {
                     
                     var completedValue  = false
-                    if planViewModel.activePlan.exercises.count > 0  &&
-                        index < planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets.count {
-                        completedValue = planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex].sets[index].completed
+                    if let existingExercise, index < existingExercise.sets.count {
+                        completedValue = existingExercise.sets[index].completed
                     } else {
                         completedValue = false
                     }
 
                     
-                    let newSet = Set(weight: unwrappedWeight, reps: unwrappedReps, tillFailure: false, completed: completedValue)
+                    let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: false, completed: completedValue)
                     newSets.append(newSet)
                 }
             }
+        }
+        
+        if newSets.isEmpty {
+            newSets = [Set()]
         }
         
         
@@ -734,9 +761,15 @@ extension ExerciseEditorView {
             planViewModel.activePlan.exercises.append(newExercise)
 
         } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
-            // update active plan's exercises with the updated exercise
-            let updatedExercise = Exercise(name: exerciseName, sets: newSets)
-            planViewModel.activePlan.exercises[exerciseViewModel.activeExerciseIndex] = updatedExercise
+            // update active plan's exercises with the updated exercise while preserving identity.
+            if var updatedExercise = existingExercise {
+                updatedExercise.name = exerciseName
+                updatedExercise.sets = newSets
+                planViewModel.activePlan.exercises[existingExerciseIndex] = updatedExercise
+            } else {
+                let fallbackExercise = Exercise(name: exerciseName, sets: newSets)
+                planViewModel.activePlan.exercises.append(fallbackExercise)
+            }
         }
         
         feedbackGenerator.impactOccurred()
@@ -756,9 +789,13 @@ extension ExerciseEditorView {
             
             // update individual sets
             if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                for _ in 0...unwrappedSets-1 {
-                    heteroSets_Weights.append("\(Int(unwrappedWeight)) lbs")
-                    heteroSets_Reps.append("\(unwrappedReps) reps")
+                let clampedSets = normalizedSetCount(for: unwrappedSets)
+                let clampedWeight = normalizedWeight(for: unwrappedWeight)
+                let clampedReps = normalizedReps(for: unwrappedReps)
+                
+                for _ in 0..<clampedSets {
+                    heteroSets_Weights.append("\(clampedWeight) lbs")
+                    heteroSets_Reps.append("\(clampedReps) reps")
                     heteroSets_Failure.append(false)
                     
                 }
@@ -768,10 +805,33 @@ extension ExerciseEditorView {
     
     func updateHomoDataBasedOnHeteroData() {
         if homoHeteroControlsAreConnected {
-            homoSelectedSets = "\(heteroSets_Weights.count) sets"
-            homoSelectedWeight = heteroSets_Weights[0]
-            homoSelectedReps = heteroSets_Reps[0]
+            if let firstWeight = heteroSets_Weights.first, let firstReps = heteroSets_Reps.first {
+                let parsedWeight = Float(firstWeight.dropLast(4)) ?? 5.0
+                let parsedReps = Int(firstReps.dropLast(5)) ?? 12
+                
+                homoSelectedSets = "\(normalizedSetCount(for: heteroSets_Weights.count)) sets"
+                homoSelectedWeight = "\(normalizedWeight(for: parsedWeight)) lbs"
+                homoSelectedReps = "\(normalizedReps(for: parsedReps)) reps"
+            } else {
+                homoSelectedSets = "1 sets"
+                homoSelectedWeight = "5 lbs"
+                homoSelectedReps = "12 reps"
+            }
         }
+    }
+    
+    private func normalizedSetCount(for count: Int) -> Int {
+        min(max(count, minSets), maxSets)
+    }
+    
+    private func normalizedWeight(for weight: Float) -> Int {
+        let clampedWeight = min(max(Double(weight), Double(minWeight)), Double(maxWeight))
+        let snappedWeight = (clampedWeight / Double(weightStep)).rounded() * Double(weightStep)
+        return Int(snappedWeight)
+    }
+    
+    private func normalizedReps(for reps: Int) -> Int {
+        min(max(reps, minReps), maxReps)
     }
 }
 

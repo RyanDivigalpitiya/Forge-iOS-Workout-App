@@ -18,7 +18,7 @@ class PlanViewModel: ObservableObject {
     
     init(mockPlans: [WorkoutPlan]) {
         self.workoutPlans = mockPlans
-        self.activePlan = mockPlans[0]
+        self.activePlan = mockPlans.first ?? WorkoutPlan()
         self.activePlanIndex = 0
         self.activePlanMode = "AddMode"
     }
@@ -88,10 +88,13 @@ extension PlanViewModel {
         let timeInbetweenSets = 60*5 // 5 minutes in-between exercises
         let breakTime = 60 // 60 second break timer
         let repTime = 3 // 3 seconds per rep
+        let exercisesWithSets = plan.exercises.filter { !$0.sets.isEmpty }
+        
+        guard !exercisesWithSets.isEmpty else { return 0 }
         
         //loop through sets and exercises while adding duration length to "workoutTime":
         var workoutTime = timeInbetweenSets // 5 minutes to find + set up the first exercise
-        for exercise in plan.exercises {
+        for exercise in exercisesWithSets {
             var exerciseTime = 0
             for set in exercise.sets {
                 let repCount = set.reps
