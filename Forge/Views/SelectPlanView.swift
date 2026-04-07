@@ -154,7 +154,7 @@ struct SelectPlanView: View {
                     Button(action: {
                         // set activePlan to a new plan
                         planViewModel.activePlan = WorkoutPlan()
-                        planViewModel.activePlanMode = "AddMode"
+                        planViewModel.activePlanMode = .add
                         self.planEditorIsPresented = true
                     }) {
                         HStack {
@@ -192,7 +192,7 @@ struct SelectPlanView: View {
                         .foregroundColor(fgColor)
                     }
                     .sheet(isPresented: $reorderDeleteViewPresented) {
-                        ReorderDeleteView(mode: "PlanMode")
+                        ReorderDeleteView(mode: .plan)
                             .presentationDetents([.medium, .large])
                             .environment(\.colorScheme, .dark)
                     }
@@ -221,7 +221,7 @@ private extension SelectPlanView {
     func startEditingPlan(at index: Int) {
         guard planViewModel.workoutPlans.indices.contains(index) else { return }
         planViewModel.activePlan = planViewModel.workoutPlans[index]
-        planViewModel.activePlanMode = "EditMode"
+        planViewModel.activePlanMode = .edit
         planViewModel.activePlanIndex = index
         planEditorIsPresented = true
     }

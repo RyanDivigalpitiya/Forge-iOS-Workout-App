@@ -6,21 +6,21 @@ class PlanViewModel: ObservableObject {
     
     @Published var activePlan: WorkoutPlan
     @Published var activePlanIndex: Int
-    @Published var activePlanMode: String
-    
+    @Published var activePlanMode: PlanEditorMode
+
     init() {
         self.workoutPlans = []
         self.activePlan = WorkoutPlan()
         self.activePlanIndex = 0
-        self.activePlanMode = "AddMode"
+        self.activePlanMode = .add
         self.workoutPlans = loadPlans()
     }
-    
+
     init(mockPlans: [WorkoutPlan]) {
         self.workoutPlans = mockPlans
         self.activePlan = mockPlans.first ?? WorkoutPlan()
         self.activePlanIndex = 0
-        self.activePlanMode = "AddMode"
+        self.activePlanMode = .add
     }
 }
 

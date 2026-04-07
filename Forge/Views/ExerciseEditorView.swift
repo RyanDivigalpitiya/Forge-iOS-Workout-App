@@ -91,17 +91,17 @@ struct ExerciseEditorView: View {
                 
                     // Title text
                     HStack {
-                        if exerciseViewModel.activeExerciseMode == "AddMode" {
+                        if exerciseViewModel.activeExerciseMode == .add {
                             Text("Add Exercise")
                                 .font(.system(size:fontTitleSize))
                                 .foregroundColor(fgColor)
                                 .fontWeight(.bold)
-                        } else if exerciseViewModel.activeExerciseMode == "EditMode" {
+                        } else if exerciseViewModel.activeExerciseMode == .edit {
                             Text("Edit Exercise")
                                 .font(.system(size:fontTitleSize))
                                 .foregroundColor(fgColor)
                                 .fontWeight(.bold)
-                        } else if exerciseViewModel.activeExerciseMode == "LogMode" {
+                        } else if exerciseViewModel.activeExerciseMode == .log {
                             Text("Log Change")
                                 .font(.system(size:fontTitleSize))
                                 .foregroundColor(fgColor)
@@ -116,7 +116,7 @@ struct ExerciseEditorView: View {
                             saveExercise()
                         }) {
                             ZStack {
-                                if exerciseViewModel.activeExerciseMode == "AddMode" {
+                                if exerciseViewModel.activeExerciseMode == .add {
                                     Circle()
                                         .frame(width: 28, height: 28)
                                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
@@ -125,7 +125,7 @@ struct ExerciseEditorView: View {
                                         .frame(width: 13, height: 13)
                                         .fontWeight(.bold)
                                         .foregroundColor(fgColor)
-                                } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
+                                } else if exerciseViewModel.activeExerciseMode == .edit || exerciseViewModel.activeExerciseMode == .log {
                                     Circle()
                                         .frame(width: 28, height: 28)
                                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
@@ -755,12 +755,12 @@ extension ExerciseEditorView {
         }
         
         
-        if exerciseViewModel.activeExerciseMode == "AddMode" {
+        if exerciseViewModel.activeExerciseMode == .add {
             // create new exercise + append it to planViewModel's active plan
             let newExercise = Exercise(name: exerciseName, sets: newSets)
             planViewModel.activePlan.exercises.append(newExercise)
 
-        } else if exerciseViewModel.activeExerciseMode == "EditMode" || exerciseViewModel.activeExerciseMode == "LogMode" {
+        } else if exerciseViewModel.activeExerciseMode == .edit || exerciseViewModel.activeExerciseMode == .log {
             // update active plan's exercises with the updated exercise while preserving identity.
             if var updatedExercise = existingExercise {
                 updatedExercise.name = exerciseName

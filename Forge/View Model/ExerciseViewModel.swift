@@ -5,13 +5,13 @@ class ExerciseViewModel: ObservableObject {
     @Published var activeExercise: Exercise
     
     @Published var activeExerciseIndex: Int
-    @Published var activeExerciseMode: String
-    
+    @Published var activeExerciseMode: ExerciseEditorMode
+
     init() {
         self.activeExercise = Exercise()
-        
+
         self.activeExerciseIndex = 0
-        self.activeExerciseMode = "AddMode"
+        self.activeExerciseMode = .add
     }
     
     func containsUniqueSets(in sets: [Set]) -> Bool {

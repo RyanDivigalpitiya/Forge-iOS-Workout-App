@@ -104,7 +104,7 @@ struct WorkoutInProgressView: View {
                                             
                                             // LOG CHANGE BUTTON
                                             Button(action: {
-                                                exerciseViewModel.activeExerciseMode = "LogMode"
+                                                exerciseViewModel.activeExerciseMode = .log
                                                 exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
                                                 exerciseViewModel.activeExerciseIndex = exerciseIndex
                                                 self.exerciseEditorIsPresented = true
@@ -373,8 +373,11 @@ struct WorkoutInProgressView: View {
                                         updateRemainingTime()
                                         if remainingTime == 0 {
                                             triggerHapticFeedback()
-                                            // shrink the view
-                                            dismissBreakTimerView()
+                                            // shrink the view — do NOT cancel the pending notification:
+                                            // it has either already fired or is about to, and cancelling
+                                            // would race against system delivery (notably when the
+                                            // debugger is attached and the app isn't suspended).
+                                            dismissBreakTimerView(cancelPendingNotification: false)
                                         }
                                     }
                                     .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -446,7 +449,7 @@ struct WorkoutInProgressView: View {
                             HStack {
                                 Button(action: {
                                 exerciseViewModel.activeExercise = Exercise()
-                                exerciseViewModel.activeExerciseMode = "AddMode"
+                                exerciseViewModel.activeExerciseMode = .add
                                 self.exerciseEditorIsPresented = true
                                 }) {
                                     Text("Add")
@@ -571,7 +574,7 @@ struct WorkoutInProgressView: View {
                                 .foregroundColor(fgColor)
                                 .disabled(timerEnabled)
                                 .sheet(isPresented: $reorderDeleteViewPresented) {
-                                    ReorderDeleteView(mode: "ExerciseMode")
+                                    ReorderDeleteView(mode: .exercise)
                                         .presentationDetents([.medium, .large])
                                         .environment(\.colorScheme, .dark)
                                 }
@@ -740,14 +743,21 @@ extension WorkoutInProgressView {
     }
 
     
-    func dismissBreakTimerView() {
+    func dismissBreakTimerView(cancelPendingNotification: Bool = true) {
+        print("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification))")
         // Cancel timer subscription
         timerSubscription?.cancel()
         breakTimerStartDate = nil
 
-        // Remove scheduled notification
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [workoutRestNotificationIdentifier])
+        // Remove scheduled notification only when the user explicitly dismisses
+        // the timer (X button or Done). On natural expiry, the notification has
+        // either already fired (background) or is suppressed by AppDelegate's
+        // willPresent handler (foreground), so cancellation is unnecessary and
+        // would race against system delivery when the debugger is attached.
+        if cancelPendingNotification {
+            let center = UNUserNotificationCenter.current()
+            center.removePendingNotificationRequests(withIdentifiers: [workoutRestNotificationIdentifier])
+        }
 
         
         withAnimation(.easeInOut(duration: 0.5)) {
@@ -769,16 +779,27 @@ extension WorkoutInProgressView {
     
     func sendNotification() {
         let center = UNUserNotificationCenter.current()
-        let content = UNMutableNotificationContent()
-        content.title = "Start your next workout!"
-        content.sound = UNNotificationSound.default
-        content.categoryIdentifier = "workoutCategory"
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remainingTime), repeats: false)
-        let request = UNNotificationRequest(identifier: workoutRestNotificationIdentifier, content: content, trigger: trigger)
-        center.add(request) { (error) in
-            if let error = error {
-                print("Error scheduling notification: \(error)")
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                print("[Forge] Notifications not authorized (status: \(settings.authorizationStatus.rawValue))")
+                return
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Break Timer Done"
+            content.body = "Time to start your next set!"
+            content.sound = UNNotificationSound.default
+            content.categoryIdentifier = "workoutCategory"
+
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(self.remainingTime), repeats: false)
+            let request = UNNotificationRequest(identifier: self.workoutRestNotificationIdentifier, content: content, trigger: trigger)
+
+            center.add(request) { error in
+                if let error = error {
+                    print("[Forge] Notification schedule error: \(error)")
+                } else {
+                    print("[Forge] Scheduled notification for \(self.remainingTime)s from now")
+                }
             }
         }
     }

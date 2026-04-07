@@ -9,12 +9,12 @@ struct ReorderDeleteView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var isEditing: EditMode = .inactive
     
-    var mode: String = "PlanMode"
+    var mode: ReorderDeleteMode = .plan
     let fgColor = GlobalSettings.shared.fgColor
     
     var body: some View {
         VStack {
-            Text(mode == "PlanMode" ? "Reorder or Delete Plans" : "Reorder or Delete Exercises")
+            Text(mode == .plan ? "Reorder or Delete Plans" : "Reorder or Delete Exercises")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(fgColor)
@@ -41,7 +41,7 @@ struct ReorderDeleteView: View {
             }
             .foregroundColor(Color(.systemGray2))
             
-            if mode == "PlanMode"{
+            if mode == .plan {
                 List {
                     ForEach(planViewModel.workoutPlans.indices, id: \.self) { index in
                         Text(planViewModel.workoutPlans[index].name)

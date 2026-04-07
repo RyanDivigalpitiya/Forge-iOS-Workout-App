@@ -33,7 +33,7 @@ struct PlanEditorView: View {
             VStack {
                 HStack{
                     Spacer()
-                    Text(planViewModel.activePlanMode == "AddMode" ? "Create New Plan" : "Edit Plan")
+                    Text(planViewModel.activePlanMode == .add ? "Create New Plan" : "Edit Plan")
                         .font(.system(size: 40))
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
@@ -58,7 +58,7 @@ struct PlanEditorView: View {
                             
                             // EDIT BUTTON
                             Button(action: {
-                                exerciseViewModel.activeExerciseMode = "EditMode"
+                                exerciseViewModel.activeExerciseMode = .edit
                                 exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
                                 exerciseViewModel.activeExerciseIndex = exerciseIndex
                                 self.exerciseEditorIsPresented = true
@@ -216,7 +216,7 @@ struct PlanEditorView: View {
                         Button(action: {
                             // bring up Exercise Editor View
                             isPlanNameFocused = false
-                            exerciseViewModel.activeExerciseMode = "AddMode"
+                            exerciseViewModel.activeExerciseMode = .add
                             exerciseViewModel.activeExercise = Exercise()
                             self.exerciseEditorIsPresented = true
                         }) {
@@ -268,10 +268,10 @@ struct PlanEditorView: View {
                         // SAVE BUTTON ////////////////////
                         Button(action: {
                             isPlanNameFocused = false
-                            if planViewModel.activePlanMode == "AddMode" {
+                            if planViewModel.activePlanMode == .add {
                                 planViewModel.workoutPlans.append(planViewModel.activePlan)
                                 planViewModel.savePlans()
-                            } else if planViewModel.activePlanMode == "EditMode" {
+                            } else if planViewModel.activePlanMode == .edit {
                                 if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
                                     planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                     planViewModel.savePlans()
@@ -331,7 +331,7 @@ struct PlanEditorView: View {
                         }
                         .foregroundColor(fgColor)
                         .sheet(isPresented: $reorderDeleteViewPresented) {
-                            ReorderDeleteView(mode: "ExerciseMode")
+                            ReorderDeleteView(mode: .exercise)
                                 .presentationDetents([.medium, .large])
                                 .environment(\.colorScheme, .dark)
                         }
