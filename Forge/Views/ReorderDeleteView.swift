@@ -6,7 +6,7 @@ struct ReorderDeleteView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
     // - /////////////////////////////////////////
     
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     @State private var isEditing: EditMode = .inactive
     
     var mode: ReorderDeleteMode = .plan
@@ -69,7 +69,7 @@ struct ReorderDeleteView: View {
             
             HStack {
                 Button(action: {
-                    self.presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }) {
                     HStack{
                         Image(systemName: "checkmark.circle.fill")

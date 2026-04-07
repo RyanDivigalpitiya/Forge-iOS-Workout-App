@@ -8,7 +8,7 @@ struct ExerciseEditorView: View {
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-////////////////////////////////////////////////////////
     
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFieldFocused: Bool // used to assign focus on exercise name textfield on appear
     @Binding var selectedDetent: PresentationDetent
     
@@ -67,7 +67,7 @@ struct ExerciseEditorView: View {
                     // close button (dismiss, no changes saved)
                     HStack {
                         Button(action: {
-                            self.presentationMode.wrappedValue.dismiss()
+                            dismiss()
                         }) {
                             ZStack {
                                 Circle()
@@ -169,7 +169,7 @@ struct ExerciseEditorView: View {
                             .foregroundColor(areSetsUnique ? fgColor : darkGray)
                             .fontWeight(.bold)
                     }
-                    .onChange(of: areSetsUnique) { newValue in
+                    .onChange(of: areSetsUnique) { _, newValue in
     
                         if editedExerciseStartedWithUniqueSets {
                             // do nothing - here's why:
@@ -218,7 +218,7 @@ struct ExerciseEditorView: View {
                             minReps: minReps, maxReps: maxReps, maxSets: maxSets,
                             onSave: { saveExercise() }
                         )
-                        .onChange(of: heteroWeights) { newValue in
+                        .onChange(of: heteroWeights) { _, newValue in
                             let count = newValue.count
                             heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
                             homoSets = clampSetCount(count)
@@ -356,7 +356,7 @@ extension ExerciseEditorView {
         }
 
         feedbackGenerator.impactOccurred()
-        self.presentationMode.wrappedValue.dismiss()
+        dismiss()
     }
 
     func updateHeteroDataBasedOnHomoData() {

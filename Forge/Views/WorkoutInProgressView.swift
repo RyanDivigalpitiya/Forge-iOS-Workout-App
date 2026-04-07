@@ -13,13 +13,11 @@ struct WorkoutInProgressView: View {
     //-////////////////////////////////////////////////////////
     
     
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
-    @State private var showBreakTimer = false
     @State var selectedDetent: PresentationDetent = .medium
     @State var percentCompleted: Int = 0
-    private let availableDetents: [PresentationDetent] = [.medium, .large]
 
     // Break timer coordination state — BreakTimerView owns its own timer state.
     // The parent retains these to coordinate the scroll-view shrink/grow animation.
@@ -28,7 +26,6 @@ struct WorkoutInProgressView: View {
     @State private var timerEnabled = false      // gates whether BreakTimerView is rendered
     @State private var timerVisible = false      // controls BreakTimerView's opacity
     @State private var isScrollViewDisabled = false
-    @State private var appState: UIApplication.State = UIApplication.shared.applicationState
     @State private var startDate = Date()
 
     // Animation + Feedback parameters
@@ -55,11 +52,7 @@ struct WorkoutInProgressView: View {
     let setsSpacing = GlobalSettings.shared.setsSpacing
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
-    
-//    @State private var stopwatch = Timer.publish(every: 1, on: .current, in: .common).autoconnect()
-    @State private var elapsedTime: Int = 0
-    @State private var stopwatchRunning = false
-    
+
     @State private var isWorkoutDone: Bool = false
     
     var body: some View {
@@ -249,25 +242,6 @@ struct WorkoutInProgressView: View {
                                     
                                     Text("\(percentCompleted)% Complete")
                                         .fontWeight(.bold)
-//                                    Button( action: {
-//                                        self.stopwatchRunning.toggle()
-//                                        if self.stopwatchRunning {
-//                                            self.startStopwatch()
-//                                        } else {
-//                                            self.pauseStopwatch()
-//                                        }
-//                                    }) {
-//                                        HStack {
-//                                            if stopwatchRunning {
-//                                                Image(systemName: "pause.circle.fill")
-//                                            } else {
-//                                                Image(systemName: "play.circle.fill")
-//                                            }
-//                                        }
-//                                        .foregroundColor(fgColor)
-//                                        .padding(.horizontal, 7)
-//                                        .padding(.vertical, 10)
-//                                    }
 
                                     Spacer()
                                 }
@@ -322,21 +296,9 @@ struct WorkoutInProgressView: View {
                 }
                 .opacity(isWorkoutOpacityFull ? 1 : 0)
                 .background(.black)
-//                .onReceive(stopwatch) { _ in
-//                    if self.stopwatchRunning {
-//                        self.elapsedTime += 1
-//                    }
-//                }
-                .onAppear{
+                .onAppear {
                     calcPercentCompleted()
                     startDate = Date()
-//                    stopwatchRunning = true
-//                    startStopwatch()
-
-                }
-                .onDisappear {
-//                    stopwatchRunning = false
-//                    pauseStopwatch()
                 }
             }
             
@@ -358,27 +320,10 @@ struct WorkoutInProgressView: View {
 
 // % Complete label + animation functions
 extension WorkoutInProgressView {
-    
-//    func startStopwatch() {
-//        self.stopwatch = Timer.publish(every: 1, on: .current, in: .common).autoconnect()
-//    }
-//
-//    func pauseStopwatch() {
-//        self.stopwatch.upstream.connect().cancel()
-//    }
-    
-    func stopwatchString(time: Int) -> String {
-        let hours = Int(time) / 3600
-        let minutes = Int(time) / 60 % 60
-        let seconds = Int(time) % 60
-        return String(format:"%02i:%02i:%02i", hours, minutes, seconds)
-    }
 
-    
     func finishWorkout() {
         // stop timers
         dismissBreakTimerView()
-        stopwatchRunning = false
         isWorkoutDone = true
 
         // save completed workout to persistant storage
@@ -412,7 +357,7 @@ extension WorkoutInProgressView {
             isDoneCheckMarkVisible = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.presentationMode.wrappedValue.dismiss()
+            dismiss()
             // after dismissing this view, send user back to CompletedWorkoutsView
             completedWorkoutsViewModel.isSelectPlanViewActive = false
         }

@@ -8,8 +8,6 @@ struct HistoryView: View {
     //-/////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
-    
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour

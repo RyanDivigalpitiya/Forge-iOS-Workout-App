@@ -8,7 +8,7 @@ struct PlanEditorView: View {
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-/////////////////////////////////////////////////
     
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
@@ -176,7 +176,7 @@ struct PlanEditorView: View {
                         // CANCEL BUTTON ////////////////////
                         Button(action: {
                             isPlanNameFocused = false
-                            self.presentationMode.wrappedValue.dismiss()
+                            dismiss()
                         }) {
     //                        Image(systemName: "xmark.circle.fill")
     //                            .resizable()
@@ -212,7 +212,7 @@ struct PlanEditorView: View {
                                 isDoneCheckMarkVisible = true
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                self.presentationMode.wrappedValue.dismiss()
+                                dismiss()
                             }
                         }) {
                             ZStack{
