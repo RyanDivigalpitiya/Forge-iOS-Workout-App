@@ -21,28 +21,15 @@ struct WorkoutInProgressView: View {
     @State var percentCompleted: Int = 0
     private let availableDetents: [PresentationDetent] = [.medium, .large]
 
-    // break timer properties
-    let timer = Timer.publish(every: 1, on: .main, in: .common)
+    // Break timer coordination state — BreakTimerView owns its own timer state.
+    // The parent retains these to coordinate the scroll-view shrink/grow animation.
     @State private var topToolBarHeight: CGFloat = 140
     @State private var topToolBarCornerRadius: CGFloat = 0
-    @State private var timerEnabled = false
-    @State private var timerVisible = false
+    @State private var timerEnabled = false      // gates whether BreakTimerView is rendered
+    @State private var timerVisible = false      // controls BreakTimerView's opacity
     @State private var isScrollViewDisabled = false
-    @State private var remainingTime: Int = GlobalSettings.shared.breakDuration
-    @State private var timerSubscription: Cancellable? = nil
-    @State private var totalTime: Int = GlobalSettings.shared.breakDuration
     @State private var appState: UIApplication.State = UIApplication.shared.applicationState
     @State private var startDate = Date()
-    @State private var breakTimerStartDate: Date? = nil
-    private let workoutRestNotificationIdentifier = "workoutRestTimerNotification"
-
-    // Starting Workout Timer properties
-    private var workoutStartingTime = 3 // 3 second workoutStartingtimer
-    let workoutStartingtimer = Timer.publish(every: 1, on: .main, in: .common)
-    @State private var workoutStartingTimerRemainingTime: Int = 3
-    @State private var workoutStartingTimerSubscription: Cancellable? = nil
-    @State private var workoutStartingTimerTotalTime: Int = 3
-    @State private var workoutTimerContentViewOpacity: Double = 0.0
 
     // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -53,8 +40,7 @@ struct WorkoutInProgressView: View {
     let popAnimationDelay: Double = 0.05
     @State private var isDoneCheckMarkVisible: Bool = false
     @State private var scrollViewVisible = true
-    // Starting timer animation parameters
-    @State var isStartingTimerDone: Bool = false
+    // Starting timer transition state — flipped by StartingCountdownView's onCompletion
     @State var shouldShowWorkout: Bool = false
     @State var isWorkoutOpacityFull: Bool = false
     @State var scrollViewScaleEffect: CGFloat = 0.95
@@ -293,93 +279,19 @@ struct WorkoutInProgressView: View {
                             
                             Spacer()
                             if timerEnabled {
-                                
-                                // BREAK TIMER
-                                VStack(spacing: 0) {
-                                    Spacer()
-                                    HStack{
-                                        Spacer()
-                                        Text("Rest for ")
-                                            .font(.system(size: 40))
-                                            .fontWeight(.bold)
-                                            .foregroundColor(fgColor)
-                                        Spacer()
-                                    }
-                                    
-                                    ZStack {
-                                        Circle()
-                                            .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                                            .foregroundColor(Color(.systemGray4))
-                                        Circle()
-                                            .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
-                                            .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                                            .foregroundColor(GlobalSettings.shared.fgColor)
-                                            .rotationEffect(Angle(degrees: -90))
-                                            .animation(.linear(duration: 1), value: remainingTime)
-                                        Text("\(remainingTime) s")
-                                            .font(.system(size: 60))
-                                            .foregroundColor(GlobalSettings.shared.fgColor)
-                                            .fontWeight(.bold)
-                                    }
-                                    .padding(.vertical, 50)
-                                    .onReceive(timer) { _ in
-                                        updateRemainingTime()
-                                        if remainingTime == 0 {
-                                            triggerHapticFeedback()
-                                            // shrink the view — do NOT cancel the pending notification:
-                                            // it has either already fired or is about to, and cancelling
-                                            // would race against system delivery (notably when the
-                                            // debugger is attached and the app isn't suspended).
-                                            dismissBreakTimerView(cancelPendingNotification: false)
-                                        }
-                                    }
-                                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                                        updateRemainingTime()
-                                    }
-
-                                    .onAppear {
-                                        remainingTime = GlobalSettings.shared.breakDuration
-                                        totalTime = remainingTime
-                                        breakTimerStartDate = Date()
-                                        sendNotification()
-                                        timerSubscription = timer.connect()
-                                    }
-                                    .onDisappear {
-                                        timerSubscription?.cancel()
-                                    }
-                                    
-                                    Button(action: {
-
+                                BreakTimerView(
+                                    durationSeconds: GlobalSettings.shared.breakDuration,
+                                    timerVisible: $timerVisible,
+                                    onExpired: {
+                                        // do NOT cancel the pending notification on natural expiry —
+                                        // it has either already fired or is about to, and cancelling
+                                        // would race against system delivery.
+                                        dismissBreakTimerView(cancelPendingNotification: false)
+                                    },
+                                    onCancelTapped: {
                                         dismissBreakTimerView()
-                                        
-                                    }) {
-                                        ZStack {
-                                            Circle()
-                                                .frame(width: 30, height: 30)
-                                                .foregroundColor(Color(.systemGray4))
-                                            Image(systemName: "xmark")
-                                                .resizable()
-                                                .frame(width: 13, height: 13)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(fgColor)
-                                        }
-
-        //                                Text("Cancel")
-        //                                    .font(.system(size: 15))
-        //                                    .fontWeight(.heavy)
-        //                                    .padding([.leading, .trailing], 15)
-        //                                    .padding([.top, .bottom], 7)
-        //                                    .background(fgColor)
-        //                                    .foregroundColor(.white)
-        //                                    .cornerRadius(1000)
                                     }
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 40)
-                                .padding(.bottom, 20)
-                                .opacity(timerVisible ? 1 : 0)
-                                
-                                
+                                )
                             }
                         }
                         .frame(height: topToolBarHeight)
@@ -391,155 +303,21 @@ struct WorkoutInProgressView: View {
                     }
                     .edgesIgnoringSafeArea(.top)
                     
-                    // Bottom Toolbar
-                    VStack {
-                        Spacer()
-                        HStack {
-                            
-                            Spacer()
-                            
-                            // ADD BUTTON
-                            HStack {
-                                Button(action: {
-                                exerciseViewModel.activeExercise = Exercise()
-                                exerciseViewModel.activeExerciseMode = .add
-                                self.exerciseEditorIsPresented = true
-                                }) {
-                                    Text("Add")
-                                        .font(.system(size: 18))
-                                        .fontWeight(.bold)
-                                    Image(systemName: "plus.circle.fill")
-                                        .resizable()
-                                        .frame(width: 15, height: 15)
-                                        .padding(.trailing, 3)
-                                }
-                                .foregroundColor(fgColor)
-                                .disabled(timerEnabled)
-                                .sheet(isPresented: $exerciseEditorIsPresented) {
-                                    ExerciseEditorView(selectedDetent: $selectedDetent)
-                                        .presentationDetents([.medium, .large], selection: $selectedDetent)
-                                        .presentationDragIndicator(.hidden)
-                                        .environment(\.colorScheme, .dark)
-                                }
-                            }
-                            .frame(width: 0.33*screenWidth)
-                            
-                            
-                            // DONE BUTTON
-                            HStack {
-                                Button(action: {
-                                    // stop timers
-                                    dismissBreakTimerView()
-                                    stopwatchRunning = false
-//                                    pauseStopwatch()
-                                    isWorkoutDone = true
-                                    
-            //                        var completedWorkout = WorkoutPlan(copy: planViewModel.activePlan)
-                                    // save completed workout to persistant storage
-                                    let completedWorkout = CompletedWorkout(
-                                                            date: Date(),
-                                                            workout: planViewModel.activePlan,
-                                                            elapsedTime: Date().timeIntervalSince(startDate),
-                                                            completion: "\(percentCompleted)%"
-                                    )
-                                    completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
-                                    completedWorkoutsViewModel.saveCompletedWorkouts()
-
-                                    // update workout plans with any changes made to active workout plan during workout in progress (ie. log changes + added/re-ordered exercises)
-                                    // (first, reset set completions)
-                                    
-                                    for exerciseIndex in planViewModel.activePlan.exercises.indices {
-                                        for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
-                                            planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
-                                        }
-                                        planViewModel.activePlan.exercises[exerciseIndex].completed = false
-                                    }
-                                    
-                                    // save workout plan to persistant storage
-                                    planViewModel.activePlan.lastCompleted = Date()
-                                    if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
-                                        planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
-                                    }
-                                    planViewModel.savePlans()
-                                    
-                                    triggerHapticFeedback()
-                                    withAnimation(.easeInOut(duration: 1)) {
-                                        isDoneCheckMarkVisible = true
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                        self.presentationMode.wrappedValue.dismiss()
-                                        // after dismissing this view, send user back to CompletedWorkoutsView
-                                        completedWorkoutsViewModel.isSelectPlanViewActive = false
-                                        // reset the starting countdown timer
-                                    }
-                                    
-                                    
-                                }) {
-                                    ZStack{
-                                        HStack {
-                                            Text("Done")
-                                                .font(.system(size: 20))
-                                                .bold()
-                                        }
-                                        .frame(width: 75, height: 35)
-                                        .background(fgColor)
-                                        .foregroundColor(.black)
-                                        .cornerRadius(500)
-                                        .opacity(isDoneCheckMarkVisible ? 0 : 1)
-                                        .shadow(
-                                            color: fgColor.opacity(0.7), // color + transparency
-                                            radius: 10,                  // blur
-                                            x: 0,                        // horizontal offset
-                                            y: 0                         // vertical offset
-                                        )
-                                        
-                                        HStack {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 20))
-                                                .bold()
-                                        }
-                                        .frame(width: 75, height: 35)
-                                        .background(fgColor)
-                                        .foregroundColor(.black)
-                                        .cornerRadius(500)
-                                        .opacity(isDoneCheckMarkVisible ? 1 : 0)
-                                    }
-                                    
-                                }
-                                .foregroundColor(fgColor)
-                            }
-                            .frame(width: 0.2*screenWidth)
-
-                            
-                            // REORDER BUTTON
-                            HStack {
-                                Button(action: {
-                                    reorderDeleteViewPresented = true
-                                }) {
-                                    Image(systemName: "arrow.up.arrow.down.circle.fill")
-                                        .resizable()
-                                        .frame(width: 15, height: 15)
-                                        .padding(.trailing, 3)
-                                    Text("Edit")
-                                        .font(.system(size: 18))
-                                        .fontWeight(.bold)
-                                }
-                                .foregroundColor(fgColor)
-                                .disabled(timerEnabled)
-                                .sheet(isPresented: $reorderDeleteViewPresented) {
-                                    ReorderDeleteView(mode: .exercise)
-                                        .presentationDetents([.medium, .large])
-                                        .environment(\.colorScheme, .dark)
-                                }
-                            }
-                            .frame(width: 0.33*screenWidth)
-
-                            Spacer()
+                    WorkoutBottomToolbarView(
+                        exerciseEditorIsPresented: $exerciseEditorIsPresented,
+                        reorderDeleteViewPresented: $reorderDeleteViewPresented,
+                        selectedDetent: $selectedDetent,
+                        isDoneCheckMarkVisible: isDoneCheckMarkVisible,
+                        timerEnabled: timerEnabled,
+                        onAddTapped: {
+                            exerciseViewModel.activeExercise = Exercise()
+                            exerciseViewModel.activeExerciseMode = .add
+                            exerciseEditorIsPresented = true
+                        },
+                        onDoneTapped: {
+                            finishWorkout()
                         }
-                        .padding(.bottom, 15)
-                        .frame(height: bottomToolbarHeight)
-                        .background(BlurView(style: .systemChromeMaterial))
-                    }
+                    )
                     .edgesIgnoringSafeArea(.bottom)
                 }
                 .opacity(isWorkoutOpacityFull ? 1 : 0)
@@ -563,94 +341,15 @@ struct WorkoutInProgressView: View {
             }
             
             if !shouldShowWorkout {
-                VStack(spacing: 0) {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Text("Starting in ...")
-                            .font(.system(size: 40))
-                            .fontWeight(.bold)
-                            .foregroundColor(GlobalSettings.shared.fgColor)
-                            .opacity(workoutTimerContentViewOpacity)
-                        Spacer()
+                StartingCountdownView(initialSeconds: 3) {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        shouldShowWorkout = true
+                        withAnimation(.easeInOut(duration: 1)) {
+                            isWorkoutOpacityFull = true
+                            scrollViewScaleEffect = 1.0
+                        }
                     }
-                    Button(action: {
-                        workoutStartingTimerRemainingTime = 0
-                    }) {
-                        ZStack {
-                            Circle()
-                                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                                .foregroundColor(Color(.systemGray5))
-                            Circle()
-                                .trim(from: 0, to: CGFloat(workoutStartingTimerRemainingTime) / CGFloat(workoutStartingTimerTotalTime))
-                                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                                .foregroundColor(GlobalSettings.shared.fgColor)
-                                .rotationEffect(Angle(degrees: -90))
-                                .animation(.easeOut(duration: 1), value: workoutStartingTimerRemainingTime)
-                                .shadow(
-                                    color: fgColor.opacity(0.7), // color + transparency
-                                    radius: 10,                  // blur
-                                    x: 0,                        // horizontal offset
-                                    y: 0                         // vertical offset
-                                )
-                            Text("\(workoutStartingTimerRemainingTime)")
-                                .font(.system(size: 60))
-                                .foregroundColor(GlobalSettings.shared.fgColor)
-                                .fontWeight(.bold)
-                                .shadow(
-                                    color: fgColor.opacity(0.7), // color + transparency
-                                    radius: 10,                  // blur
-                                    x: 0,                        // horizontal offset
-                                    y: 0                         // vertical offset
-                                )
-                        }
-                        .opacity(workoutTimerContentViewOpacity)
-                        .onAppear {
-                            withAnimation(.easeOut(duration: 0.5)) {
-                                workoutTimerContentViewOpacity = 1.0
-                            }
-                            self.startBreakTimer()
-
-                        }
-                        .padding(.vertical, 50)
-                        .onReceive(workoutStartingtimer) { _ in
-                            if workoutStartingTimerRemainingTime > 0 {
-                                workoutStartingTimerRemainingTime -= 1
-                                if workoutStartingTimerRemainingTime == 0 {
-                                    triggerHapticFeedback()
-        //                            print("reached here.")
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        isStartingTimerDone = true
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                            shouldShowWorkout = true
-                                        }
-                                    }
-                                }
-                            } else {
-                                triggerHapticFeedback()
-        //                        print("reached here.")
-                                withAnimation(.easeInOut(duration: 0.5)) {
-                                    isStartingTimerDone = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        shouldShowWorkout = true
-                                    }
-                                }
-                            }
-                        }
-                        .onAppear {
-                            workoutStartingTimerTotalTime = workoutStartingTimerRemainingTime
-                        }
-                        .onDisappear {
-                            workoutStartingTimerSubscription?.cancel()
-                        }
-
-                    }
-
-                    Spacer()
                 }
-                .padding(.horizontal, 40)
-                .background(.black)
-                .opacity(isStartingTimerDone ? 0 : 1)
             }
         }
         .disabled(isWorkoutDone)
@@ -676,92 +375,75 @@ extension WorkoutInProgressView {
     }
 
     
-    func startBreakTimer() {
-        workoutStartingTimerSubscription = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { _ in
-            if workoutStartingTimerRemainingTime > 0 {
-                workoutStartingTimerRemainingTime -= 1
-            } else {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    isStartingTimerDone = true
-                    shouldShowWorkout = true
-                    withAnimation(.easeInOut(duration: 1)) {
-                        isWorkoutOpacityFull = true
-                        scrollViewScaleEffect = 1.0
-                    }
-                }
-                workoutStartingTimerSubscription?.cancel()
-                triggerHapticFeedback()
+    func finishWorkout() {
+        // stop timers
+        dismissBreakTimerView()
+        stopwatchRunning = false
+        isWorkoutDone = true
+
+        // save completed workout to persistant storage
+        let completedWorkout = CompletedWorkout(
+            date: Date(),
+            workout: planViewModel.activePlan,
+            elapsedTime: Date().timeIntervalSince(startDate),
+            completion: "\(percentCompleted)%"
+        )
+        completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
+        completedWorkoutsViewModel.saveCompletedWorkouts()
+
+        // update workout plans with any changes made to active workout plan during workout in progress
+        // (ie. log changes + added/re-ordered exercises). First, reset set completions.
+        for exerciseIndex in planViewModel.activePlan.exercises.indices {
+            for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
+                planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
             }
+            planViewModel.activePlan.exercises[exerciseIndex].completed = false
+        }
+
+        // save workout plan to persistant storage
+        planViewModel.activePlan.lastCompleted = Date()
+        if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
+            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+        }
+        planViewModel.savePlans()
+
+        triggerHapticFeedback()
+        withAnimation(.easeInOut(duration: 1)) {
+            isDoneCheckMarkVisible = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.presentationMode.wrappedValue.dismiss()
+            // after dismissing this view, send user back to CompletedWorkoutsView
+            completedWorkoutsViewModel.isSelectPlanViewActive = false
         }
     }
 
-    
     func dismissBreakTimerView(cancelPendingNotification: Bool = true) {
         print("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification))")
-        // Cancel timer subscription
-        timerSubscription?.cancel()
-        breakTimerStartDate = nil
 
-        // Remove scheduled notification only when the user explicitly dismisses
-        // the timer (X button or Done). On natural expiry, the notification has
-        // either already fired (background) or is suppressed by AppDelegate's
-        // willPresent handler (foreground), so cancellation is unnecessary and
-        // would race against system delivery when the debugger is attached.
+        // Remove scheduled notification only when the user explicitly dismisses the
+        // timer (X button or Done). On natural expiry, the notification has either
+        // already fired or is suppressed by AppDelegate's willPresent handler, so
+        // cancellation is unnecessary and would race against system delivery.
         if cancelPendingNotification {
             let center = UNUserNotificationCenter.current()
-            center.removePendingNotificationRequests(withIdentifiers: [workoutRestNotificationIdentifier])
+            center.removePendingNotificationRequests(withIdentifiers: [BreakTimerView.notificationIdentifier])
         }
 
-        
         withAnimation(.easeInOut(duration: 0.5)) {
             timerVisible = false
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             withAnimation(.easeInOut(duration: 0.5)) {
                 isScrollViewDisabled = false
                 scrollViewVisible = true
                 scrollViewScaleEffect = 1.0
-                timerEnabled = false
+                timerEnabled = false       // removes BreakTimerView from view tree → its onDisappear cancels its timer subscription
                 topToolBarHeight = 140
                 topToolBarCornerRadius = 0
-                remainingTime = GlobalSettings.shared.breakDuration
             }
         }
-    }
-    
-    func sendNotification() {
-        let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
-                print("[Forge] Notifications not authorized (status: \(settings.authorizationStatus.rawValue))")
-                return
-            }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Break Timer Done"
-            content.body = "Time to start your next set!"
-            content.sound = UNNotificationSound.default
-            content.categoryIdentifier = "workoutCategory"
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(self.remainingTime), repeats: false)
-            let request = UNNotificationRequest(identifier: self.workoutRestNotificationIdentifier, content: content, trigger: trigger)
-
-            center.add(request) { error in
-                if let error = error {
-                    print("[Forge] Notification schedule error: \(error)")
-                } else {
-                    print("[Forge] Scheduled notification for \(self.remainingTime)s from now")
-                }
-            }
-        }
-    }
-
-    func updateRemainingTime() {
-        guard let breakTimerStartDate else { return }
-        let elapsedTime = Date().timeIntervalSince(breakTimerStartDate)
-        let newRemainingTime = max(0, totalTime - Int(elapsedTime))
-        remainingTime = newRemainingTime
     }
 
     func triggerHapticFeedback() {
