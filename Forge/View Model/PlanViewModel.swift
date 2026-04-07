@@ -1,14 +1,17 @@
 import Foundation
 
 class PlanViewModel: ObservableObject {
-    
+
     @Published var workoutPlans: [WorkoutPlan]
-    
+
     @Published var activePlan: WorkoutPlan
     @Published var activePlanIndex: Int
     @Published var activePlanMode: PlanEditorMode
 
-    init() {
+    private let userDefaults: UserDefaults
+
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         self.workoutPlans = []
         self.activePlan = WorkoutPlan()
         self.activePlanIndex = 0
@@ -16,7 +19,8 @@ class PlanViewModel: ObservableObject {
         self.workoutPlans = loadPlans()
     }
 
-    init(mockPlans: [WorkoutPlan]) {
+    init(mockPlans: [WorkoutPlan], userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         self.workoutPlans = mockPlans
         self.activePlan = mockPlans.first ?? WorkoutPlan()
         self.activePlanIndex = 0
@@ -26,17 +30,17 @@ class PlanViewModel: ObservableObject {
 
 // LOAD / SAVE / RE-ORDER / DELETE PERSISTANT DATA FUNCTIONS
 extension PlanViewModel {
-    func loadPlans() -> [WorkoutPlan]{
-        if let workoutPlansData = UserDefaults.standard.data(forKey: "workoutPlans") {
+    func loadPlans() -> [WorkoutPlan] {
+        if let workoutPlansData = userDefaults.data(forKey: "workoutPlans") {
             if let decodedData = try? JSONDecoder().decode([WorkoutPlan].self, from: workoutPlansData) {
                 return decodedData
             } else { return [] }
         } else { return [] }
     }
-    
+
     func savePlans() {
         if let encodedData = try? JSONEncoder().encode(workoutPlans) {
-            UserDefaults.standard.set(encodedData, forKey: "workoutPlans")
+            userDefaults.set(encodedData, forKey: "workoutPlans")
         }
     }
 

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -38,6 +38,16 @@
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F10BA8AD2F8579A300FAE979 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F1F8505D2A4920AB0093EE01 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F1F850642A4920AB0093EE01;
+			remoteInfo = Forge;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		C10000002B0000000000AA01 /* EditorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMode.swift; sourceTree = "<group>"; };
 		C10000022B0000000000AA02 /* StartingCountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingCountdownView.swift; sourceTree = "<group>"; };
@@ -45,6 +55,7 @@
 		C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBottomToolbarView.swift; sourceTree = "<group>"; };
 		C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomogeneousSetPicker.swift; sourceTree = "<group>"; };
 		C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeterogeneousSetEditor.swift; sourceTree = "<group>"; };
+		F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		F14E94772A4BEC29008155FA /* testingViews.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = testingViews.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
@@ -75,7 +86,18 @@
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F10BA8AA2F8579A300FAE979 /* ForgeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ForgeTests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		F10BA8A62F8579A200FAE979 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F1F850622A4920AB0093EE01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -93,6 +115,7 @@
 				F1F850682A4920AB0093EE01 /* ForgeApp.swift */,
 				F1E2F2432A52D2470076290D /* AppDelegate.swift */,
 				F1F850672A4920AB0093EE01 /* Forge */,
+				F10BA8AA2F8579A300FAE979 /* ForgeTests */,
 				F1F850662A4920AB0093EE01 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				F1F850652A4920AB0093EE01 /* Forge.app */,
+				F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,6 +209,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F10BA8A82F8579A200FAE979 /* ForgeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10BA8B12F8579A300FAE979 /* Build configuration list for PBXNativeTarget "ForgeTests" */;
+			buildPhases = (
+				F10BA8A52F8579A200FAE979 /* Sources */,
+				F10BA8A62F8579A200FAE979 /* Frameworks */,
+				F10BA8A72F8579A200FAE979 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F10BA8AE2F8579A300FAE979 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F10BA8AA2F8579A300FAE979 /* ForgeTests */,
+			);
+			name = ForgeTests;
+			packageProductDependencies = (
+			);
+			productName = ForgeTests;
+			productReference = F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F1F850642A4920AB0093EE01 /* Forge */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F1F850742A4920AD0093EE01 /* Build configuration list for PBXNativeTarget "Forge" */;
@@ -209,9 +256,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1430;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					F10BA8A82F8579A200FAE979 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = F1F850642A4920AB0093EE01;
+					};
 					F1F850642A4920AB0093EE01 = {
 						CreatedOnToolsVersion = 14.3;
 					};
@@ -231,11 +282,19 @@
 			projectRoot = "";
 			targets = (
 				F1F850642A4920AB0093EE01 /* Forge */,
+				F10BA8A82F8579A200FAE979 /* ForgeTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F10BA8A72F8579A200FAE979 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F1F850632A4920AB0093EE01 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -249,6 +308,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F10BA8A52F8579A200FAE979 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F1F850612A4920AB0093EE01 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -284,7 +350,71 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F10BA8AE2F8579A300FAE979 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F1F850642A4920AB0093EE01 /* Forge */;
+			targetProxy = F10BA8AD2F8579A300FAE979 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		F10BA8AF2F8579A300FAE979 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8CFYV5CWDL;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.ForgeTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Forge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Forge";
+			};
+			name = Debug;
+		};
+		F10BA8B02F8579A300FAE979 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8CFYV5CWDL;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.ForgeTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Forge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Forge";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		F1F850722A4920AD0093EE01 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -485,6 +615,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F10BA8B12F8579A300FAE979 /* Build configuration list for PBXNativeTarget "ForgeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10BA8AF2F8579A300FAE979 /* Debug */,
+				F10BA8B02F8579A300FAE979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F1F850602A4920AB0093EE01 /* Build configuration list for PBXProject "Forge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

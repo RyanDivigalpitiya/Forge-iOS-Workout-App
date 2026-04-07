@@ -1,21 +1,25 @@
 import Foundation
 
 class CompletedWorkoutsViewModel: ObservableObject {
-    
+
     @Published var completedWorkouts: [CompletedWorkout]
     @Published var isSelectPlanViewActive: Bool
     @Published var activePlan: CompletedWorkout
-    
+
+    private let userDefaults: UserDefaults
+
     // default initializer
-    init() {
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         self.completedWorkouts = []
         self.isSelectPlanViewActive = false
         self.activePlan = CompletedWorkout()
         self.completedWorkouts = loadCompletedWorkouts()
     }
-    
+
     // mock data initializer
-    init(mockCompletedWorkouts workouts: [CompletedWorkout]) {
+    init(mockCompletedWorkouts workouts: [CompletedWorkout], userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         self.completedWorkouts = workouts
         self.isSelectPlanViewActive = false
         self.activePlan = completedWorkout2
@@ -76,17 +80,17 @@ extension CompletedWorkoutsViewModel {
 extension CompletedWorkoutsViewModel {
     // loads completedWorkouts from persistant storage (from UserDefaults)
     func loadCompletedWorkouts() -> [CompletedWorkout] {
-        if let pastWorkoutData = UserDefaults.standard.data(forKey: "completedWorkouts") {
+        if let pastWorkoutData = userDefaults.data(forKey: "completedWorkouts") {
             if let decodedData = try? JSONDecoder().decode([CompletedWorkout].self, from: pastWorkoutData) {
                 return decodedData
             } else { return [] }
         } else { return [] }
     }
-    
+
     // saves completedWorkouts to persistant storage (UserDefaults)
     func saveCompletedWorkouts() {
         if let encodedData = try? JSONEncoder().encode(completedWorkouts) {
-            UserDefaults.standard.set(encodedData, forKey: "completedWorkouts")
+            userDefaults.set(encodedData, forKey: "completedWorkouts")
         }
     }
     

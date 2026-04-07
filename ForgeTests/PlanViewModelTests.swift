@@ -1,0 +1,165 @@
+import Foundation
+import Testing
+@testable import Forge
+
+/// Covers PlanViewModel's pure functions (`calculateWorkoutDuration`,
+/// `isThereNonZeroDecimal`), persistence round-trips via an injected
+/// UserDefaults, and the mutation helpers (`movePlan`, `deletePlan`,
+/// `moveExercise`, `deleteExercise`).
+///
+/// This is a `final class` (not `struct`) so `deinit` can clean up the
+/// isolated UserDefaults suite after each test. Swift Testing creates a
+/// fresh instance per `@Test`, so `init` + `deinit` act like setUp/tearDown.
+final class PlanViewModelTests {
+
+    let suiteName: String
+    let testDefaults: UserDefaults
+
+    init() {
+        suiteName = "ForgeTests.\(UUID().uuidString)"
+        testDefaults = UserDefaults(suiteName: suiteName)!
+    }
+
+    deinit {
+        testDefaults.removePersistentDomain(forName: suiteName)
+    }
+
+    // MARK: - calculateWorkoutDuration
+
+    @Test func calculateWorkoutDurationEmptyPlanReturnsZero() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let plan = WorkoutPlan(name: "Empty", exercises: [])
+        #expect(vm.calculateWorkoutDuration(for: plan) == 0)
+    }
+
+    @Test func calculateWorkoutDurationExerciseWithNoSetsReturnsZero() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let exercise = Exercise(name: "Empty", sets: [])
+        let plan = WorkoutPlan(name: "Only Empty Exercise", exercises: [exercise])
+        // Filter removes the exercise → guard triggers → returns 0.
+        #expect(vm.calculateWorkoutDuration(for: plan) == 0)
+    }
+
+    @Test func calculateWorkoutDurationSingleSetOneExercise() {
+        // Algorithm: 300s setup + (12*3 + 60) exerciseTime + 300 - 60
+        //           = 300 + 96 + 240 = 636s = 10 min (Int division).
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let set = Set(weight: 100, reps: 12, tillFailure: false, completed: false)
+        let exercise = Exercise(name: "Bench", sets: [set])
+        let plan = WorkoutPlan(name: "Test", exercises: [exercise])
+        #expect(vm.calculateWorkoutDuration(for: plan) == 10)
+    }
+
+    @Test func calculateWorkoutDurationThreeSetsOneExercise() {
+        // 300 + (3 * (10*3 + 60)) + 300 - 60 = 300 + 270 + 240 = 810s = 13 min.
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let sets = Array(repeating: Set(weight: 100, reps: 10, tillFailure: false, completed: false), count: 3)
+        let exercise = Exercise(name: "Squat", sets: sets)
+        let plan = WorkoutPlan(name: "Test", exercises: [exercise])
+        #expect(vm.calculateWorkoutDuration(for: plan) == 13)
+    }
+
+    @Test func calculateWorkoutDurationFiltersEmptyExercises() {
+        // A plan with one exercise that has sets and one empty exercise should
+        // produce the same result as a plan with just the non-empty exercise.
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let realExercise = Exercise(
+            name: "Real",
+            sets: [Set(weight: 100, reps: 12, tillFailure: false, completed: false)]
+        )
+        let emptyExercise = Exercise(name: "Empty", sets: [])
+
+        let fullPlan = WorkoutPlan(name: "Full", exercises: [realExercise, emptyExercise])
+        let filteredPlan = WorkoutPlan(name: "Filtered", exercises: [realExercise])
+
+        #expect(vm.calculateWorkoutDuration(for: fullPlan) == vm.calculateWorkoutDuration(for: filteredPlan))
+    }
+
+    // MARK: - isThereNonZeroDecimal
+
+    @Test func isThereNonZeroDecimalIntegerValue() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        #expect(vm.isThereNonZeroDecimal(in: 10.0) == "10")
+    }
+
+    @Test func isThereNonZeroDecimalHalfValue() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        #expect(vm.isThereNonZeroDecimal(in: 10.5) == "10.5")
+    }
+
+    @Test func isThereNonZeroDecimalZero() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        #expect(vm.isThereNonZeroDecimal(in: 0.0) == "0")
+    }
+
+    // MARK: - Persistence round-trip
+
+    @Test func saveAndLoadPlansRoundTrip() {
+        // NOTE: all persistence tests inject `testDefaults` so they never
+        // touch UserDefaults.standard. Fresh per-test suite via init()/deinit().
+        let vm = PlanViewModel(mockPlans: mockWorkoutPlans, userDefaults: testDefaults)
+        vm.savePlans()
+
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.count == mockWorkoutPlans.count)
+        #expect(reloaded.workoutPlans.map(\.name) == mockWorkoutPlans.map(\.name))
+        #expect(reloaded.workoutPlans.first?.exercises.count == mockWorkoutPlans.first?.exercises.count)
+    }
+
+    @Test func loadPlansFromEmptyDefaultsReturnsEmpty() {
+        let vm = PlanViewModel(userDefaults: testDefaults)
+        #expect(vm.workoutPlans.isEmpty)
+    }
+
+    // MARK: - movePlan / deletePlan
+
+    @Test func movePlanReordersAndPersists() {
+        let vm = PlanViewModel(mockPlans: mockWorkoutPlans, userDefaults: testDefaults)
+        let originalFirstName = vm.workoutPlans[0].name
+
+        // Move index 0 to the end (IndexSet(integer: 0), toOffset: 3).
+        vm.movePlan(from: IndexSet(integer: 0), to: 3)
+
+        #expect(vm.workoutPlans.last?.name == originalFirstName)
+
+        // Verify the move persisted via a fresh VM reading the same defaults.
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.last?.name == originalFirstName)
+    }
+
+    @Test func deletePlanRemovesAndPersists() {
+        let vm = PlanViewModel(mockPlans: mockWorkoutPlans, userDefaults: testDefaults)
+        let originalCount = vm.workoutPlans.count
+        let nameToDelete = vm.workoutPlans[1].name
+
+        vm.deletePlan(at: IndexSet(integer: 1))
+
+        #expect(vm.workoutPlans.count == originalCount - 1)
+        #expect(vm.workoutPlans.contains(where: { $0.name == nameToDelete }) == false)
+
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.count == originalCount - 1)
+    }
+
+    // MARK: - moveExercise / deleteExercise
+
+    @Test func moveExerciseReordersActivePlan() {
+        let vm = PlanViewModel(mockPlans: mockWorkoutPlans, userDefaults: testDefaults)
+        // init(mockPlans:) sets activePlan to mockPlans.first
+        let originalFirstName = vm.activePlan.exercises[0].name
+        let exerciseCount = vm.activePlan.exercises.count
+
+        vm.moveExercise(from: IndexSet(integer: 0), to: exerciseCount)
+
+        #expect(vm.activePlan.exercises.last?.name == originalFirstName)
+    }
+
+    @Test func deleteExerciseRemovesFromActivePlan() {
+        let vm = PlanViewModel(mockPlans: mockWorkoutPlans, userDefaults: testDefaults)
+        let originalCount = vm.activePlan.exercises.count
+
+        vm.deleteExercise(at: IndexSet(integer: 0))
+
+        #expect(vm.activePlan.exercises.count == originalCount - 1)
+    }
+}
