@@ -696,13 +696,20 @@ extension ExerciseEditorView {
     
     func saveExercise() {
         isNameFieldFocused = false
-        
+
         // create list of sets that were edited
         var newSets: [Set] = []
         let existingExerciseIndex = exerciseViewModel.activeExerciseIndex
-        let existingExercise = planViewModel.activePlan.exercises.indices.contains(existingExerciseIndex)
-            ? planViewModel.activePlan.exercises[existingExerciseIndex]
-            : nil
+        // In .add mode, activeExerciseIndex is stale (it still points at whatever
+        // exercise the user last logged/edited), so we must NOT inherit any state
+        // from it. Only edit/log modes should pull completion state from an
+        // existing exercise.
+        let existingExercise: Exercise? = {
+            guard exerciseViewModel.activeExerciseMode != .add else { return nil }
+            return planViewModel.activePlan.exercises.indices.contains(existingExerciseIndex)
+                ? planViewModel.activePlan.exercises[existingExerciseIndex]
+                : nil
+        }()
         
         if areSetsUnique {
             for index in heteroSets_Weights.indices {
