@@ -89,49 +89,13 @@ struct HistoryView: View {
                                     .disabled(true)
 
                                     
-                                    ZStack {
-                                       let set = completedWorkout.workout.exercises[exerciseIndex].sets[setIndex]
-                                        
-                                        HStack {
-                                            if setIndex+1 > 9 {
-                                                Text("Set \(setIndex+1)")
-                                                    .font(.system(size: 16))
-                                                    .foregroundColor(.white)
-                                                    .frame(width: 67, height: 28)
-                                                    .background(GlobalSettings.shared.buttonCircleBgColor)
-                                                    .cornerRadius(5)
-                                                    .padding(.trailing, setsSpacing+2)
-                                            } else {
-                                                Text("Set \(setIndex+1)")
-                                                    .font(.system(size: 16))
-                                                    .foregroundColor(.white)
-                                                    .frame(width: 58, height: 28)
-                                                    .background(GlobalSettings.shared.buttonCircleBgColor)
-                                                    .cornerRadius(5)
-                                                    .padding(.trailing, setsSpacing+2)
-
-                                            }
-                                            Text("\(Int(set.weight)) lb")
-                                                .foregroundColor(.white)
-                                                .padding(.trailing, setsSpacing)
-                                            Image(systemName: "xmark")
-                                                .resizable()
-                                                .frame(width: 10, height: 10)
-                                                .padding(.top,3)
-                                                .foregroundColor(.gray)
-                                                .opacity(0.6)
-                                                .padding(.trailing, setsSpacing)
-                                                
-                                            if set.tillFailure {
-                                                Text("Until Failure").foregroundColor(.gray).opacity(0.6)
-                                            } else {
-                                                Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
-                                            }
-                                            Spacer()
-                                        }
-                                        .fontWeight(.bold)
-                                        .font(.system(size: setsFontSize))
-                                    }
+                                    SetView(
+                                        content: .individual(
+                                            set: completedWorkout.workout.exercises[exerciseIndex].sets[setIndex],
+                                            index: setIndex
+                                        ),
+                                        appearance: .muted
+                                    )
                                 }
                                 if setIndex < completedWorkout.workout.exercises[exerciseIndex].sets.count - 1 {
                                     Spacer().frame(height: 25)

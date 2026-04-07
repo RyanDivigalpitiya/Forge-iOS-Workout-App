@@ -81,95 +81,21 @@ struct PlanEditorView: View {
                                         VStack(spacing: 25) {
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
                                                 let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
-                                                
-                                                // SET ROW (UNIQUE)
-                                                HStack {
-                                                    if setIndex+1 > 9 {
-                                                        Text("Set \(setIndex+1)")
-                                                            .font(.system(size: 16))
-                                                            .foregroundColor(bgColor)
-                                                            .frame(width: 67, height: 28)
-                                                            .background(fgColor)
-                                                            .cornerRadius(5)
-                                                            .padding(.trailing, setsSpacing+2)
-                                                    } else {
-                                                        Text("Set \(setIndex+1)")
-                                                            .font(.system(size: 16))
-                                                            .foregroundColor(bgColor)
-                                                            .frame(width: 58, height: 28)
-                                                            .background(fgColor)
-                                                            .cornerRadius(5)
-                                                            .padding(.trailing, setsSpacing+2)
-
-                                                    }
-                                                    Text("\(Int(set.weight)) lb")
-                                                        .foregroundColor(.white)
-                                                        .padding(.trailing, setsSpacing)
-                                                    Image(systemName: "xmark")
-                                                        .resizable()
-                                                        .frame(width: 10, height: 10)
-                                                        .padding(.top,3)
-                                                        .foregroundColor(.gray)
-                                                        .opacity(0.6)
-                                                        .padding(.trailing, setsSpacing)
-                                                        
-                                                    if set.tillFailure {
-                                                        Text("Until Failure").foregroundColor(.gray).opacity(0.6)
-                                                    } else {
-                                                        Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
-                                                    }
-                                                    Spacer()
-                                                }
-                                                .fontWeight(.bold)
-                                                .font(.system(size: setsFontSize))
-
-                                                
+                                                SetView(
+                                                    content: .individual(set: set, index: setIndex),
+                                                    appearance: .standard
+                                                )
                                             }
                                         }
                                     } else { // homogenous set: display 1 row: weight x reps x sets
-                                        HStack {
-                                            if planViewModel.activePlan.exercises[exerciseIndex].sets.count > 9 {
-                                                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
-                                                    .font(.system(size: 16))
-                                                    .foregroundColor(bgColor)
-                                                    .frame(width: 67, height: 28)
-                                                    .background(fgColor)
-                                                    .cornerRadius(5)
-                                                    .padding(.trailing, setsSpacing+2)
-                                            } else {
-                                                Text("\(planViewModel.activePlan.exercises[exerciseIndex].sets.count) sets")
-                                                    .font(.system(size: 16))
-                                                    .foregroundColor(bgColor)
-                                                    .frame(width: 58, height: 28)
-                                                    .background(fgColor)
-                                                    .cornerRadius(5)
-                                                    .padding(.trailing, setsSpacing+2)
-
-                                            }
-                                            if let firstSet = planViewModel.activePlan.exercises[exerciseIndex].sets.first {
-                                                Text("\(Int(firstSet.weight)) lb")
-                                                    .foregroundColor(.white)
-                                                    .padding(.trailing, setsSpacing)
-                                                Image(systemName: "xmark")
-                                                    .resizable()
-                                                    .frame(width: 10, height: 10)
-                                                    .padding(.top,3)
-                                                    .foregroundColor(.gray)
-                                                    .opacity(0.6)
-                                                    .padding(.trailing, setsSpacing)
-                                                Text("\(firstSet.reps) reps")
-                                                    .foregroundColor(.gray)
-                                                    .opacity(0.6)
-                                            } else {
-                                                Text("No sets")
-                                                    .foregroundColor(.gray)
-                                                    .opacity(0.6)
-                                            }
-                                            Spacer()
-                                        }
+                                        SetView(
+                                            content: .summary(
+                                                count: planViewModel.activePlan.exercises[exerciseIndex].sets.count,
+                                                firstSet: planViewModel.activePlan.exercises[exerciseIndex].sets.first
+                                            ),
+                                            appearance: .standard
+                                        )
                                         .padding(.top, -8)
-                                        .fontWeight(.bold)
-                                        .font(.system(size: setsFontSize))
                                     }
                                 }
                             }

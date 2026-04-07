@@ -192,61 +192,15 @@ struct WorkoutInProgressView: View {
                                                     .padding(.trailing, 3)
 
                                                     
-                                                    ZStack {
-                                                       let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
-                                                        
-                                                        HStack {
-                                                            if setIndex+1 > 9 {
-                                                                Text("Set \(setIndex+1)")
-                                                                    .font(.system(size: 16))
-                                                                    .foregroundColor(bgColor)
-                                                                    .frame(width: 67, height: 28)
-                                                                    .background(set.completed ? Color.clear : fgColor)
-                                                                    .cornerRadius(5)
-                                                                    .padding(.trailing, setsSpacing+2)
-                                                            } else {
-                                                                Text("Set \(setIndex+1)")
-                                                                    .font(.system(size: 16))
-                                                                    .foregroundColor(bgColor)
-                                                                    .frame(width: 58, height: 28)
-                                                                    .background(set.completed ? Color.clear : fgColor)
-                                                                    .cornerRadius(5)
-                                                                    .padding(.trailing, setsSpacing+2)
-
-                                                            }
-                                                            Text("\(Int(set.weight)) lb")
-                                                                .foregroundColor(.white)
-                                                                .padding(.trailing, setsSpacing)
-                                                            Image(systemName: "xmark")
-                                                                .resizable()
-                                                                .frame(width: 10, height: 10)
-                                                                .padding(.top,3)
-                                                                .foregroundColor(.gray)
-                                                                .opacity(0.6)
-                                                                .padding(.trailing, setsSpacing)
-                                                                
-                                                            if set.tillFailure {
-                                                                Text("Until Failure").foregroundColor(.gray).opacity(0.6)
-                                                            } else {
-                                                                Text("\(set.reps) reps").foregroundColor(.gray).opacity(0.6)
-                                                            }
-                                                            Spacer()
-                                                        }
-                                                        .fontWeight(.bold)
-                                                        .font(.system(size: setsFontSize))
-                                                        .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 0.5 : 1)
-                                                        
-                                                        
-                                                        
-                                                        // line strikethrough when a set is completed
-                                                        HStack {
-                                                            Rectangle()
-                                                                .frame(width: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? .infinity : 0, height:2)
-                                                                .opacity(planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? 1 : 0)
-                                                            Spacer()
-                                                        }
-                                                        .offset(x: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed ? -10 : -20,y:0)
-                                                    }
+                                                    SetView(
+                                                        content: .individual(
+                                                            set: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex],
+                                                            index: setIndex
+                                                        ),
+                                                        appearance: .workoutActive(
+                                                            isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                        )
+                                                    )
                                                 }
                                                 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
