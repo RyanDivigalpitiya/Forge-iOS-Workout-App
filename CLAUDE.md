@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications). Dark-mode only.
 
-User flow: History screen → Plan Selector → Active Workout → back to History with completed workout logged.
+User flow: History screen → Plan Selector → Active Workout → back to History with the completed workout logged.
 
-## Build & Run
+## Build, Run & Test
 
 ```bash
 # Open in Xcode
@@ -19,11 +19,15 @@ xcodebuild -project Forge.xcodeproj -scheme Forge -configuration Debug
 
 # Release build
 xcodebuild -project Forge.xcodeproj -scheme Forge -configuration Release
+
+# Run unit tests (any iPhone simulator name works)
+xcodebuild test -project Forge.xcodeproj -scheme Forge \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- iOS deployment target: 18.6
-- Bundle ID: `Ryan-Div.Forge`
-- No unit test target (XCTest). Testing is done via Playgrounds in `Forge/Testing/` and inline playground files.
+- iOS deployment target: 18.6 (`Forge` target). The `ForgeTests` target uses iOS 26.4 — Xcode's default for newly-created targets — which is fine because tests only run on the simulator.
+- Bundle ID: `Ryan-Div.Forge`. Test bundle: `Ryan-Div.ForgeTests`.
+- Builds should be **warning-free**. If you introduce a deprecation warning, fix it in the same change.
 
 ## Architecture
 
@@ -35,105 +39,96 @@ xcodebuild -project Forge.xcodeproj -scheme Forge -configuration Release
 
 All ViewModels are `ObservableObject` with `@Published` properties, accessed in views via `@EnvironmentObject`.
 
-**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`.
+**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`. `PlanViewModel` and `CompletedWorkoutsViewModel` accept an optional `userDefaults: UserDefaults = .standard` init parameter so tests can inject an isolated `UserDefaults(suiteName:)` — production code calls them with no arguments.
 
-**Global theming:** `GlobalSettings.shared` singleton — accent color `#FF436B`, background `#161616`.
+**Global theming:** `GlobalSettings.shared` singleton (`Forge/View Model/GlobalSettings.swift`) — accent color `#FF436B`, background `#161616`, plus all shared layout constants (`darkGray`, `editorDarkGray`, `buttonCircleBgColor`, `setButtonSize`, `setsFontSize`, `setsSpacing`, `breakDuration`, `bottomToolbarHeight`). Two distinct grays: `darkGray` (0.25) for workout/history connectors, `editorDarkGray` (0.33) for editor labels.
 
 ## Data Models (`Forge/Data Model/`)
 
-`WorkoutPlan` → has `[Exercise]` → each has `[Set]` (weight, reps, tillFailure, completed).  
-`CompletedWorkout` — snapshot with date, elapsed time, completion percentage.
-
-All models are `Identifiable` + `Codable` with UUID identifiers.
+- `WorkoutPlan` → has `[Exercise]` → each has `[Set]` (weight, reps, tillFailure, completed). All `Identifiable + Codable` with UUID identifiers.
+- `CompletedWorkout` — snapshot with date, elapsed time, completion percentage.
+- `Exercise.sets` has a `didSet` observer that auto-computes `areSetsUnique` (via `doesExerciseHaveUniqueSets()`) and `completed` (true when every set is completed).
+- `EditorMode.swift` — three enums replacing the old string-based mode flags: `PlanEditorMode` (`.add`/`.edit`), `ExerciseEditorMode` (`.add`/`.edit`/`.log`), `ReorderDeleteMode` (`.plan`/`.exercise`).
 
 ## Key Views (`Forge/Views/`)
 
-| View | Purpose |
-|------|---------|
-| `CompletedWorkoutsView` | Home screen — workout history list |
-| `SelectPlanView` | Choose/manage workout plans |
-| `PlanEditorView` | Create/edit a plan and its exercises |
-| `ExerciseEditorView` | Add/edit exercises with picker wheels (845 lines, complex) |
-| `WorkoutInProgressView` | Active workout — timers, set completion, notifications (851 lines, most complex) |
-| `HistoryView` | Read-only detail view of a past workout |
+The two largest views were decomposed into focused child components. Parent views coordinate state and animation; children render specific subsystems.
+
+| View | Lines | Purpose |
+|------|---|---------|
+| `CompletedWorkoutsView` | ~125 | Home screen — workout history list |
+| `SelectPlanView` | ~240 | Choose/manage workout plans |
+| `PlanEditorView` | ~310 | Create/edit a plan and its exercises |
+| `ExerciseEditorView` | ~410 | Add/edit exercises — coordinator only |
+| `HomogeneousSetPicker` | ~200 | 3-column wheel pickers (sets × weight × reps) — used by ExerciseEditorView |
+| `HeterogeneousSetEditor` | ~235 | Per-set rows with weight/reps/till-failure controls — used by ExerciseEditorView |
+| `WorkoutInProgressView` | ~450 | Active workout — coordinator only |
+| `StartingCountdownView` | ~100 | 3-second pre-workout countdown — self-contained |
+| `BreakTimerView` | ~155 | 60-second rest timer + notification — used by WorkoutInProgressView |
+| `WorkoutBottomToolbarView` | ~120 | Add / Done / Edit toolbar — used by WorkoutInProgressView |
+| `SetView` | ~140 | Reusable set-row rendering — used by PlanEditorView, HistoryView, WorkoutInProgressView. Parameterized via `Content` (`.individual` / `.summary`) and `Appearance` (`.standard` / `.muted` / `.workoutActive(isCompleted:)`) enums. |
+| `HistoryView` | ~135 | Read-only detail view of a past workout |
+| `ReorderDeleteView` | ~100 | Reorder/delete sheet for plans or exercises |
 
 ## Timer & Notification System
 
-- **Workout start timer:** 3 seconds (skippable)
-- **Rest timer:** 60 seconds between sets, triggers local notification via `UNUserNotificationCenter`
-- **Stopwatch:** `Timer.publish` for elapsed workout time
-- Notifications suppressed in foreground via `AppDelegate` (`userNotificationCenter(_:willPresent:)`)
+- **Workout start countdown:** 3 seconds (skippable). Owned entirely by `StartingCountdownView` — signals completion via `onCompletion` callback.
+- **Rest timer:** 60 seconds between sets. Owned by `BreakTimerView`, which schedules a `UNTimeIntervalNotificationTrigger` so the user is alerted even when the app is backgrounded or the phone is locked. The parent `WorkoutInProgressView` retains the scroll-view shrink/grow animation state.
+- **Foreground suppression:** `AppDelegate.userNotificationCenter(_:willPresent:)` suppresses any notification with category `"workoutCategory"` while the app is active.
+
+### Critical: notification cancellation race
+
+`dismissBreakTimerView` takes a `cancelPendingNotification: Bool = true` parameter. The natural-expiry path (`onExpired`) **must** pass `false`. Otherwise, when the in-app timer ticks down to 0 it cancels the notification at the exact moment iOS is about to deliver it. This bug bites hardest when running from Xcode with the debugger attached, because the debugger keeps the app alive in background indefinitely — which means the in-app timer keeps running and racing the system delivery. The X-button and Done-button paths both pass `true` (cancellation desired). Notification identifier is exposed as `BreakTimerView.notificationIdentifier`.
 
 ## Navigation
 
-Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`, `activePlanMode`) combined with `NavigationStack`. Mode strings: `"AddMode"`, `"EditMode"`.
+Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) combined with `NavigationStack` and `.fullScreenCover` / `.sheet`. View dismissals use `@Environment(\.dismiss)` (the modern API — never `presentationMode`).
 
-## Refactor Plan
+## Testing
 
-7-stage refactor plan, each stage independently shippable and testable. Ordered by priority.
+**Framework:** Swift Testing (`import Testing`, `@Test`, `#expect`). Not XCTest. Xcode 16's default for new test targets and the cleaner of the two.
 
-### Stage 1: Replace Stringly-Typed State with Enums
-Create `Forge/Data Model/EditorMode.swift` with `PlanEditorMode` (.add/.edit), `ExerciseEditorMode` (.add/.edit/.log), `ReorderDeleteMode` (.plan/.exercise). Replace all `String` mode properties and comparisons across ViewModels and Views. Compiler enforces correctness.
+**Target:** `ForgeTests/`. Uses Xcode 16's `PBXFileSystemSynchronizedRootGroup`, so any `.swift` file dropped into the directory is auto-detected — no `project.pbxproj` edits needed for new test files.
 
-**Files:** `PlanViewModel.swift`, `ExerciseViewModel.swift`, `ReorderDeleteView.swift`, `SelectPlanView.swift`, `PlanEditorView.swift`, `ExerciseEditorView.swift`, `WorkoutInProgressView.swift`
-**Test:** All mode-dependent flows (create/edit plan, add/edit/log exercise, reorder plans vs exercises)
-**Risk:** Low
+**33 test cases** across three files:
+- `ExerciseTests.swift` — `doesExerciseHaveUniqueSets()` and `sets` didSet observer (8 cases)
+- `PlanViewModelTests.swift` — `calculateWorkoutDuration`, `isThereNonZeroDecimal`, save/load round-trip, move/delete plan/exercise (12 cases)
+- `CompletedWorkoutsViewModelTests.swift` — `format(timeInterval:)`, `numberOfDaysString`, persistence round-trip, reverse-index `deleteCompletedWorkouts` (13 cases)
 
-### Stage 2: Consolidate Magic Values into GlobalSettings
-Add to `GlobalSettings`: `darkGray` (0.25), `editorDarkGray` (0.33), `buttonCircleBgColor` (0.2), `setsSpacing`, `setButtonSize`, `breakDuration = 60`, `setRowFontSize = 20`. Remove local redeclarations from all views.
+**Persistence isolation pattern:** test classes that touch persistence are `final class` (not `struct`) so `init` + `deinit` act as setUp/tearDown. Each test gets its own `UserDefaults(suiteName: "ForgeTests.\(UUID().uuidString)")` and removes the persistent domain in `deinit`. This isolates tests from each other and from `.standard`.
 
-**Files:** `GlobalSettings.swift`, all Views
-**Test:** Visual identity on every screen — no color/size/spacing changes
-**Risk:** Low
+**Mock data:** `Forge/View Model/MockData.swift` exposes `mockWorkoutPlans` and `mockCompletedWorkouts` as module-internal globals. Tests access them via `@testable import Forge`. Production code also references one of these globals (`completedWorkout2`) from `CompletedWorkoutsViewModel.init(mockCompletedWorkouts:)` — a pre-existing code smell where production depends on mock data, used only by SwiftUI Previews.
 
-### Stage 3: Consolidate Set-Row Rendering + Remove Dead Code
-Refactor `SetView` to accept `Set` data directly (remove EnvironmentObject dependency). Add `SetRowDisplayMode` for visual variants. Replace inline set-row rendering in `PlanEditorView`, `HistoryView`, `WorkoutInProgressView`. Delete dead `ExerciseViewModel.containsUniqueSets()`.
+## Subtle gotchas
 
-**Files:** `SetView.swift`, `PlanEditorView.swift`, `HistoryView.swift`, `WorkoutInProgressView.swift`, `ExerciseViewModel.swift`
-**Test:** Pixel-accurate set rows across all screens (unique sets, uniform sets, completed/incomplete, history view muted style)
-**Risk:** Medium
+- **Picker wheel `Int` tags need explicit `.tag(value)`.** SwiftUI's `WheelPickerStyle` historically had bugs binding to non-String selections. The current Int-based pickers in `HomogeneousSetPicker` and `HeterogeneousSetEditor` use explicit `.tag(value)` on every `ForEach` element. If you add a new wheel picker, replicate that pattern.
+- **`heterogenousSetRowHeight = 1000000`** in `ExerciseEditorView`. Yes, one million. This is an intentional layout hack: `heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)` makes the height effectively unbounded so the inner `clipped()` + outer `frame(maxHeight:)` can grow without limit. Don't "fix" it.
+- **`homoHeteroControlsAreConnected` and `editedExerciseStartedWithUniqueSets` flags** in `ExerciseEditorView` gate the data sync between homogeneous and heterogeneous picker state. The `onAppear` ordering matters — set the connected flag false, load data, then set it true. Otherwise the toggle's `onChange` fires during init and wipes the loaded data. The big comment block in the toggle's `onChange` handler explains the second flag.
+- **`activeExerciseIndex` is stale in `.add` mode.** When the user adds a new exercise during a workout, `ExerciseViewModel.activeExerciseIndex` still points at whichever exercise they last logged or edited. `ExerciseEditorView.saveExercise()` gates its `existingExercise` lookup on the mode being `.edit` or `.log` — never trust `activeExerciseIndex` in `.add` mode. (Without this gate, new exercises inherit completion state from the previously-edited exercise.)
+- **`UIScreen.main.bounds`** is used in 3 views for fixed-fraction layout (`0.33 * screenWidth` etc). It's deprecated in iOS 16+ in favor of `view.window.windowScene.screen`, but doesn't currently emit a warning at our deployment target. Migrating would require `GeometryReader` or environment-based screen access — out of scope for "polish" work.
 
-### Stage 4: Decompose WorkoutInProgressView (851→~250 lines)
-Extract `StartingCountdownView` (countdown timer), `BreakTimerView` (rest timer + notification), `WorkoutToolbarView` (Add/Done/Reorder bar). Parent keeps exercise list, animation coordination, and set-completion handler.
+## Refactor history
 
-**Files:** Create 3 new Views, reduce `WorkoutInProgressView.swift`
-**Test:** Full workout flow — countdown, set completion, break timer (auto-dismiss + manual dismiss), background/foreground timer sync, notifications, Done flow
-**Risk:** High
+The codebase went through a 7-stage refactor (see git log for `Stage N` commits):
 
-### Stage 5: Decompose ExerciseEditorView (845→~200 lines)
-Replace string picker state ("5 lbs") with typed `Int` state. Extract `HomogeneousSetPicker` (wheel pickers) and `HeterogeneousSetEditor` (per-set rows). Eliminates all `dropLast` string parsing.
+1. String modes → enums (`EditorMode.swift`)
+2. Magic values consolidated into `GlobalSettings`
+3. Set-row rendering consolidated into `SetView`; dead `containsUniqueSets()` removed
+4. `WorkoutInProgressView` decomposed into 4 focused files (parent shrunk 825 → 452 lines)
+5. `ExerciseEditorView` decomposed + picker state migrated `String → Int` (parent shrunk 852 → 407 lines, ~20 `dropLast` parses eliminated)
+6. `ForgeTests` target + 33 Swift Testing unit cases + injectable `UserDefaults`
+7. Deprecated APIs replaced (`presentationMode → dismiss`, `.onChange` two-parameter form, `.alert → .banner/.list`); dead stopwatch scaffolding removed
 
-**Files:** Create 2 new Views, reduce `ExerciseEditorView.swift`
-**Test:** Add/edit/log exercises, homo↔hetero toggle, boundary clamping, picker selection, set completion preservation
-**Risk:** Medium-High
+## Git usage
 
-### Stage 6: Add XCTest Target and Unit Tests
-Create `ForgeTests` target. Test: `Exercise.doesExerciseHaveUniqueSets()`, `calculateWorkoutDuration()`, `isThereNonZeroDecimal()`, `format(timeInterval:)`, `numberOfDaysString()`, save/load round-trips. Make UserDefaults injectable in ViewModels.
-
-**Test:** `xcodebuild test` — all tests pass
-**Risk:** Low
-
-### Stage 7: Update Deprecated APIs
-Replace `@Environment(\.presentationMode)` with `@Environment(\.dismiss)` in 5 views. Update `.onChange(of:)` to new two-parameter signature in ExerciseEditorView.
-
-**Files:** All views using `presentationMode`
-**Test:** Zero deprecation warnings, all dismiss actions work
-**Risk:** Low
-
-#### Git usage
-
-Do not credit yourself as a co-author when creating commits messages.
-
-
+Do not credit yourself as a co-author when creating commit messages.
 
 ## Error Handling Philosophy: Fail Loud, Never Fake
 
 Prefer a visible failure over a silent fallback.
 
-- Never silently swallow errors to keep things "working."
-  Surface the error. Don't substitute placeholder data.
-- Fallbacks are acceptable only when disclosed. Show a
-  banner, log a warning, annotate the output.
+- Never silently swallow errors to keep things "working." Surface the error. Don't substitute placeholder data.
+- Fallbacks are acceptable only when disclosed. Show a banner, log a warning, annotate the output.
 - Design for debuggability, not cosmetic stability.
 
 Priority order:
