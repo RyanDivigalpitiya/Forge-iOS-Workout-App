@@ -13,13 +13,11 @@ struct HistoryView: View {
 
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
-    let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
+    let darkGray = GlobalSettings.shared.darkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
-    let setButtonSize: CGFloat = 28
-    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
-    let setsSpacing: CGFloat = 3
-    let screenWidth = UIScreen.main.bounds.width
-    let screenHeight = UIScreen.main.bounds.height
+    let setButtonSize = GlobalSettings.shared.setButtonSize
+    let setsFontSize = GlobalSettings.shared.setsFontSize
+    let setsSpacing = GlobalSettings.shared.setsSpacing
     
     var body: some View {
         
@@ -100,7 +98,7 @@ struct HistoryView: View {
                                                     .font(.system(size: 16))
                                                     .foregroundColor(.white)
                                                     .frame(width: 67, height: 28)
-                                                    .background(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                                    .background(GlobalSettings.shared.buttonCircleBgColor)
                                                     .cornerRadius(5)
                                                     .padding(.trailing, setsSpacing+2)
                                             } else {
@@ -108,7 +106,7 @@ struct HistoryView: View {
                                                     .font(.system(size: 16))
                                                     .foregroundColor(.white)
                                                     .frame(width: 58, height: 28)
-                                                    .background(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                                    .background(GlobalSettings.shared.buttonCircleBgColor)
                                                     .cornerRadius(5)
                                                     .padding(.trailing, setsSpacing+2)
 

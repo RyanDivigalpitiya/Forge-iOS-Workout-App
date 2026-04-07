@@ -23,15 +23,14 @@ struct WorkoutInProgressView: View {
 
     // break timer properties
     let timer = Timer.publish(every: 1, on: .main, in: .common)
-    private var breakDuration = 60
     @State private var topToolBarHeight: CGFloat = 140
     @State private var topToolBarCornerRadius: CGFloat = 0
     @State private var timerEnabled = false
     @State private var timerVisible = false
     @State private var isScrollViewDisabled = false
-    @State private var remainingTime: Int = 60
+    @State private var remainingTime: Int = GlobalSettings.shared.breakDuration
     @State private var timerSubscription: Cancellable? = nil
-    @State private var totalTime: Int = 60
+    @State private var totalTime: Int = GlobalSettings.shared.breakDuration
     @State private var appState: UIApplication.State = UIApplication.shared.applicationState
     @State private var startDate = Date()
     @State private var breakTimerStartDate: Date? = nil
@@ -63,11 +62,11 @@ struct WorkoutInProgressView: View {
 
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
-    let darkGray: Color = Color(red: 0.25, green: 0.25, blue: 0.25)
+    let darkGray = GlobalSettings.shared.darkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
-    let setButtonSize: CGFloat = 28
-    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
-    let setsSpacing: CGFloat = 3
+    let setButtonSize = GlobalSettings.shared.setButtonSize
+    let setsFontSize = GlobalSettings.shared.setsFontSize
+    let setsSpacing = GlobalSettings.shared.setsSpacing
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
     
@@ -385,7 +384,7 @@ struct WorkoutInProgressView: View {
                                     }
 
                                     .onAppear {
-                                        remainingTime = breakDuration
+                                        remainingTime = GlobalSettings.shared.breakDuration
                                         totalTime = remainingTime
                                         breakTimerStartDate = Date()
                                         sendNotification()
@@ -772,7 +771,7 @@ extension WorkoutInProgressView {
                 timerEnabled = false
                 topToolBarHeight = 140
                 topToolBarCornerRadius = 0
-                remainingTime = 60
+                remainingTime = GlobalSettings.shared.breakDuration
             }
         }
     }

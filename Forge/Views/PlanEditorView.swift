@@ -18,11 +18,10 @@ struct PlanEditorView: View {
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
-    let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
+    let darkGray = GlobalSettings.shared.editorDarkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
-    let screenHeight = UIScreen.main.bounds.height
-    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
-    let setsSpacing: CGFloat = 3
+    let setsFontSize = GlobalSettings.shared.setsFontSize
+    let setsSpacing = GlobalSettings.shared.setsSpacing
 
 
     

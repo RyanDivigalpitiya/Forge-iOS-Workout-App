@@ -14,8 +14,8 @@ struct SetView: View {
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
-    let setsFontSize: CGFloat = 20 // Font size used for text in set rows
-    let setsSpacing: CGFloat = 3
+    let setsFontSize = GlobalSettings.shared.setsFontSize
+    let setsSpacing = GlobalSettings.shared.setsSpacing
 
     
     var body: some View {

@@ -58,7 +58,7 @@ struct ExerciseEditorView: View {
     let buttonPlusMinusHeight: CGFloat = 30
     let buttonPlusMinusSize: CGFloat = 5
     let wheelSelectorSize: CGFloat = 150
-    let darkGray: Color = Color(red: 0.33, green: 0.33, blue: 0.33)
+    let darkGray = GlobalSettings.shared.editorDarkGray
     let screenWidth = UIScreen.main.bounds.width
     
 
@@ -78,7 +78,7 @@ struct ExerciseEditorView: View {
                             ZStack {
                                 Circle()
                                     .frame(width: 28, height: 28)
-                                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                    .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
                                 Image(systemName: "xmark")
                                     .resizable()
                                     .frame(width: 11, height: 11)
@@ -119,7 +119,7 @@ struct ExerciseEditorView: View {
                                 if exerciseViewModel.activeExerciseMode == .add {
                                     Circle()
                                         .frame(width: 28, height: 28)
-                                        .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                        .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
                                     Image(systemName: "arrow.up")
                                         .resizable()
                                         .frame(width: 13, height: 13)
@@ -128,7 +128,7 @@ struct ExerciseEditorView: View {
                                 } else if exerciseViewModel.activeExerciseMode == .edit || exerciseViewModel.activeExerciseMode == .log {
                                     Circle()
                                         .frame(width: 28, height: 28)
-                                        .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                        .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
                                     Image("Checkmark")
                                         .resizable()
                                         .frame(width: 15, height: 13)
