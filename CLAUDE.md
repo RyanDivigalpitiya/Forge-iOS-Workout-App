@@ -119,3 +119,7 @@ Replace `@Environment(\.presentationMode)` with `@Environment(\.dismiss)` in 5 v
 **Files:** All views using `presentationMode`
 **Test:** Zero deprecation warnings, all dismiss actions work
 **Risk:** Low
+
+#### Git usage
+
+Do not credit yourself as a co-author when creating commits messages.
