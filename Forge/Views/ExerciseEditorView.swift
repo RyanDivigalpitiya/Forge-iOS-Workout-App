@@ -15,14 +15,14 @@ struct ExerciseEditorView: View {
     //- ////////////////////////////////////////////////////////////////////////////
     // Data being inputted / edited:
     @State var exerciseName: String = ""
-    // Homogenous Sets: ////////////////////////////////////////////////////////////
-    @State private var homoSelectedSets = "3 sets"
-    @State private var homoSelectedWeight = "5 lbs"
-    @State private var homoSelectedReps = "12 reps"
-    // Heterogenous Sets: ////////////////////////////////////////////////////////////
-    @State private var heteroSets_Weights: [String] = ["5 lbs", "5 lbs", "5 lbs"]
-    @State private var heteroSets_Reps: [String] = ["12 reps", "12 reps", "12 reps"]
-    @State private var heteroSets_Failure: [Bool] = [false, false, false]
+    // Homogenous Sets:
+    @State private var homoSets: Int = 3
+    @State private var homoWeight: Int = 5
+    @State private var homoReps: Int = 12
+    // Heterogenous Sets:
+    @State private var heteroWeights: [Int] = [5, 5, 5]
+    @State private var heteroReps: [Int] = [12, 12, 12]
+    @State private var heteroFailure: [Bool] = [false, false, false]
     private let minSets = 1
     private let maxSets = 50
     private let minWeight = -100
@@ -30,9 +30,9 @@ struct ExerciseEditorView: View {
     private let weightStep = 5
     private let minReps = 1
     private let maxReps = 500
-    var setsRange: [String] { Array(minSets...maxSets).reversed().map { "\($0) sets" } }
-    var weightRange: [String] { stride(from: maxWeight, through: minWeight, by: -weightStep).map { "\($0) lbs" } }
-    var repsRange: [String] { Array(minReps...maxReps).reversed().map { "\($0) reps" } }
+    private var setsRange: [Int] { Array((minSets...maxSets).reversed()) }
+    private var weightRange: [Int] { Array(stride(from: maxWeight, through: minWeight, by: -weightStep)) }
+    private var repsRange: [Int] { Array((minReps...maxReps).reversed()) }
     //- ////////////////////////////////////////////////////////////////////////////
     
     // Toggle for changing individual sets
@@ -51,13 +51,7 @@ struct ExerciseEditorView: View {
     
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
-    let fontSize: CGFloat = 21
     let fontTitleSize: CGFloat = 35
-    let buttonPlusMinusIconSize: CGFloat = 15
-    let buttonPlusMinusWidth: CGFloat = 85
-    let buttonPlusMinusHeight: CGFloat = 30
-    let buttonPlusMinusSize: CGFloat = 5
-    let wheelSelectorSize: CGFloat = 150
     let darkGray = GlobalSettings.shared.editorDarkGray
     let screenWidth = UIScreen.main.bounds.width
     
@@ -156,190 +150,14 @@ struct ExerciseEditorView: View {
                 }
             
                 // HOMOGENOUS SET SELECTORS
-                HStack {
-                    
-                    // SETS SELECTOR
-                    VStack {
-                        VStack {
-                            Picker(selection: $homoSelectedSets, label: Text("Weight")) {
-                               ForEach(setsRange, id: \.self) {
-                                   Text("\($0)")
-                                       .foregroundColor(fgColor)
-                               }
-                            }
-                            .pickerStyle(WheelPickerStyle())
-                            .frame(width: 100)
-                            .frame(maxHeight: wheelSelectorSize)
-                        }
-                           
-                        HStack() {
-                            // DECREMENT BUTTON
-                            Button(action: {
-                                if var num = Int(homoSelectedSets.dropLast(5)) {
-                                    if num > 1 {
-                                        num -= 1
-                                        homoSelectedSets = "\(num) sets"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "minus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                            
-                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                            
-                            // INCREMENT BUTTON
-                            Button(action: {
-                                if var num = Int(homoSelectedSets.dropLast(5)) {
-                                    if num < maxSets {
-                                        num += 1
-                                        homoSelectedSets = "\(num) sets"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "plus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                        }
-                        .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                        .background(fgColor)
-                        .cornerRadius(5)
-                    }
-                    
-                    // "X"
-                    VStack {
-                        Image(systemName: "xmark")
-                            .foregroundColor(darkGray)
-                            .bold()
-                        Rectangle().frame(width: 1, height:buttonPlusMinusHeight).hidden()
-                    }
-                    
-                    // WEIGHT SELECTOR
-                    VStack {
-                        Picker(selection: $homoSelectedWeight, label: Text("Weight")) {
-                           ForEach(weightRange, id: \.self) {
-                               Text("\($0)")
-                                   .foregroundColor(fgColor)
-
-                           }
-                        }
-                        .pickerStyle(WheelPickerStyle())
-                        .frame(maxHeight: wheelSelectorSize)
-                        .frame(width: 100)
-                           
-                        HStack() {
-                            // DECREMENT BUTTON
-                            Button(action: {
-                                if var num = Int(homoSelectedWeight.dropLast(4)) {
-                                    if num > minWeight {
-                                        num -= weightStep
-                                        homoSelectedWeight = "\(num) lbs"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "minus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                            
-                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                            
-                            // INCREMENT BUTTON
-                            Button(action: {
-                                if var num = Int(homoSelectedWeight.dropLast(4)) {
-                                    if num < maxWeight {
-                                        num += weightStep
-                                        homoSelectedWeight = "\(num) lbs"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "plus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                        }
-                        .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                        .background(fgColor)
-                        .cornerRadius(5)
-                    }
-                    
-                    // "X"
-                    
-                    VStack {
-                        Image(systemName: "xmark")
-                            .foregroundColor(darkGray)
-                            .bold()
-                        Rectangle().frame(width: 1, height:buttonPlusMinusHeight).hidden()
-                    }
-                    
-                    // REPS SELECTOR
-                    VStack {
-                        Picker(selection: $homoSelectedReps, label: Text("Reps")) {
-                           ForEach(repsRange, id: \.self) {
-                               Text("\($0)")
-                                   .foregroundColor(fgColor)
-                           }
-                        }
-                       .pickerStyle(WheelPickerStyle())
-                       .frame(maxHeight: wheelSelectorSize)
-                       .frame(width: 100)
-                           
-                        HStack() {
-                            // DECREMENT BUTTON
-                            Button(action: {
-                                if var num = Int(homoSelectedReps.dropLast(5)) {
-                                    if num > 1{
-                                        num -= 1
-                                        homoSelectedReps = "\(num) reps"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "minus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                            
-                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                            
-                            Button(action: {
-                                // INCREMENT BUTTON
-                                if var num = Int(homoSelectedReps.dropLast(5)) {
-                                    if num < maxReps {
-                                        num += 1
-                                        homoSelectedReps = "\(num) reps"
-                                        feedbackGenerator.impactOccurred()
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "plus")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: buttonPlusMinusIconSize))
-                                    .bold()
-                                    .padding(buttonPlusMinusSize)
-                            }
-                        }
-                        .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                        .background(fgColor)
-                        .cornerRadius(5)
-                    }
-                }
+                HomogeneousSetPicker(
+                    sets: $homoSets,
+                    weight: $homoWeight,
+                    reps: $homoReps,
+                    minSets: minSets, maxSets: maxSets,
+                    minWeight: minWeight, maxWeight: maxWeight, weightStep: weightStep,
+                    minReps: minReps, maxReps: maxReps
+                )
                 .frame(maxHeight: homogenousSelectorHeight)
                 .clipped()
                 .opacity(homogenousSelectorOpacity)
@@ -390,249 +208,22 @@ struct ExerciseEditorView: View {
                 .padding(.top, areSetsUnique ? 0 : 20)
             
                 // HETEROGENOUS SET ROWS + CONTROLS
-                VStack {
+                Group {
                     if !exerciseViewModel.activeExercise.sets.isEmpty {
-                        
-                        ForEach(heteroSets_Weights.indices, id: \.self) { setIndex in
-                            
-                            // SET ROW
-                            HStack() {
-                                // padding hstack
-                                HStack { // internal padding hstack
-                                    
-                                    // SET LABEL + DELETE BUTTON
-                                    VStack{
-                                        // SET LABEL
-                                        Text("Set \(setIndex+1)")
-                                            .foregroundColor(darkGray)
-                                            .fontWeight(.bold)
-                                            .font(.system(size: fontSize))
-                                            .frame(width: 70)
-                                        
-                                        // DELETE BUTTON
-                                        Button(action: {
-                                            if heteroSets_Weights.count > 1{
-                                                heteroSets_Weights.remove(at: setIndex)
-                                                heteroSets_Reps.remove(at: setIndex)
-                                                heteroSets_Failure.remove(at: setIndex)
-                                            }
-                                            
-                                        }) {
-                                            Image(systemName: "trash.fill")
-                                                .foregroundColor(.black)
-                                                .font(.system(size: buttonPlusMinusIconSize))
-                                                .bold()
-                                                .padding(buttonPlusMinusSize)
-                                        }
-                                        .frame(width: 60, height: buttonPlusMinusHeight)
-                                        .background(fgColor)
-                                        .cornerRadius(5)
-                                        .onChange(of: heteroSets_Weights) { newValue in
-                                            let count = newValue.count
-                                            // compute new height
-                                            heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
-                                            homoSelectedSets = "\(normalizedSetCount(for: newValue.count)) sets"
-                                        }
-                                    }
-                                    .padding(.trailing,10)
-                                    
-                                    
-                                    // WEIGHT LABEL + PLUS/MINUS BUTTONS
-                                    VStack{
-                                        // WEIGHT LABEL
-                                        Text("\(heteroSets_Weights[setIndex])")
-                                            .foregroundColor(.white)
-                                            .fontWeight(.bold)
-                                            .font(.system(size: fontSize))
-                                            .frame(width: 100)
-                                        
-                                        // PLUS/MINUS BUTTON
-                                        HStack() {
-                                            // DECREMENT BUTTON
-                                            Button(action: {
-                                                if var num = Int(heteroSets_Weights[setIndex].dropLast(4)) {
-                                                    if num > minWeight {
-                                                        num -= weightStep
-                                                        heteroSets_Weights[setIndex] = "\(num) lbs"
-                                                        feedbackGenerator.impactOccurred()
-                                                    }
-                                                }
-                                            }) {
-                                                Image(systemName: "minus")
-                                                    .foregroundColor(.black)
-                                                    .font(.system(size: buttonPlusMinusIconSize))
-                                                    .bold()
-                                                    .padding(buttonPlusMinusSize)
-                                            }
-                                            
-                                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                                            
-                                            // INCREMENT BUTTON
-                                            Button(action: {
-                                                if var num = Int(heteroSets_Weights[setIndex].dropLast(4)) {
-                                                    if num < maxWeight {
-                                                        num += weightStep
-                                                        heteroSets_Weights[setIndex] = "\(num) lbs"
-                                                        feedbackGenerator.impactOccurred()
-                                                    }
-                                                }
-                                            }) {
-                                                Image(systemName: "plus")
-                                                    .foregroundColor(.black)
-                                                    .font(.system(size: buttonPlusMinusIconSize))
-                                                    .bold()
-                                                    .padding(buttonPlusMinusSize)
-                                            }
-                                        }
-                                        .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                                        .background(fgColor)
-                                        .cornerRadius(5)
-
-                                    }
-
-                                    // "X"
-                                    VStack {
-                                        Image(systemName: "xmark")
-                                            .foregroundColor(darkGray)
-                                            .bold()
-                                        Rectangle().frame(width: 1, height: buttonPlusMinusHeight)
-                                            .hidden()
-                                            .padding(.bottom,9)
-                                    }
-                                    .padding(.horizontal, -5)
-                                    
-                                    // REPS LABEL + PLUS/MINUS BUTTONS
-                                    VStack{
-                                        // REPS LABEL
-                                        if heteroSets_Failure[setIndex] {
-                                            Text("till Failure")
-                                                .foregroundColor(.white)
-                                                .fontWeight(.bold)
-                                                .font(.system(size: fontSize))
-                                                .frame(width: 120)
-                                        } else {
-                                            Text("\(heteroSets_Reps[setIndex])")
-                                                .foregroundColor(.white)
-                                                .fontWeight(.bold)
-                                                .font(.system(size: fontSize))
-                                                .frame(width: 120)
-                                        }
-                                        
-                                        // PLUS/MINUS BUTTON
-                                        HStack() {
-                                            // DECREMENT BUTTON
-                                            Button(action: {
-                                                if var num = Int(heteroSets_Reps[setIndex].dropLast(5)) {
-                                                    if num > 1{
-                                                        num -= 1
-                                                        heteroSets_Reps[setIndex] = "\(num) reps"
-                                                        feedbackGenerator.impactOccurred()
-                                                    }
-                                                }
-                                            }) {
-                                                Image(systemName: "minus")
-                                                    .foregroundColor(.black)
-                                                    .font(.system(size: buttonPlusMinusIconSize))
-                                                    .bold()
-                                                    .padding(buttonPlusMinusSize)
-                                            }
-                                            .disabled(heteroSets_Failure[setIndex] ? true : false)
-                                            
-                                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                                            
-                                            Button(action: {
-                                                // INCREMENT BUTTON
-                                                if var num = Int(heteroSets_Reps[setIndex].dropLast(5)) {
-                                                    if num < maxReps {
-                                                        num += 1
-                                                        heteroSets_Reps[setIndex] = "\(num) reps"
-                                                        feedbackGenerator.impactOccurred()
-                                                    }
-                                                }
-                                            }) {
-                                                Image(systemName: "plus")
-                                                    .foregroundColor(.black)
-                                                    .font(.system(size: buttonPlusMinusIconSize))
-                                                    .bold()
-                                                    .padding(buttonPlusMinusSize)
-                                            }
-                                            .disabled(heteroSets_Failure[setIndex] ? true : false)
-                                            
-                                            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-                                            
-                                            // TILL FAILURE (♾️) BUTTON
-                                            Button(action: {
-                                                heteroSets_Failure[setIndex].toggle()
-                                            }) {
-                                                Image(systemName: "infinity")
-                                                    .foregroundColor( heteroSets_Failure[setIndex] ? .white : .black)
-                                                    .font(.system(size: buttonPlusMinusIconSize))
-                                                    .bold()
-                                                    .padding(buttonPlusMinusSize)
-                                            }
-                                        }
-                                        .frame(width: buttonPlusMinusWidth+50, height: buttonPlusMinusHeight)
-                                        .background(fgColor)
-                                        .cornerRadius(5)
-
-                                    }
-
-                                    
-                                }
-                            }
-                            .frame(height: 100)
-                            .padding(.top, 10)
-                            .cornerRadius(20)
+                        HeterogeneousSetEditor(
+                            weights: $heteroWeights,
+                            reps: $heteroReps,
+                            failure: $heteroFailure,
+                            minWeight: minWeight, maxWeight: maxWeight, weightStep: weightStep,
+                            minReps: minReps, maxReps: maxReps, maxSets: maxSets,
+                            onSave: { saveExercise() }
+                        )
+                        .onChange(of: heteroWeights) { newValue in
+                            let count = newValue.count
+                            heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
+                            homoSets = clampSetCount(count)
                         }
                     }
-                    // ADD SET BUTTON
-                    Button(action: {
-                        guard heteroSets_Weights.count < maxSets else { return }
-                        if let unwrappedLastWeight = heteroSets_Weights.last {
-                            heteroSets_Weights.append(unwrappedLastWeight)
-                        }
-                        if let unwrappedLastRep = heteroSets_Reps.last {
-                            heteroSets_Reps.append(unwrappedLastRep)
-                        }
-                        if let unwrappedLastFailure = heteroSets_Failure.last {
-                            heteroSets_Failure.append(unwrappedLastFailure)
-                        }
-                        
-                    }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add Set").fontWeight(.bold)
-                        }
-                        .frame(height: 20)
-                        .foregroundColor(fgColor)
-                    }
-                    .onChange(of: heteroSets_Weights) { newValue in
-                        let count = newValue.count
-                        // compute new height
-                        heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)
-                        homoSelectedSets = "\(normalizedSetCount(for: newValue.count)) sets"
-                    }
-                    .padding(.top, 20)
-                    
-                    // SAVE BUTTON
-                    HStack {
-                        Button(action: {
-                            saveExercise()
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .resizable()
-                                    .frame(width: 15, height: 15)
-                                Text("Save")
-                                    .fontWeight(.bold)
-                            }
-                            .padding(EdgeInsets(top: 6, leading: 13, bottom: 6, trailing: 14))
-                            .foregroundColor(fgColor)
-                            .background(Color(.systemGray5))
-                            .cornerRadius(100)
-                        }
-                    }
-                    .padding(20)
                 }
                 .frame(maxHeight: heterogenousSelectorHeight)
                 .clipped()
@@ -653,40 +244,37 @@ struct ExerciseEditorView: View {
             // heterogenousSetMaxViewHeight
             let count = sourceSets.count
             heterogenousSetMaxViewHeight = CGFloat((Int(heterogenousSetRowHeight)*count)+80)
-            //areSetsUnique  = true // for testing UI purposes
             // whether areSetsUnique toggle is switched to false/true (ie. should view show homogenous exercise or heterogenous set rows)
-            areSetsUnique  = exerciseViewModel.activeExercise.areSetsUnique
+            areSetsUnique = exerciseViewModel.activeExercise.areSetsUnique
             if areSetsUnique {
                 editedExerciseStartedWithUniqueSets = true
             }
-            
+
             selectedDetent = areSetsUnique ? .large : .medium
-            
+
             // LOAD UI WITH ACTIVE EXERCISE'S DATA: ////////////////////////////////////
-            // clear heteroSets_ values and append values from activeExercise's set data
-            heteroSets_Weights.removeAll()
-            heteroSets_Reps.removeAll()
-            heteroSets_Failure.removeAll()
+            // clear hetero values and append values from activeExercise's set data
+            heteroWeights.removeAll()
+            heteroReps.removeAll()
+            heteroFailure.removeAll()
             for set in sourceSets {
-                heteroSets_Weights.append("\(normalizedWeight(for: set.weight)) lbs")
-                heteroSets_Reps.append("\(normalizedReps(for: set.reps)) reps")
-                heteroSets_Failure.append(set.tillFailure)
+                heteroWeights.append(clampWeight(Int(set.weight.rounded())))
+                heteroReps.append(clampReps(set.reps))
+                heteroFailure.append(set.tillFailure)
             }
-            
-            // assign homoSelected_ data values from activeExercise's data
-            homoSelectedSets    = "\(normalizedSetCount(for: sourceSets.count)) sets"
+
+            // assign homo data values from activeExercise's data
+            homoSets = clampSetCount(sourceSets.count)
             if let firstSet = sourceSets.first {
-                homoSelectedWeight  = "\(normalizedWeight(for: firstSet.weight)) lbs"
-                homoSelectedReps    = "\(normalizedReps(for: firstSet.reps)) reps"
+                homoWeight = clampWeight(Int(firstSet.weight.rounded()))
+                homoReps = clampReps(firstSet.reps)
             } else {
-                homoSelectedWeight  = "5 lbs"
-                homoSelectedReps    = "12 reps"
+                homoWeight = 5
+                homoReps = 12
             }
             // -  //////////////////////////////////// //////////////////////////////////
-            
+
             homoHeteroControlsAreConnected = true
-            
-            // isNameFieldFocused = exerciseViewModel.activeExercise.name == ""
         }
     }
 }
@@ -710,58 +298,46 @@ extension ExerciseEditorView {
                 ? planViewModel.activePlan.exercises[existingExerciseIndex]
                 : nil
         }()
-        
+
         if areSetsUnique {
-            for index in heteroSets_Weights.indices {
-                guard heteroSets_Reps.indices.contains(index), heteroSets_Failure.indices.contains(index) else { continue }
-                let inputtedWeight = Float(heteroSets_Weights[index].dropLast(4))
-                let inputtedReps = Int(heteroSets_Reps[index].dropLast(5))
-                if let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps  {
-                    let clampedWeight = Float(normalizedWeight(for: unwrappedWeight))
-                    let clampedReps = normalizedReps(for: unwrappedReps)
-                    
-                    var completedValue  = false
-                    if let existingExercise, index < existingExercise.sets.count {
-                        completedValue = existingExercise.sets[index].completed
-                    } else {
-                        completedValue = false
-                    }
-                    
-                    let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: heteroSets_Failure[index], completed: completedValue)
-                    newSets.append(newSet)
+            for index in heteroWeights.indices {
+                guard heteroReps.indices.contains(index), heteroFailure.indices.contains(index) else { continue }
+                let clampedWeight = Float(clampWeight(heteroWeights[index]))
+                let clampedReps = clampReps(heteroReps[index])
+
+                let completedValue: Bool
+                if let existingExercise, index < existingExercise.sets.count {
+                    completedValue = existingExercise.sets[index].completed
+                } else {
+                    completedValue = false
                 }
+
+                let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: heteroFailure[index], completed: completedValue)
+                newSets.append(newSet)
             }
         } else {
-            let inputtedSets = Int(homoSelectedSets.dropLast(5))
-            let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
-            let inputtedReps = Int(homoSelectedReps.dropLast(5))
-            
-            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                let clampedSets = normalizedSetCount(for: unwrappedSets)
-                let clampedWeight = Float(normalizedWeight(for: unwrappedWeight))
-                let clampedReps = normalizedReps(for: unwrappedReps)
-                
-                for index in 0..<clampedSets {
-                    
-                    var completedValue  = false
-                    if let existingExercise, index < existingExercise.sets.count {
-                        completedValue = existingExercise.sets[index].completed
-                    } else {
-                        completedValue = false
-                    }
+            let clampedSets = clampSetCount(homoSets)
+            let clampedWeight = Float(clampWeight(homoWeight))
+            let clampedReps = clampReps(homoReps)
 
-                    
-                    let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: false, completed: completedValue)
-                    newSets.append(newSet)
+            for index in 0..<clampedSets {
+                let completedValue: Bool
+                if let existingExercise, index < existingExercise.sets.count {
+                    completedValue = existingExercise.sets[index].completed
+                } else {
+                    completedValue = false
                 }
+
+                let newSet = Set(weight: clampedWeight, reps: clampedReps, tillFailure: false, completed: completedValue)
+                newSets.append(newSet)
             }
         }
-        
+
         if newSets.isEmpty {
             newSets = [Set()]
         }
-        
-        
+
+
         if exerciseViewModel.activeExerciseMode == .add {
             // create new exercise + append it to planViewModel's active plan
             let newExercise = Exercise(name: exerciseName, sets: newSets)
@@ -778,66 +354,45 @@ extension ExerciseEditorView {
                 planViewModel.activePlan.exercises.append(fallbackExercise)
             }
         }
-        
+
         feedbackGenerator.impactOccurred()
         self.presentationMode.wrappedValue.dismiss()
     }
-    
+
     func updateHeteroDataBasedOnHomoData() {
-        if homoHeteroControlsAreConnected {
-            // clear heteroSets_ values and append values from homoSelected_ data
-            heteroSets_Weights.removeAll()
-            heteroSets_Reps.removeAll()
-            heteroSets_Failure.removeAll()
-            
-            let inputtedSets = Int(homoSelectedSets.dropLast(5))
-            let inputtedWeight = Float(homoSelectedWeight.dropLast(4))
-            let inputtedReps = Int(homoSelectedReps.dropLast(5))
-            
-            // update individual sets
-            if let unwrappedSets = inputtedSets, let unwrappedWeight = inputtedWeight, let unwrappedReps = inputtedReps {
-                let clampedSets = normalizedSetCount(for: unwrappedSets)
-                let clampedWeight = normalizedWeight(for: unwrappedWeight)
-                let clampedReps = normalizedReps(for: unwrappedReps)
-                
-                for _ in 0..<clampedSets {
-                    heteroSets_Weights.append("\(clampedWeight) lbs")
-                    heteroSets_Reps.append("\(clampedReps) reps")
-                    heteroSets_Failure.append(false)
-                    
-                }
-            }
-        }
+        guard homoHeteroControlsAreConnected else { return }
+        let count = clampSetCount(homoSets)
+        let weight = clampWeight(homoWeight)
+        let reps = clampReps(homoReps)
+        heteroWeights = Array(repeating: weight, count: count)
+        heteroReps = Array(repeating: reps, count: count)
+        heteroFailure = Array(repeating: false, count: count)
     }
-    
+
     func updateHomoDataBasedOnHeteroData() {
-        if homoHeteroControlsAreConnected {
-            if let firstWeight = heteroSets_Weights.first, let firstReps = heteroSets_Reps.first {
-                let parsedWeight = Float(firstWeight.dropLast(4)) ?? 5.0
-                let parsedReps = Int(firstReps.dropLast(5)) ?? 12
-                
-                homoSelectedSets = "\(normalizedSetCount(for: heteroSets_Weights.count)) sets"
-                homoSelectedWeight = "\(normalizedWeight(for: parsedWeight)) lbs"
-                homoSelectedReps = "\(normalizedReps(for: parsedReps)) reps"
-            } else {
-                homoSelectedSets = "1 sets"
-                homoSelectedWeight = "5 lbs"
-                homoSelectedReps = "12 reps"
-            }
+        guard homoHeteroControlsAreConnected else { return }
+        if let firstWeight = heteroWeights.first, let firstReps = heteroReps.first {
+            homoSets = clampSetCount(heteroWeights.count)
+            homoWeight = clampWeight(firstWeight)
+            homoReps = clampReps(firstReps)
+        } else {
+            homoSets = 1
+            homoWeight = 5
+            homoReps = 12
         }
     }
-    
-    private func normalizedSetCount(for count: Int) -> Int {
+
+    private func clampSetCount(_ count: Int) -> Int {
         min(max(count, minSets), maxSets)
     }
-    
-    private func normalizedWeight(for weight: Float) -> Int {
-        let clampedWeight = min(max(Double(weight), Double(minWeight)), Double(maxWeight))
-        let snappedWeight = (clampedWeight / Double(weightStep)).rounded() * Double(weightStep)
-        return Int(snappedWeight)
+
+    private func clampWeight(_ weight: Int) -> Int {
+        let clamped = min(max(weight, minWeight), maxWeight)
+        // snap to weightStep
+        return Int((Double(clamped) / Double(weightStep)).rounded()) * weightStep
     }
-    
-    private func normalizedReps(for reps: Int) -> Int {
+
+    private func clampReps(_ reps: Int) -> Int {
         min(max(reps, minReps), maxReps)
     }
 }
