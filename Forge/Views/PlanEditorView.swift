@@ -17,6 +17,8 @@ struct PlanEditorView: View {
     @State private var editMode: EditMode = .inactive
     @State private var exerciseToDeleteIndex: Int? = nil
     @State private var showDeleteConfirmation = false
+    @State private var exerciseToTransferIndex: Int? = nil
+    @State private var showTransferSheet = false
 
     private var isSaveDisabled: Bool { Validation.trimmedName(planViewModel.activePlan.name) == nil }
 
@@ -119,6 +121,15 @@ struct PlanEditorView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button {
+                                exerciseToTransferIndex = exerciseIndex
+                                showTransferSheet = true
+                            } label: {
+                                Label("Transfer", systemImage: "arrow.right.doc.on.clipboard")
+                            }
+                            .tint(.blue)
+                        }
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15))
@@ -159,6 +170,14 @@ struct PlanEditorView: View {
                         .presentationDetents([.medium, .large], selection: $selectedDetent)
                         .presentationDragIndicator(.hidden)
                         .environment(\.colorScheme, .dark)
+                }
+                .sheet(isPresented: $showTransferSheet) {
+                    TransferExerciseView(
+                        exerciseIndex: exerciseToTransferIndex ?? 0,
+                        currentPlanId: planViewModel.activePlan.id
+                    )
+                    .presentationDetents([.medium])
+                    .environment(\.colorScheme, .dark)
                 }
 
                 Spacer()
@@ -313,6 +332,74 @@ struct PlanEditorView: View {
         .onAppear {
 //            isPlanNameFocused = planViewModel.activePlan.name == ""
         }
+    }
+}
+
+struct TransferExerciseView: View {
+    @EnvironmentObject var planViewModel: PlanViewModel
+    let exerciseIndex: Int
+    let currentPlanId: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedPlanIndices: Swift.Set<Int> = []
+
+    private let fgColor = GlobalSettings.shared.fgColor
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("Transfer to Plan")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(fgColor)
+                .padding(.top, 25)
+                .padding(.bottom, 15)
+
+            List {
+                ForEach(planViewModel.workoutPlans.indices, id: \.self) { index in
+                    let plan = planViewModel.workoutPlans[index]
+                    if plan.id != currentPlanId {
+                        Button {
+                            if selectedPlanIndices.contains(index) {
+                                selectedPlanIndices.remove(index)
+                            } else {
+                                selectedPlanIndices.insert(index)
+                            }
+                        } label: {
+                            HStack {
+                                Text(plan.name)
+                                    .foregroundColor(.white)
+                                    .fontWeight(.bold)
+                                Spacer()
+                                Image(systemName: selectedPlanIndices.contains(index)
+                                    ? "checkmark.circle.fill"
+                                    : "circle")
+                                    .foregroundColor(fgColor)
+                                    .font(.title3)
+                            }
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+
+            Button(action: {
+                planViewModel.transferExercise(at: exerciseIndex, toPlans: selectedPlanIndices)
+                dismiss()
+            }) {
+                Text("Transfer")
+                    .font(.system(size: 20))
+                    .bold()
+                    .frame(width: 120, height: 40)
+                    .background(fgColor)
+                    .foregroundColor(.black)
+                    .cornerRadius(500)
+            }
+            .disabled(selectedPlanIndices.isEmpty)
+            .opacity(selectedPlanIndices.isEmpty ? 0.4 : 1)
+            .padding(.bottom, 20)
+        }
+        .background(.black)
     }
 }
 

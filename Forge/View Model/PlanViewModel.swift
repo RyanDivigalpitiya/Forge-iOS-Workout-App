@@ -65,6 +65,17 @@ extension PlanViewModel {
     func deleteExercise(at offsets: IndexSet) {
         self.activePlan.exercises.remove(atOffsets: offsets)
     }
+
+    func transferExercise(at exerciseIndex: Int, toPlans targetIndices: Swift.Set<Int>) {
+        guard activePlan.exercises.indices.contains(exerciseIndex) else { return }
+        let exercise = activePlan.exercises[exerciseIndex]
+        for targetIndex in targetIndices {
+            guard workoutPlans.indices.contains(targetIndex) else { continue }
+            workoutPlans[targetIndex].exercises.append(exercise)
+        }
+        activePlan.exercises.remove(at: exerciseIndex)
+        savePlans()
+    }
 }
 
 // data manipulation to passed to views
