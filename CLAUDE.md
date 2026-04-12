@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications). Dark-mode only.
+Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications, ActivityKit, WidgetKit). Dark-mode only.
 
 User flow: History screen → Plan Selector → Active Workout → back to History with the completed workout logged.
 
@@ -25,8 +25,8 @@ xcodebuild test -project Forge.xcodeproj -scheme Forge \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- iOS deployment target: 18.6 (`Forge` target). The `ForgeTests` target uses iOS 26.4 — Xcode's default for newly-created targets — which is fine because tests only run on the simulator.
-- Bundle ID: `Ryan-Div.Forge`. Test bundle: `Ryan-Div.ForgeTests`.
+- iOS deployment target: 18.6 (`Forge` and `ForgeWidgetsExtension` targets). The `ForgeTests` target uses iOS 26.4 — Xcode's default for newly-created targets — which is fine because tests only run on the simulator.
+- Bundle ID: `Ryan-Div.Forge`. Widget extension: `Ryan-Div.Forge.ForgeWidgets`. Test bundle: `Ryan-Div.ForgeTests`.
 - Builds should be **warning-free**. If you introduce a deprecation warning, fix it in the same change.
 
 ## Architecture
@@ -49,6 +49,7 @@ All ViewModels are `ObservableObject` with `@Published` properties, accessed in 
 - `CompletedWorkout` — snapshot with date, elapsed time, completion percentage.
 - `Exercise.sets` has a `didSet` observer that auto-computes `areSetsUnique` (via `doesExerciseHaveUniqueSets()`) and `completed` (true when every set is completed).
 - `EditorMode.swift` — three enums replacing the old string-based mode flags: `PlanEditorMode` (`.add`/`.edit`), `ExerciseEditorMode` (`.add`/`.edit`/`.log`), `ReorderDeleteMode` (`.plan`/`.exercise`).
+- `WorkoutActivityAttributes` — ActivityKit data contract for Live Activities. Static: `planName`. Dynamic `ContentState`: `percentCompleted`, `isResting`, `restEndDate`, `nextExerciseName`, `nextSetDescription`. Compiled into both `Forge` and `ForgeWidgetsExtension` targets.
 
 ## Key Views (`Forge/Views/`)
 
@@ -62,13 +63,35 @@ The two largest views were decomposed into focused child components. Parent view
 | `ExerciseEditorView` | ~410 | Add/edit exercises — coordinator only |
 | `HomogeneousSetPicker` | ~200 | 3-column wheel pickers (sets × weight × reps) — used by ExerciseEditorView |
 | `HeterogeneousSetEditor` | ~235 | Per-set rows with weight/reps/till-failure controls — used by ExerciseEditorView |
-| `WorkoutInProgressView` | ~450 | Active workout — coordinator only |
+| `WorkoutInProgressView` | ~550 | Active workout — coordinator + Live Activity lifecycle |
 | `StartingCountdownView` | ~100 | 3-second pre-workout countdown — self-contained |
 | `BreakTimerView` | ~155 | 60-second rest timer + notification — used by WorkoutInProgressView |
 | `WorkoutBottomToolbarView` | ~120 | Add / Done / Edit toolbar — used by WorkoutInProgressView |
 | `SetView` | ~140 | Reusable set-row rendering — used by PlanEditorView, HistoryView, WorkoutInProgressView. Parameterized via `Content` (`.individual` / `.summary`) and `Appearance` (`.standard` / `.muted` / `.workoutActive(isCompleted:)`) enums. |
 | `HistoryView` | ~135 | Read-only detail view of a past workout |
 | `ReorderDeleteView` | ~100 | Reorder/delete sheet for plans or exercises |
+
+## Live Activity & Widget Extension (`ForgeWidgets/`)
+
+The `ForgeWidgetsExtension` target provides a Live Activity that shows workout progress on the Lock Screen and Dynamic Island while the app is backgrounded.
+
+**Files:**
+- `ForgeWidgetsBundle.swift` — `@main` widget bundle, registers `WorkoutLiveActivity`
+- `WorkoutLiveActivity.swift` — `ActivityConfiguration` with Lock Screen view and Dynamic Island (compact + expanded)
+- `WorkoutActivityAttributes.swift` — shared data contract (lives in `Forge/Data Model/`, compiled into both targets)
+
+**Lock Screen banner** shows: plan name, % complete, countdown timer (when resting), and "Up next" exercise/set info.
+
+**Dynamic Island compact:** leading icon switches between dumbbell (active) and timer (resting). Trailing shows `%` when active or a countdown via `Text(timerInterval:)` when resting — constrained to `frame(width: 36)` + `minimumScaleFactor(0.6)` to prevent the island from stretching.
+
+**Dynamic Island expanded** (long-press): plan name, %, timer countdown (when resting), and next exercise/set info.
+
+**Lifecycle hooks** in `WorkoutInProgressView`:
+- `startLiveActivity()` — called after the 3-second countdown completes
+- `updateLiveActivity()` — called on set completion, timer start (`breakTimerEndDate` set), and timer end (`breakTimerEndDate` cleared)
+- `endLiveActivity()` — called in both `finishWorkout()` and `cancelWorkout()`
+
+**Colors:** `GlobalSettings` is not compiled into the widget extension target. `WorkoutLiveActivity` defines its own `fgColor` locally. The `WidgetBackground` asset color is set to `#161616`.
 
 ## Timer & Notification System
 
@@ -90,10 +113,11 @@ Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) c
 
 **Target:** `ForgeTests/`. Uses Xcode 16's `PBXFileSystemSynchronizedRootGroup`, so any `.swift` file dropped into the directory is auto-detected — no `project.pbxproj` edits needed for new test files.
 
-**33 test cases** across three files:
+**43 test cases** across four files:
 - `ExerciseTests.swift` — `doesExerciseHaveUniqueSets()` and `sets` didSet observer (8 cases)
 - `PlanViewModelTests.swift` — `calculateWorkoutDuration`, `isThereNonZeroDecimal`, save/load round-trip, move/delete plan/exercise (12 cases)
 - `CompletedWorkoutsViewModelTests.swift` — `format(timeInterval:)`, `numberOfDaysString`, persistence round-trip, reverse-index `deleteCompletedWorkouts` (13 cases)
+- `ValidationTests.swift` — input validation: whitespace, empty, max length, normal strings (10 cases)
 
 **Persistence isolation pattern:** test classes that touch persistence are `final class` (not `struct`) so `init` + `deinit` act as setUp/tearDown. Each test gets its own `UserDefaults(suiteName: "ForgeTests.\(UUID().uuidString)")` and removes the persistent domain in `deinit`. This isolates tests from each other and from `.standard`.
 
@@ -118,6 +142,7 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 5. `ExerciseEditorView` decomposed + picker state migrated `String → Int` (parent shrunk 852 → 407 lines, ~20 `dropLast` parses eliminated)
 6. `ForgeTests` target + 33 Swift Testing unit cases + injectable `UserDefaults`
 7. Deprecated APIs replaced (`presentationMode → dismiss`, `.onChange` two-parameter form, `.alert → .banner/.list`); dead stopwatch scaffolding removed
+8. Live Activity added — Lock Screen banner, Dynamic Island (compact + expanded), break timer integration via `ForgeWidgetsExtension`
 
 ## Git usage
 
