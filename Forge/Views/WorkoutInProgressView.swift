@@ -493,13 +493,29 @@ extension WorkoutInProgressView {
 
     // MARK: - Live Activity
 
+    private func findNextIncompleteSet() -> (exerciseName: String, setDescription: String)? {
+        for exercise in planViewModel.activePlan.exercises {
+            for (index, set) in exercise.sets.enumerated() {
+                if !set.completed {
+                    let setLabel = "Set \(index + 1)"
+                    let detail = set.tillFailure
+                        ? "Until Failure"
+                        : "\(Int(set.weight)) lb x \(set.reps) reps"
+                    return (exercise.name, "\(setLabel) · \(detail)")
+                }
+            }
+        }
+        return nil
+    }
+
     private func buildContentState() -> WorkoutActivityAttributes.ContentState {
-        WorkoutActivityAttributes.ContentState(
+        let nextSet = findNextIncompleteSet()
+        return WorkoutActivityAttributes.ContentState(
             percentCompleted: percentCompleted,
             isResting: timerEnabled,
             restEndDate: nil,
-            nextExerciseName: nil,
-            nextSetDescription: nil
+            nextExerciseName: nextSet?.exerciseName,
+            nextSetDescription: nextSet?.setDescription
         )
     }
 

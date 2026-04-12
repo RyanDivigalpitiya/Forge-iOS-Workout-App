@@ -50,6 +50,17 @@ struct WorkoutLiveActivity: Widget {
                 Text("\(context.state.percentCompleted)% Complete")
                     .font(.subheadline)
                     .foregroundColor(.white)
+
+                if let exerciseName = context.state.nextExerciseName {
+                    Text("Up next: \(exerciseName)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    if let setDesc = context.state.nextSetDescription {
+                        Text(setDesc)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                }
             }
             Spacer()
             Image(systemName: "dumbbell.fill")
