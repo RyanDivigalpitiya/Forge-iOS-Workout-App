@@ -68,6 +68,10 @@ struct SelectPlanView: View {
                                     .padding(.bottom, 13)
                                 }
                             }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                startWorkout(at: index)
+                            }
 
 
                             Divider()
@@ -116,10 +120,6 @@ struct SelectPlanView: View {
                     .padding(.leading)
                     .background(bgColor)
                     .cornerRadius(15)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        startWorkout(at: index)
-                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             planToDeleteIndex = index

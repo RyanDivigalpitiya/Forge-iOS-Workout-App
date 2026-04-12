@@ -1,21 +1,23 @@
 import SwiftUI
 
 struct PlanEditorView: View {
-    
+
     //-/////////////////////////////////////////////////
     @EnvironmentObject var planViewModel: PlanViewModel
     //-/////////////////////////////////////////////////
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-/////////////////////////////////////////////////
-    
+
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
     @State private var exerciseEditorIsPresented = false
-    @State private var reorderDeleteViewPresented = false
     @State var selectedDetent: PresentationDetent = .medium
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     @State private var isDoneCheckMarkVisible: Bool = false
-    
+    @State private var editMode: EditMode = .inactive
+    @State private var exerciseToDeleteIndex: Int? = nil
+    @State private var showDeleteConfirmation = false
+
     private var isSaveDisabled: Bool { Validation.trimmedName(planViewModel.activePlan.name) == nil }
 
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
@@ -26,10 +28,10 @@ struct PlanEditorView: View {
     let setsSpacing = GlobalSettings.shared.setsSpacing
 
 
-    
+
     var body: some View {
         ZStack {
-            
+
             // TITLE + PLAN NAMEFIELD + LIST OF EXERCISES
             VStack {
                 HStack{
@@ -38,9 +40,9 @@ struct PlanEditorView: View {
                         .font(.system(size: 40))
                         .fontWeight(.bold)
                         .foregroundColor(fgColor)
-                    Spacer() 
+                    Spacer()
                 }
-                
+
                 TextField("Enter Plan Name Here", text: $planViewModel.activePlan.name)
                     .padding(.vertical, 15)
                     .padding(.horizontal, 10)
@@ -56,91 +58,117 @@ struct PlanEditorView: View {
                             planViewModel.activePlan.name = String(newValue.prefix(Validation.maxNameLength))
                         }
                     }
-                
+
                 // LIST OF EXERCISES
-                ScrollView {
-                    LazyVStack {
-                        ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
-                            
-                            // EDIT BUTTON
-                            Button(action: {
-                                exerciseViewModel.activeExerciseMode = .edit
-                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
-                                exerciseViewModel.activeExerciseIndex = exerciseIndex
-                                self.exerciseEditorIsPresented = true
-                            }) {
-                                VStack{
-                                    HStack {
-                                        Text(planViewModel.activePlan.exercises[exerciseIndex].name)
-                                            .multilineTextAlignment(.leading)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(fgColor)
-                                            .font(.system(size: 30))
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        Spacer()
-                                        Image(systemName: "pencil.circle.fill")
-                                            .resizable()
-                                            .frame(width: 19, height: 19)
-                                            .foregroundColor(.gray)
-                                            .opacity(0.6)
-                                    }
-                                    if planViewModel.activePlan.exercises[exerciseIndex].areSetsUnique { // heterogenous set: display each unqiue set
-                                        VStack(spacing: 25) {
-                                            ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
-                                                let set = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex]
-                                                SetView(
-                                                    content: .individual(set: set, index: setIndex),
-                                                    appearance: .standard
-                                                )
-                                            }
+                List {
+                    ForEach(planViewModel.activePlan.exercises) { exercise in
+                        let exerciseIndex = planViewModel.activePlan.exercises.firstIndex(where: { $0.id == exercise.id })!
+
+                        // EDIT BUTTON
+                        Button(action: {
+                            exerciseViewModel.activeExerciseMode = .edit
+                            exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
+                            exerciseViewModel.activeExerciseIndex = exerciseIndex
+                            self.exerciseEditorIsPresented = true
+                        }) {
+                            VStack{
+                                HStack {
+                                    Text(exercise.name)
+                                        .multilineTextAlignment(.leading)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(fgColor)
+                                        .font(.system(size: 30))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Spacer()
+                                    Image(systemName: "pencil.circle.fill")
+                                        .resizable()
+                                        .frame(width: 19, height: 19)
+                                        .foregroundColor(.gray)
+                                        .opacity(0.6)
+                                }
+                                if exercise.areSetsUnique { // heterogenous set: display each unqiue set
+                                    VStack(spacing: 25) {
+                                        ForEach(exercise.sets.indices, id: \.self) { setIndex in
+                                            let set = exercise.sets[setIndex]
+                                            SetView(
+                                                content: .individual(set: set, index: setIndex),
+                                                appearance: .standard
+                                            )
                                         }
-                                    } else { // homogenous set: display 1 row: weight x reps x sets
-                                        SetView(
-                                            content: .summary(
-                                                count: planViewModel.activePlan.exercises[exerciseIndex].sets.count,
-                                                firstSet: planViewModel.activePlan.exercises[exerciseIndex].sets.first
-                                            ),
-                                            appearance: .standard
-                                        )
-                                        .padding(.top, -8)
                                     }
+                                } else { // homogenous set: display 1 row: weight x reps x sets
+                                    SetView(
+                                        content: .summary(
+                                            count: exercise.sets.count,
+                                            firstSet: exercise.sets.first
+                                        ),
+                                        appearance: .standard
+                                    )
+                                    .padding(.top, -8)
                                 }
                             }
-                            .padding(15) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
-                            .background(bgColor)
-                            .cornerRadius(16)
-                            .sheet(isPresented: $exerciseEditorIsPresented) {
-                                
-                                ExerciseEditorView(selectedDetent: $selectedDetent)
-                                    .presentationDetents([.medium, .large], selection: $selectedDetent)
-                                    .presentationDragIndicator(.hidden)
-                                    .environment(\.colorScheme, .dark)
-                                
+                        }
+                        .padding(15)
+                        .background(bgColor)
+                        .cornerRadius(16)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                exerciseToDeleteIndex = exerciseIndex
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 8)
-                        
-                        
-                        if planViewModel.activePlan.exercises.count > 0 {
-                            Text("Tap an exercise to edit it")
-                                .foregroundColor(darkGray)
-                                .fontWeight(.bold)
-                        }
-                        
-                        Spacer().frame(height: 130)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15))
                     }
-                    
+                    .onMove(perform: planViewModel.moveExercise)
+
+                    if planViewModel.activePlan.exercises.count > 0 {
+                        Text("Tap an exercise to edit it")
+                            .foregroundColor(darkGray)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets())
+                    }
+
+                    // Bottom spacing to clear the toolbar
+                    Color.clear
+                        .frame(height: 130)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
                 }
-                
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.editMode, $editMode)
+                .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
+                    Button("Cancel", role: .cancel) { exerciseToDeleteIndex = nil }
+                    Button("Delete", role: .destructive) {
+                        if let index = exerciseToDeleteIndex {
+                            planViewModel.deleteExercise(at: IndexSet(integer: index))
+                        }
+                        exerciseToDeleteIndex = nil
+                    }
+                }
+                .sheet(isPresented: $exerciseEditorIsPresented) {
+                    ExerciseEditorView(selectedDetent: $selectedDetent)
+                        .presentationDetents([.medium, .large], selection: $selectedDetent)
+                        .presentationDragIndicator(.hidden)
+                        .environment(\.colorScheme, .dark)
+                }
+
                 Spacer()
             }
-            
-            
+
+
             // BOTTOM TOOLBAR
             VStack {
                 Spacer()
-                
+
                 // BOTTOM TOOLBAR BUTTONS
                 VStack {
                     // ADD EXERCISE BUTTON
@@ -162,41 +190,30 @@ struct PlanEditorView: View {
                             .padding(.trailing, 10)
                             .foregroundColor(fgColor)
                         }
-                        .sheet(isPresented: $exerciseEditorIsPresented) {
-                            ExerciseEditorView(selectedDetent: $selectedDetent)
-                                .background(.black)
-                                .presentationDetents([.medium, .large], selection: $selectedDetent)
-                                .presentationDragIndicator(.hidden)
-                                .environment(\.colorScheme, .dark)
-                        }
 
                     }
-                    
+
                     Divider()
                         .padding(.horizontal,54)
                         .padding(.bottom,10)
-                    
+
                     // CANCEL / SAVE / ORDER BUTTONS
                     HStack {
                         Spacer()
-                        
+
                         // CANCEL BUTTON ////////////////////
                         Button(action: {
                             isPlanNameFocused = false
                             dismiss()
                         }) {
-    //                        Image(systemName: "xmark.circle.fill")
-    //                            .resizable()
-    //                            .frame(width: 25, height: 25)
-
                             Text("Cancel")
                                 .font(.headline)
                                 .frame(width: 55)
                         }
                         .foregroundColor(fgColor)
-                    
+
                         Spacer()
-                        
+
                         // SAVE BUTTON ////////////////////
                         Button(action: {
                             isPlanNameFocused = false
@@ -211,7 +228,7 @@ struct PlanEditorView: View {
                                     planViewModel.savePlans()
                                 }
                             }
-                            
+
 
                             let generator = UINotificationFeedbackGenerator()
                             generator.prepare()
@@ -249,32 +266,26 @@ struct PlanEditorView: View {
                             }
                         }
                         .disabled(isSaveDisabled)
-                        
+
                         Spacer()
-                        
+
                         // REORDER BUTTON
                         Button(action: {
                             isPlanNameFocused = false
-                            reorderDeleteViewPresented = true
+                            withAnimation {
+                                editMode = editMode == .active ? .inactive : .active
+                            }
                         }) {
-    //                        Image(systemName: "arrow.up.arrow.down.circle.fill")
-    //                            .resizable()
-    //                            .frame(width: 25, height: 25)
-                            Text("Order")
+                            Text(editMode == .active ? "Done" : "Order")
                                 .font(.headline)
                                 .frame(width: 55)
                         }
                         .foregroundColor(fgColor)
-                        .sheet(isPresented: $reorderDeleteViewPresented) {
-                            ReorderDeleteView(mode: .exercise)
-                                .presentationDetents([.medium, .large])
-                                .environment(\.colorScheme, .dark)
-                        }
-                        
+
                         Spacer()
                     }
                     .padding(.top, 5)
-                    
+
                     Spacer()
 
                 }
@@ -283,7 +294,7 @@ struct PlanEditorView: View {
                 .background(BlurView(style: .systemUltraThinMaterial))
             }
             .edgesIgnoringSafeArea(.bottom)
-            
+
             if planViewModel.activePlan.exercises.count == 0 {
                 VStack {
                     HStack {
