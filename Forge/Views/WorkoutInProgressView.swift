@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import ActivityKit
 
 struct WorkoutInProgressView: View {
     
@@ -55,6 +56,7 @@ struct WorkoutInProgressView: View {
 
     @State private var isWorkoutDone: Bool = false
     @State private var showCancelConfirmation: Bool = false
+    @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     
     var body: some View {
         ZStack {
@@ -144,6 +146,7 @@ struct WorkoutInProgressView: View {
                                                             
                                                             feedbackGenerator.impactOccurred()
                                                             calcPercentCompleted()
+                                                            updateLiveActivity()
                                                         }
                                                     }) {
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
@@ -326,6 +329,7 @@ struct WorkoutInProgressView: View {
                             scrollViewScaleEffect = 1.0
                         }
                     }
+                    startLiveActivity()
                 }
             }
         }
@@ -345,6 +349,7 @@ extension WorkoutInProgressView {
     func cancelWorkout() {
         // stop timers
         dismissBreakTimerView()
+        endLiveActivity()
         isWorkoutDone = true
 
         // Reset set completions (same as finishWorkout)
@@ -370,6 +375,7 @@ extension WorkoutInProgressView {
     func finishWorkout() {
         // stop timers
         dismissBreakTimerView()
+        endLiveActivity()
         isWorkoutDone = true
 
         // save completed workout to persistant storage
@@ -479,10 +485,54 @@ extension WorkoutInProgressView {
         withAnimation(.easeInOut(duration: popAnimationSpeed)) {
             popScaleEffect = popDownScaleSize
         }
-        
+
         withAnimation(Animation.easeInOut(duration: popAnimationSpeed).delay(popAnimationDelay)) {
             popScaleEffect = 1.0
         }
+    }
+
+    // MARK: - Live Activity
+
+    private func buildContentState() -> WorkoutActivityAttributes.ContentState {
+        WorkoutActivityAttributes.ContentState(
+            percentCompleted: percentCompleted,
+            isResting: timerEnabled,
+            restEndDate: nil,
+            nextExerciseName: nil,
+            nextSetDescription: nil
+        )
+    }
+
+    func startLiveActivity() {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let attributes = WorkoutActivityAttributes(planName: planViewModel.activePlan.name)
+        let state = buildContentState()
+        do {
+            workoutActivity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: state, staleDate: nil),
+                pushType: nil
+            )
+        } catch {
+            print("[Forge] Failed to start Live Activity: \(error)")
+        }
+    }
+
+    func updateLiveActivity() {
+        guard let workoutActivity else { return }
+        let state = buildContentState()
+        Task {
+            await workoutActivity.update(.init(state: state, staleDate: nil))
+        }
+    }
+
+    func endLiveActivity() {
+        guard let workoutActivity else { return }
+        let state = buildContentState()
+        Task {
+            await workoutActivity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
+        }
+        self.workoutActivity = nil
     }
 
 }

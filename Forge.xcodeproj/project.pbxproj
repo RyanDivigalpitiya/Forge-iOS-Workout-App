@@ -14,6 +14,8 @@
 		C10000092B0000000000AA05 /* HomogeneousSetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */; };
 		C100000B2B0000000000AA06 /* HeterogeneousSetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */; };
 		C100000D2B0000000000AA07 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000C2B0000000000AA07 /* Validation.swift */; };
+		C100000F2B0000000000AA08 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
+		C10000102B0000000000AA09 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
 		F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94732A4BD118008155FA /* ExerciseEditorView.swift */; };
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */; };
@@ -21,6 +23,9 @@
 		F17247632A4CE4A800937621 /* WorkoutInProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */; };
 		F17247672A4D156600937621 /* Set.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17247662A4D156600937621 /* Set.swift */; };
 		F19EDD7D2A511EFF00B2E974 /* SetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19EDD7C2A511EFF00B2E974 /* SetView.swift */; };
+		F1D4BC632F8C1424003835CB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1D4BC622F8C1424003835CB /* WidgetKit.framework */; };
+		F1D4BC652F8C1424003835CB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1D4BC642F8C1424003835CB /* SwiftUI.framework */; };
+		F1D4BC722F8C1425003835CB /* ForgeWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F1D4BC602F8C1424003835CB /* ForgeWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F1E2F2442A52D2470076290D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2F2432A52D2470076290D /* AppDelegate.swift */; };
 		F1F850692A4920AB0093EE01 /* ForgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850682A4920AB0093EE01 /* ForgeApp.swift */; };
 		F1F8506D2A4920AD0093EE01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1F8506C2A4920AD0093EE01 /* Assets.xcassets */; };
@@ -47,7 +52,28 @@
 			remoteGlobalIDString = F1F850642A4920AB0093EE01;
 			remoteInfo = Forge;
 		};
+		F1D4BC702F8C1425003835CB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F1F8505D2A4920AB0093EE01 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F1D4BC5F2F8C1424003835CB;
+			remoteInfo = ForgeWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F1D4BC732F8C1425003835CB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F1D4BC722F8C1425003835CB /* ForgeWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		C10000002B0000000000AA01 /* EditorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMode.swift; sourceTree = "<group>"; };
@@ -57,6 +83,7 @@
 		C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomogeneousSetPicker.swift; sourceTree = "<group>"; };
 		C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeterogeneousSetEditor.swift; sourceTree = "<group>"; };
 		C100000C2B0000000000AA07 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
+		C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
 		F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
@@ -66,6 +93,9 @@
 		F17247622A4CE4A800937621 /* WorkoutInProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutInProgressView.swift; sourceTree = "<group>"; };
 		F17247662A4D156600937621 /* Set.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Set.swift; sourceTree = "<group>"; };
 		F19EDD7C2A511EFF00B2E974 /* SetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetView.swift; sourceTree = "<group>"; };
+		F1D4BC602F8C1424003835CB /* ForgeWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ForgeWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1D4BC622F8C1424003835CB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		F1D4BC642F8C1424003835CB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		F1E2F2432A52D2470076290D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = "Forge/View Model/AppDelegate.swift"; sourceTree = "<group>"; };
 		F1F850652A4920AB0093EE01 /* Forge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Forge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1F850682A4920AB0093EE01 /* ForgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeApp.swift; sourceTree = "<group>"; };
@@ -88,8 +118,19 @@
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F1D4BC762F8C1425003835CB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F1D4BC5F2F8C1424003835CB /* ForgeWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F10BA8AA2F8579A300FAE979 /* ForgeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ForgeTests; sourceTree = "<group>"; };
+		F1D4BC662F8C1424003835CB /* ForgeWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (F1D4BC762F8C1425003835CB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = ForgeWidgets; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +138,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1D4BC5D2F8C1424003835CB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1D4BC652F8C1424003835CB /* SwiftUI.framework in Frameworks */,
+				F1D4BC632F8C1424003835CB /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,6 +160,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F1D4BC612F8C1424003835CB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F1D4BC622F8C1424003835CB /* WidgetKit.framework */,
+				F1D4BC642F8C1424003835CB /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		F1F8505C2A4920AB0093EE01 = {
 			isa = PBXGroup;
 			children = (
@@ -118,6 +177,8 @@
 				F1E2F2432A52D2470076290D /* AppDelegate.swift */,
 				F1F850672A4920AB0093EE01 /* Forge */,
 				F10BA8AA2F8579A300FAE979 /* ForgeTests */,
+				F1D4BC662F8C1424003835CB /* ForgeWidgets */,
+				F1D4BC612F8C1424003835CB /* Frameworks */,
 				F1F850662A4920AB0093EE01 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -127,6 +188,7 @@
 			children = (
 				F1F850652A4920AB0093EE01 /* Forge.app */,
 				F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */,
+				F1D4BC602F8C1424003835CB /* ForgeWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -196,6 +258,7 @@
 				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
 				F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */,
 				C10000002B0000000000AA01 /* EditorMode.swift */,
+				C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */,
 				F1F8508A2A4936250093EE01 /* TestingDataModel.playground */,
 			);
 			path = "Data Model";
@@ -235,6 +298,28 @@
 			productReference = F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		F1D4BC5F2F8C1424003835CB /* ForgeWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F1D4BC772F8C1425003835CB /* Build configuration list for PBXNativeTarget "ForgeWidgetsExtension" */;
+			buildPhases = (
+				F1D4BC5C2F8C1424003835CB /* Sources */,
+				F1D4BC5D2F8C1424003835CB /* Frameworks */,
+				F1D4BC5E2F8C1424003835CB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F1D4BC662F8C1424003835CB /* ForgeWidgets */,
+			);
+			name = ForgeWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = ForgeWidgetsExtension;
+			productReference = F1D4BC602F8C1424003835CB /* ForgeWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		F1F850642A4920AB0093EE01 /* Forge */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F1F850742A4920AD0093EE01 /* Build configuration list for PBXNativeTarget "Forge" */;
@@ -242,10 +327,12 @@
 				F1F850612A4920AB0093EE01 /* Sources */,
 				F1F850622A4920AB0093EE01 /* Frameworks */,
 				F1F850632A4920AB0093EE01 /* Resources */,
+				F1D4BC732F8C1425003835CB /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F1D4BC712F8C1425003835CB /* PBXTargetDependency */,
 			);
 			name = Forge;
 			productName = Forge;
@@ -265,6 +352,9 @@
 					F10BA8A82F8579A200FAE979 = {
 						CreatedOnToolsVersion = 26.4;
 						TestTargetID = F1F850642A4920AB0093EE01;
+					};
+					F1D4BC5F2F8C1424003835CB = {
+						CreatedOnToolsVersion = 26.4;
 					};
 					F1F850642A4920AB0093EE01 = {
 						CreatedOnToolsVersion = 14.3;
@@ -286,12 +376,20 @@
 			targets = (
 				F1F850642A4920AB0093EE01 /* Forge */,
 				F10BA8A82F8579A200FAE979 /* ForgeTests */,
+				F1D4BC5F2F8C1424003835CB /* ForgeWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F10BA8A72F8579A200FAE979 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1D4BC5E2F8C1424003835CB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -318,12 +416,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F1D4BC5C2F8C1424003835CB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000102B0000000000AA09 /* WorkoutActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F1F850612A4920AB0093EE01 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				C10000012B0000000000AA01 /* EditorMode.swift in Sources */,
 				C100000D2B0000000000AA07 /* Validation.swift in Sources */,
+				C100000F2B0000000000AA08 /* WorkoutActivityAttributes.swift in Sources */,
 				C10000032B0000000000AA02 /* StartingCountdownView.swift in Sources */,
 				C10000052B0000000000AA03 /* BreakTimerView.swift in Sources */,
 				C10000072B0000000000AA04 /* WorkoutBottomToolbarView.swift in Sources */,
@@ -359,6 +466,11 @@
 			isa = PBXTargetDependency;
 			target = F1F850642A4920AB0093EE01 /* Forge */;
 			targetProxy = F10BA8AD2F8579A300FAE979 /* PBXContainerItemProxy */;
+		};
+		F1D4BC712F8C1425003835CB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F1D4BC5F2F8C1424003835CB /* ForgeWidgetsExtension */;
+			targetProxy = F1D4BC702F8C1425003835CB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -415,6 +527,80 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Forge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Forge";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F1D4BC742F8C1425003835CB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8CFYV5CWDL;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ForgeWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ForgeWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.Forge.ForgeWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F1D4BC752F8C1425003835CB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8CFYV5CWDL;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ForgeWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ForgeWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Ryan-Div.Forge.ForgeWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -543,6 +729,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -587,6 +774,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -624,6 +812,15 @@
 			buildConfigurations = (
 				F10BA8AF2F8579A300FAE979 /* Debug */,
 				F10BA8B02F8579A300FAE979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F1D4BC772F8C1425003835CB /* Build configuration list for PBXNativeTarget "ForgeWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F1D4BC742F8C1425003835CB /* Debug */,
+				F1D4BC752F8C1425003835CB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
