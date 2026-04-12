@@ -33,6 +33,7 @@ struct ExerciseEditorView: View {
     private var setsRange: [Int] { Array((minSets...maxSets).reversed()) }
     private var weightRange: [Int] { Array(stride(from: maxWeight, through: minWeight, by: -weightStep)) }
     private var repsRange: [Int] { Array((minReps...maxReps).reversed()) }
+    private var isSaveDisabled: Bool { Validation.trimmedName(exerciseName) == nil }
     //- ////////////////////////////////////////////////////////////////////////////
     
     // Toggle for changing individual sets
@@ -130,6 +131,7 @@ struct ExerciseEditorView: View {
                                 }
                             }
                         }
+                        .disabled(isSaveDisabled)
                     }
                     .frame(width: 0.2*screenWidth)
             }
@@ -147,6 +149,11 @@ struct ExerciseEditorView: View {
                         .font(.system(size: 23))
                         .padding(.bottom, 10)
                         .submitLabel(.done)
+                        .onChange(of: exerciseName) { _, newValue in
+                            if newValue.count > Validation.maxNameLength {
+                                exerciseName = String(newValue.prefix(Validation.maxNameLength))
+                            }
+                        }
                 }
             
                 // HOMOGENOUS SET SELECTORS
@@ -216,6 +223,7 @@ struct ExerciseEditorView: View {
                             failure: $heteroFailure,
                             minWeight: minWeight, maxWeight: maxWeight, weightStep: weightStep,
                             minReps: minReps, maxReps: maxReps, maxSets: maxSets,
+                            isSaveDisabled: isSaveDisabled,
                             onSave: { saveExercise() }
                         )
                         .onChange(of: heteroWeights) { _, newValue in
@@ -284,6 +292,9 @@ extension ExerciseEditorView {
     
     func saveExercise() {
         isNameFieldFocused = false
+
+        guard let validName = Validation.trimmedName(exerciseName) else { return }
+        exerciseName = validName
 
         // create list of sets that were edited
         var newSets: [Set] = []

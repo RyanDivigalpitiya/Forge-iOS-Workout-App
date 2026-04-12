@@ -17,6 +17,7 @@ struct HeterogeneousSetEditor: View {
     let maxReps: Int
     let maxSets: Int
 
+    let isSaveDisabled: Bool
     let onSave: () -> Void
 
     private let fgColor = GlobalSettings.shared.fgColor
@@ -228,6 +229,7 @@ struct HeterogeneousSetEditor: View {
                     .background(Color(.systemGray5))
                     .cornerRadius(100)
                 }
+                .disabled(isSaveDisabled)
             }
             .padding(20)
         }

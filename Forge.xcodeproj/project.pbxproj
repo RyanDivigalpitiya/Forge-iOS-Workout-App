@@ -13,6 +13,7 @@
 		C10000072B0000000000AA04 /* WorkoutBottomToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */; };
 		C10000092B0000000000AA05 /* HomogeneousSetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */; };
 		C100000B2B0000000000AA06 /* HeterogeneousSetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */; };
+		C100000D2B0000000000AA07 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000C2B0000000000AA07 /* Validation.swift */; };
 		F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94732A4BD118008155FA /* ExerciseEditorView.swift */; };
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F15998352A4C170400D9B2FB /* ReorderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15998342A4C170400D9B2FB /* ReorderDeleteView.swift */; };
@@ -55,6 +56,7 @@
 		C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBottomToolbarView.swift; sourceTree = "<group>"; };
 		C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomogeneousSetPicker.swift; sourceTree = "<group>"; };
 		C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeterogeneousSetEditor.swift; sourceTree = "<group>"; };
+		C100000C2B0000000000AA07 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
 		F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 				F1F850932A494DFD0093EE01 /* PlanViewModel.swift */,
 				F14E94752A4BD288008155FA /* ExerciseViewModel.swift */,
 				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
+				C100000C2B0000000000AA07 /* Validation.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -320,6 +323,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C10000012B0000000000AA01 /* EditorMode.swift in Sources */,
+				C100000D2B0000000000AA07 /* Validation.swift in Sources */,
 				C10000032B0000000000AA02 /* StartingCountdownView.swift in Sources */,
 				C10000052B0000000000AA03 /* BreakTimerView.swift in Sources */,
 				C10000072B0000000000AA04 /* WorkoutBottomToolbarView.swift in Sources */,

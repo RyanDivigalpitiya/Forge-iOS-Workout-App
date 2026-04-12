@@ -16,6 +16,8 @@ struct PlanEditorView: View {
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     @State private var isDoneCheckMarkVisible: Bool = false
     
+    private var isSaveDisabled: Bool { Validation.trimmedName(planViewModel.activePlan.name) == nil }
+
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray = GlobalSettings.shared.editorDarkGray
@@ -49,6 +51,11 @@ struct PlanEditorView: View {
                     .multilineTextAlignment(.center)
                     .font(.system(size: 30))
                     .submitLabel(.done)
+                    .onChange(of: planViewModel.activePlan.name) { _, newValue in
+                        if newValue.count > Validation.maxNameLength {
+                            planViewModel.activePlan.name = String(newValue.prefix(Validation.maxNameLength))
+                        }
+                    }
                 
                 // LIST OF EXERCISES
                 ScrollView {
@@ -193,6 +200,8 @@ struct PlanEditorView: View {
                         // SAVE BUTTON ////////////////////
                         Button(action: {
                             isPlanNameFocused = false
+                            guard let validName = Validation.trimmedName(planViewModel.activePlan.name) else { return }
+                            planViewModel.activePlan.name = validName
                             if planViewModel.activePlanMode == .add {
                                 planViewModel.workoutPlans.append(planViewModel.activePlan)
                                 planViewModel.savePlans()
@@ -239,6 +248,7 @@ struct PlanEditorView: View {
                                 .opacity(isDoneCheckMarkVisible ? 1 : 0)
                             }
                         }
+                        .disabled(isSaveDisabled)
                         
                         Spacer()
                         
