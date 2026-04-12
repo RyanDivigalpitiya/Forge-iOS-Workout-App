@@ -120,20 +120,6 @@ struct SelectPlanView: View {
                     .onTapGesture {
                         startWorkout(at: index)
                     }
-                    .contextMenu {
-                        VStack {
-                            ForEach(plan.exercises) { exercise in
-                                Text(exercise.name)
-                            }
-                            Divider()
-                            Button( action: {
-                                startWorkout(at: index)
-                            }) {
-                                Text("Start")
-                                Image(systemName: "play.circle")
-                            }
-                        }
-                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             planToDeleteIndex = index
