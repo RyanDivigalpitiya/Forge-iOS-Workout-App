@@ -8,30 +8,72 @@ struct WorkoutLiveActivity: Widget {
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            // LOCK SCREEN presentation
             lockScreenView(context: context)
         } dynamicIsland: { context in
-            // Dynamic Island — placeholder for Stage 4
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    EmptyView()
+                    Text(context.attributes.planName)
+                        .font(.headline)
+                        .foregroundColor(fgColor)
+                        .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    EmptyView()
+                    Text("\(context.state.percentCompleted)%")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(fgColor)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    EmptyView()
+                    if context.state.isResting, let endDate = context.state.restEndDate {
+                        HStack(spacing: 6) {
+                            Image(systemName: "timer")
+                                .foregroundColor(fgColor)
+                            Text(timerInterval: Date.now...endDate, countsDown: true)
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .monospacedDigit()
+                        }
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    EmptyView()
+                    if let exerciseName = context.state.nextExerciseName {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Up next: \(exerciseName)")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if let setDesc = context.state.nextSetDescription {
+                                Text(setDesc)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             } compactLeading: {
-                Image(systemName: "dumbbell.fill")
-                    .foregroundColor(fgColor)
+                if context.state.isResting {
+                    Image(systemName: "timer")
+                        .foregroundColor(fgColor)
+                } else {
+                    Image(systemName: "dumbbell.fill")
+                        .foregroundColor(fgColor)
+                }
             } compactTrailing: {
-                Text("\(context.state.percentCompleted)%")
-                    .foregroundColor(fgColor)
-                    .fontWeight(.bold)
+                if context.state.isResting, let endDate = context.state.restEndDate {
+                    Text(timerInterval: Date.now...endDate, countsDown: true)
+                        .monospacedDigit()
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(fgColor)
+                        .frame(width: 36)
+                        .minimumScaleFactor(0.6)
+                } else {
+                    Text("\(context.state.percentCompleted)%")
+                        .foregroundColor(fgColor)
+                        .fontWeight(.bold)
+                }
             } minimal: {
                 Image(systemName: "dumbbell.fill")
                     .foregroundColor(fgColor)
@@ -50,6 +92,19 @@ struct WorkoutLiveActivity: Widget {
                 Text("\(context.state.percentCompleted)% Complete")
                     .font(.subheadline)
                     .foregroundColor(.white)
+
+                if context.state.isResting, let endDate = context.state.restEndDate {
+                    HStack(spacing: 6) {
+                        Text("Rest")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(timerInterval: Date.now...endDate, countsDown: true)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(fgColor)
+                            .monospacedDigit()
+                    }
+                }
 
                 if let exerciseName = context.state.nextExerciseName {
                     Text("Up next: \(exerciseName)")

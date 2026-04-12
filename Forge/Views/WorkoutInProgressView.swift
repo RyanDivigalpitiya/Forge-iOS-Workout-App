@@ -57,6 +57,7 @@ struct WorkoutInProgressView: View {
     @State private var isWorkoutDone: Bool = false
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
+    @State private var breakTimerEndDate: Date? = nil
     
     var body: some View {
         ZStack {
@@ -134,12 +135,14 @@ struct WorkoutInProgressView: View {
                                                                             topToolBarHeight = screenHeight*0.8
                                                                             topToolBarCornerRadius = 30
                                                                             timerEnabled = true
+                                                                            breakTimerEndDate = Date().addingTimeInterval(TimeInterval(GlobalSettings.shared.breakDuration))
                                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                                                 withAnimation(.easeInOut(duration: 0.5)) {
                                                                                     timerVisible = true
                                                                                 }
                                                                             }
                                                                         }
+                                                                        updateLiveActivity()
                                                                     }
                                                                 }
                                                             }
@@ -437,9 +440,11 @@ extension WorkoutInProgressView {
                 scrollViewVisible = true
                 scrollViewScaleEffect = 1.0
                 timerEnabled = false       // removes BreakTimerView from view tree → its onDisappear cancels its timer subscription
+                breakTimerEndDate = nil
                 topToolBarHeight = 140
                 topToolBarCornerRadius = 0
             }
+            updateLiveActivity()
         }
     }
 
@@ -513,7 +518,7 @@ extension WorkoutInProgressView {
         return WorkoutActivityAttributes.ContentState(
             percentCompleted: percentCompleted,
             isResting: timerEnabled,
-            restEndDate: nil,
+            restEndDate: timerEnabled ? breakTimerEndDate : nil,
             nextExerciseName: nextSet?.exerciseName,
             nextSetDescription: nextSet?.setDescription
         )
