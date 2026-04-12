@@ -84,7 +84,7 @@ struct ReorderDeleteView: View {
                 .padding(.top, 15)
             }
         }
-        .background(Color(.systemGray6))
+        .background(.black)
         .onAppear{self.isEditing = .active}
     }
 }

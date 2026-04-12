@@ -217,6 +217,7 @@ struct SelectPlanView: View {
                 .background(BlurView(style: .systemChromeMaterial))
             }
         }
+        .background(.black)
         .navigationBarTitle(Text("Select Plan"))
         .ignoresSafeArea(.all, edges: .bottom)
     }

@@ -93,6 +93,7 @@ struct CompletedWorkoutsView: View {
                 SelectPlanView()
             }
         }
+        .background(.black)
         .accentColor(fgColor)
         .onAppear{
             completedWorkoutsViewModel.isSelectPlanViewActive = false

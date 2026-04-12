@@ -226,7 +226,7 @@ struct HeterogeneousSetEditor: View {
                     }
                     .padding(EdgeInsets(top: 6, leading: 13, bottom: 6, trailing: 14))
                     .foregroundColor(fgColor)
-                    .background(Color(.systemGray5))
+                    .background(Color(red: 0.17, green: 0.17, blue: 0.18))
                     .cornerRadius(100)
                 }
                 .disabled(isSaveDisabled)
