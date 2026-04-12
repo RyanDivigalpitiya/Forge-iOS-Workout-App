@@ -54,6 +54,7 @@ struct WorkoutInProgressView: View {
     let screenHeight = UIScreen.main.bounds.height
 
     @State private var isWorkoutDone: Bool = false
+    @State private var showCancelConfirmation: Bool = false
     
     var body: some View {
         ZStack {
@@ -225,15 +226,29 @@ struct WorkoutInProgressView: View {
                             
                             Spacer().frame(height: 75)
                             
-                            // Plan name + %complete + stop watch
+                            // Plan name + back button + %complete
                             VStack(spacing:0) {
                                 HStack {
+                                    Button(action: { showCancelConfirmation = true }) {
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 20, weight: .bold))
+                                            .foregroundColor(fgColor)
+                                    }
+                                    .disabled(timerEnabled)
+                                    .padding(.leading, 15)
+
                                     Spacer()
                                     Text("\(planViewModel.activePlan.name)")
                                         .font(.system(size: 30))
                                         .fontWeight(.bold)
                                         .foregroundColor(fgColor)
                                     Spacer()
+
+                                    // Invisible counterweight to keep the title centered
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .hidden()
+                                        .padding(.trailing, 15)
                                 }
                                 .padding(.bottom,1)
                                 
@@ -315,11 +330,42 @@ struct WorkoutInProgressView: View {
             }
         }
         .disabled(isWorkoutDone)
+        .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
+            Button("No", role: .cancel) { }
+            Button("Yes", role: .destructive) {
+                cancelWorkout()
+            }
+        }
     }
 }
 
 // % Complete label + animation functions
 extension WorkoutInProgressView {
+
+    func cancelWorkout() {
+        // stop timers
+        dismissBreakTimerView()
+        isWorkoutDone = true
+
+        // Reset set completions (same as finishWorkout)
+        for exerciseIndex in planViewModel.activePlan.exercises.indices {
+            for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
+                planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
+            }
+            planViewModel.activePlan.exercises[exerciseIndex].completed = false
+        }
+
+        // Save plan modifications (added/reordered/logged exercises)
+        // but do NOT set lastCompleted and do NOT save a CompletedWorkout.
+        if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
+            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+        }
+        planViewModel.savePlans()
+
+        // Dismiss back to history
+        dismiss()
+        completedWorkoutsViewModel.isSelectPlanViewActive = false
+    }
 
     func finishWorkout() {
         // stop timers
