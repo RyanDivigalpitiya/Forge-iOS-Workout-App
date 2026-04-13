@@ -62,23 +62,24 @@ struct HistoryView: View {
                                     Button(action: { }) { // this button is just to show the checkmark or not and is, thus, disabled
                                         if completedWorkout.workout.exercises[exerciseIndex].sets[setIndex].completed {
                                             ZStack {
-                                                Image("Checkmark")
+                                                Image(systemName: "checkmark")
                                                     .resizable()
-                                                    .frame(width: 13, height: 11)
-                                                    .padding(.top,1)
+                                                    .frame(width: 11, height: 9)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.white)
                                                     .padding(.trailing, 16)
                                                 Circle()
                                                     .stroke(lineWidth: 2)
                                                     .frame(width: setButtonSize, height: setButtonSize)
-                                                    .foregroundColor(fgColor)
+                                                    .foregroundColor(.white)
                                                     .padding(.trailing, 16)
                                             }
-                                            .opacity(0.5)
+                                            .opacity(0.4)
                                         } else {
                                             Circle()
                                                 .stroke(lineWidth: 2)
                                                 .frame(width: setButtonSize, height: setButtonSize)
-                                                .foregroundColor(fgColor)
+                                                .foregroundColor(.white)
                                                 .padding(.trailing, 16)
                                         }
                                 
