@@ -75,8 +75,25 @@ struct WorkoutLiveActivity: Widget {
                         .fontWeight(.bold)
                 }
             } minimal: {
-                Image(systemName: "dumbbell.fill")
-                    .foregroundColor(fgColor)
+                if context.state.isResting, let endDate = context.state.restEndDate {
+                    Text(timerInterval: Date.now...endDate, countsDown: true)
+                        .monospacedDigit()
+                        .font(.system(size: 10))
+                        .fontWeight(.bold)
+                        .foregroundColor(fgColor)
+                        .minimumScaleFactor(0.5)
+                } else {
+                    ZStack {
+                        Circle()
+                            .stroke(lineWidth: 2)
+                            .foregroundColor(fgColor.opacity(0.3))
+                        Circle()
+                            .trim(from: 0, to: CGFloat(context.state.percentCompleted) / 100)
+                            .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                            .foregroundColor(fgColor)
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
             }
         }
     }
