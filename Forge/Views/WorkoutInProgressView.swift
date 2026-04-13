@@ -239,9 +239,11 @@ struct WorkoutInProgressView: View {
                                         Image(systemName: "chevron.left")
                                             .font(.system(size: 20, weight: .bold))
                                             .foregroundColor(fgColor)
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
                                     }
                                     .disabled(timerEnabled)
-                                    .padding(.leading, 15)
+                                    .padding(.leading, 5)
 
                                     Spacer()
                                     Text("\(planViewModel.activePlan.name)")
