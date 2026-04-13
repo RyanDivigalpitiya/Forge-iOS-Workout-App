@@ -121,12 +121,13 @@ struct SelectPlanView: View {
                     .background(bgColor)
                     .cornerRadius(15)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
+                        Button {
                             planToDeleteIndex = index
                             showDeleteConfirmation = true
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(.red)
                     }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
