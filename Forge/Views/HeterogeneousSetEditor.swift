@@ -132,7 +132,7 @@ struct HeterogeneousSetEditor: View {
                                     .font(.system(size: fontSize))
                                     .frame(width: 120)
                             } else {
-                                Text("\(reps[setIndex]) reps")
+                                Text("\(reps[setIndex]) rep\(reps[setIndex] == 1 ? "" : "s")")
                                     .foregroundColor(.white)
                                     .fontWeight(.bold)
                                     .font(.system(size: fontSize))

@@ -37,7 +37,7 @@ struct HomogeneousSetPicker: View {
             VStack {
                 Picker(selection: $sets, label: Text("Sets")) {
                     ForEach(setsRange, id: \.self) { value in
-                        Text("\(value) sets")
+                        Text("\(value) set\(value == 1 ? "" : "s")")
                             .foregroundColor(fgColor)
                             .tag(value)
                     }
@@ -151,7 +151,7 @@ struct HomogeneousSetPicker: View {
             VStack {
                 Picker(selection: $reps, label: Text("Reps")) {
                     ForEach(repsRange, id: \.self) { value in
-                        Text("\(value) reps")
+                        Text("\(value) rep\(value == 1 ? "" : "s")")
                             .foregroundColor(fgColor)
                             .tag(value)
                     }

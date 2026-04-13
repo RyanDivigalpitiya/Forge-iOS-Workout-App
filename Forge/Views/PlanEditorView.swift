@@ -20,7 +20,9 @@ struct PlanEditorView: View {
     @State private var exerciseToTransferIndex: Int? = nil
     @State private var showTransferSheet = false
 
-    private var isSaveDisabled: Bool { Validation.trimmedName(planViewModel.activePlan.name) == nil }
+    private var isSaveDisabled: Bool {
+        Validation.trimmedName(planViewModel.activePlan.name) == nil || planViewModel.activePlan.exercises.isEmpty
+    }
 
     let fgColor = GlobalSettings.shared.fgColor // foreground colour
     let bgColor = GlobalSettings.shared.bgColor // background colour

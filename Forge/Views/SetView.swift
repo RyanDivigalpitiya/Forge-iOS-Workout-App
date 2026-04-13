@@ -38,7 +38,7 @@ struct SetView: View {
             reps = set.reps
             tillFailure = set.tillFailure
         case .summary(let count, let firstSet):
-            labelText = "\(count) sets"
+            labelText = "\(count) set\(count == 1 ? "" : "s")"
             labelCount = count
             weight = firstSet?.weight
             reps = firstSet?.reps
@@ -92,7 +92,7 @@ struct SetView: View {
                     if tillFailure {
                         Text("Until Failure").foregroundColor(.gray).opacity(0.6)
                     } else {
-                        Text("\(reps) reps").foregroundColor(.gray).opacity(0.6)
+                        Text("\(reps) rep\(reps == 1 ? "" : "s")").foregroundColor(.gray).opacity(0.6)
                     }
                 } else {
                     Text("No sets")

@@ -84,7 +84,7 @@ struct SelectPlanView: View {
                                     .foregroundColor(.gray)
                                     .opacity(0.4)
                                     .padding(.vertical, 15)
-                                Text(String(plan.exercises.count) + " Exercises")
+                                Text(String(plan.exercises.count) + (plan.exercises.count == 1 ? " Exercise" : " Exercises"))
                                     .foregroundColor(Color.gray.opacity(0.5))
                                     .fontWeight(.bold)
                                 // DURATION OF WORKOUT

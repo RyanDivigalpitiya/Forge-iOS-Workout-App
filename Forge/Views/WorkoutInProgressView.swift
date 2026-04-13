@@ -552,7 +552,7 @@ extension WorkoutInProgressView {
                     let setLabel = "Set \(index + 1)"
                     let detail = set.tillFailure
                         ? "Until Failure"
-                        : "\(Int(set.weight)) lb x \(set.reps) reps"
+                        : "\(Int(set.weight)) lb x \(set.reps) rep\(set.reps == 1 ? "" : "s")"
                     return (exercise.name, "\(setLabel) · \(detail)")
                 }
             }
