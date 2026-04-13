@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications, ActivityKit, WidgetKit). Dark-mode only.
+Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications, ActivityKit, WidgetKit, HealthKit). Dark-mode only.
 
 User flow: History screen → Plan Selector → Active Workout → back to History with the completed workout logged.
 
@@ -31,17 +31,18 @@ xcodebuild test -project Forge.xcodeproj -scheme Forge \
 
 ## Architecture
 
-**MVVM with SwiftUI EnvironmentObjects.** Three ViewModels are injected at the app root (`ForgeApp.swift`):
+**MVVM with SwiftUI EnvironmentObjects.** Four ViewModels are injected at the app root (`ForgeApp.swift`):
 
 - `CompletedWorkoutsViewModel` — workout history CRUD, date/time formatting
-- `PlanViewModel` — workout plan CRUD, reordering, duration estimation
+- `PlanViewModel` — workout plan CRUD, reordering, duration estimation, exercise transfer between plans
 - `ExerciseViewModel` — active exercise state during editing
+- `WorkoutHealthManager` — HealthKit authorization, live workout sessions (iOS 26+), manual workout saves
 
 All ViewModels are `ObservableObject` with `@Published` properties, accessed in views via `@EnvironmentObject`.
 
-**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`. `PlanViewModel` and `CompletedWorkoutsViewModel` accept an optional `userDefaults: UserDefaults = .standard` init parameter so tests can inject an isolated `UserDefaults(suiteName:)` — production code calls them with no arguments.
+**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`, `"breakDurationSeconds"`. `PlanViewModel` and `CompletedWorkoutsViewModel` accept an optional `userDefaults: UserDefaults = .standard` init parameter so tests can inject an isolated `UserDefaults(suiteName:)` — production code calls them with no arguments.
 
-**Global theming:** `GlobalSettings.shared` singleton (`Forge/View Model/GlobalSettings.swift`) — accent color `#FF436B`, background `#161616`, plus all shared layout constants (`darkGray`, `editorDarkGray`, `buttonCircleBgColor`, `setButtonSize`, `setsFontSize`, `setsSpacing`, `breakDuration`, `bottomToolbarHeight`). Two distinct grays: `darkGray` (0.25) for workout/history connectors, `editorDarkGray` (0.33) for editor labels.
+**Global theming:** `GlobalSettings.shared` singleton (`Forge/View Model/GlobalSettings.swift`) — accent color `#FF436B`, background `#161616`, plus all shared layout constants (`darkGray`, `editorDarkGray`, `buttonCircleBgColor`, `setButtonSize`, `setsFontSize`, `setsSpacing`, `breakDuration`, `bottomToolbarHeight`). Two distinct grays: `darkGray` (0.25) for workout/history connectors, `editorDarkGray` (0.33) for editor labels. `breakDuration` is a UserDefaults-backed computed property (default 60s, configurable 5–300s via in-workout picker).
 
 ## Data Models (`Forge/Data Model/`)
 
@@ -58,14 +59,14 @@ The two largest views were decomposed into focused child components. Parent view
 | View | Lines | Purpose |
 |------|---|---------|
 | `CompletedWorkoutsView` | ~125 | Home screen — workout history list |
-| `SelectPlanView` | ~240 | Choose/manage workout plans |
-| `PlanEditorView` | ~310 | Create/edit a plan and its exercises |
+| `SelectPlanView` | ~240 | Choose/manage workout plans — inline swipe-to-delete + drag-to-reorder via List |
+| `PlanEditorView` | ~310 | Create/edit a plan and its exercises — inline reorder/delete + swipe-right transfer |
 | `ExerciseEditorView` | ~410 | Add/edit exercises — coordinator only |
 | `HomogeneousSetPicker` | ~200 | 3-column wheel pickers (sets × weight × reps) — used by ExerciseEditorView |
 | `HeterogeneousSetEditor` | ~235 | Per-set rows with weight/reps/till-failure controls — used by ExerciseEditorView |
-| `WorkoutInProgressView` | ~550 | Active workout — coordinator + Live Activity lifecycle |
+| `WorkoutInProgressView` | ~720 | Active workout — coordinator + Live Activity + HealthKit + stopwatch + break timer config |
 | `StartingCountdownView` | ~100 | 3-second pre-workout countdown — self-contained |
-| `BreakTimerView` | ~155 | 60-second rest timer + notification — used by WorkoutInProgressView |
+| `BreakTimerView` | ~130 | Configurable rest timer (TimelineView-based) + notification — used by WorkoutInProgressView |
 | `WorkoutBottomToolbarView` | ~120 | Add / Done / Edit toolbar — used by WorkoutInProgressView |
 | `SetView` | ~140 | Reusable set-row rendering — used by PlanEditorView, HistoryView, WorkoutInProgressView. Parameterized via `Content` (`.individual` / `.summary`) and `Appearance` (`.standard` / `.muted` / `.workoutActive(isCompleted:)`) enums. |
 | `HistoryView` | ~135 | Read-only detail view of a past workout |
@@ -93,10 +94,20 @@ The `ForgeWidgetsExtension` target provides a Live Activity that shows workout p
 
 **Colors:** `GlobalSettings` is not compiled into the widget extension target. `WorkoutLiveActivity` defines its own `fgColor` locally. The `WidgetBackground` asset color is set to `#161616`.
 
+## HealthKit Integration
+
+**`WorkoutHealthManager`** (`Forge/View Model/WorkoutHealthManager.swift`) — injected as `@EnvironmentObject` from `ForgeApp`.
+
+- **Authorization:** Requests write access to `HKObjectType.workoutType()` on app launch.
+- **Live session (iOS 26+):** `startWorkoutSession()` creates an `HKWorkoutSession` + `HKLiveWorkoutBuilder` that collects heart rate and calorie data from Apple Watch during the workout. `endWorkoutSession()` ends the session and saves via the builder's `finishWorkout()`. The Live Activity also surfaces on the Apple Watch automatically.
+- **Manual save (fallback):** `saveWorkout(startDate:endDate:elapsedTime:)` uses `HKWorkoutBuilder` to save a `.functionalStrengthTraining` workout without a live session. Used when the live session fails to start or on iOS < 26.
+- **Lifecycle:** Session starts after the 3-second countdown (alongside `startLiveActivity()`). On `finishWorkout()`, the live session is ended if active; otherwise falls back to manual save. On `cancelWorkout()`, the session is ended unconditionally.
+- **Note:** `Swift.Set` must be used instead of `Set` when calling HealthKit APIs, because the project's `Set` data model type shadows Swift's built-in `Set`.
+
 ## Timer & Notification System
 
 - **Workout start countdown:** 3 seconds (skippable). Owned entirely by `StartingCountdownView` — signals completion via `onCompletion` callback.
-- **Rest timer:** 60 seconds between sets. Owned by `BreakTimerView`, which schedules a `UNTimeIntervalNotificationTrigger` so the user is alerted even when the app is backgrounded or the phone is locked. The parent `WorkoutInProgressView` retains the scroll-view shrink/grow animation state.
+- **Rest timer:** Configurable duration (5–300s, default 60s) between sets. Owned by `BreakTimerView`, which uses `TimelineView(.periodic(from:by:))` for countdown updates (immune to parent view re-renders, unlike `Timer.publish`) and schedules a `UNTimeIntervalNotificationTrigger` so the user is alerted even when the app is backgrounded. The parent `WorkoutInProgressView` retains the scroll-view shrink/grow animation state. Duration is configured via a timer icon button in the workout toolbar that opens a `BreakDurationPickerView` wheel picker.
 - **Foreground suppression:** `AppDelegate.userNotificationCenter(_:willPresent:)` suppresses any notification with category `"workoutCategory"` while the app is active.
 
 ### Critical: notification cancellation race
@@ -129,6 +140,7 @@ Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) c
 - **`heterogenousSetRowHeight = 1000000`** in `ExerciseEditorView`. Yes, one million. This is an intentional layout hack: `heterogenousSetMaxViewHeight = CGFloat((count*Int(heterogenousSetRowHeight))+80)` makes the height effectively unbounded so the inner `clipped()` + outer `frame(maxHeight:)` can grow without limit. Don't "fix" it.
 - **`homoHeteroControlsAreConnected` and `editedExerciseStartedWithUniqueSets` flags** in `ExerciseEditorView` gate the data sync between homogeneous and heterogeneous picker state. The `onAppear` ordering matters — set the connected flag false, load data, then set it true. Otherwise the toggle's `onChange` fires during init and wipes the loaded data. The big comment block in the toggle's `onChange` handler explains the second flag.
 - **`activeExerciseIndex` is stale in `.add` mode.** When the user adds a new exercise during a workout, `ExerciseViewModel.activeExerciseIndex` still points at whichever exercise they last logged or edited. `ExerciseEditorView.saveExercise()` gates its `existingExercise` lookup on the mode being `.edit` or `.log` — never trust `activeExerciseIndex` in `.add` mode. (Without this gate, new exercises inherit completion state from the previously-edited exercise.)
+- **`Timer.publish` in child views breaks when parents re-render frequently.** `WorkoutInProgressView` updates `elapsedSeconds` every second via a stopwatch, causing all child views to re-render. `BreakTimerView` originally used `Timer.publish` which got recreated (and thus never fired) on each re-render. The fix was migrating to `TimelineView(.periodic(from:by:))` which SwiftUI manages internally and survives re-renders. If you add a new timer-based child view, use `TimelineView`, not `Timer.publish`.
 - **`UIScreen.main.bounds`** is used in 3 views for fixed-fraction layout (`0.33 * screenWidth` etc). It's deprecated in iOS 16+ in favor of `view.window.windowScene.screen`, but doesn't currently emit a warning at our deployment target. Migrating would require `GeometryReader` or environment-based screen access — out of scope for "polish" work.
 
 ## Refactor history
@@ -143,6 +155,10 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 6. `ForgeTests` target + 33 Swift Testing unit cases + injectable `UserDefaults`
 7. Deprecated APIs replaced (`presentationMode → dismiss`, `.onChange` two-parameter form, `.alert → .banner/.list`); dead stopwatch scaffolding removed
 8. Live Activity added — Lock Screen banner, Dynamic Island (compact + expanded), break timer integration via `ForgeWidgetsExtension`
+9. Inline reorder/delete for plans (SelectPlanView) and exercises (PlanEditorView) — converted from ScrollView to List with swipe actions and edit mode toggle. Added swipe-right exercise transfer between plans.
+10. Configurable break timer (5–300s) with UserDefaults persistence + wheel picker UI. BreakTimerView migrated from `Timer.publish` to `TimelineView` to survive parent re-renders.
+11. HealthKit integration — completed workouts saved as Functional Strength Training. Live `HKWorkoutSession` on iOS 26+ with Apple Watch data collection.
+12. Dark mode enforcement — `UIUserInterfaceStyle=Dark` in Info.plist, adaptive system colors replaced with fixed dark values, Liquid Glass sheet backgrounds.
 
 ## Git usage
 
