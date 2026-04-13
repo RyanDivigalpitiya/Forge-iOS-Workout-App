@@ -22,12 +22,14 @@ struct WorkoutInProgressView: View {
 
     // Break timer coordination state — BreakTimerView owns its own timer state.
     // The parent retains these to coordinate the scroll-view shrink/grow animation.
-    @State private var topToolBarHeight: CGFloat = 140
+    @State private var topToolBarHeight: CGFloat = 163
     @State private var topToolBarCornerRadius: CGFloat = 0
     @State private var timerEnabled = false      // gates whether BreakTimerView is rendered
     @State private var timerVisible = false      // controls BreakTimerView's opacity
     @State private var isScrollViewDisabled = false
     @State private var startDate = Date()
+    @State private var elapsedSeconds: Int = 0
+    private let stopwatchTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     // Animation + Feedback parameters
     let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -71,7 +73,7 @@ struct WorkoutInProgressView: View {
                         ScrollView {
                             
                             LazyVStack {
-                                Spacer().frame(height: 95)
+                                Spacer().frame(height: 118)
                                 
                                 // EXERCISE LIST
                                 ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
@@ -265,20 +267,29 @@ struct WorkoutInProgressView: View {
                                     .padding(.trailing, 5)
                                 }
                                 .padding(.bottom,1)
-                                
+
+                                Text(formattedElapsedTime)
+                                    .fontWeight(.bold)
+                                    .monospacedDigit()
+                                    .onReceive(stopwatchTimer) { _ in
+                                        if shouldShowWorkout && !isWorkoutDone {
+                                            elapsedSeconds = Int(Date().timeIntervalSince(startDate))
+                                        }
+                                    }
+
                                 HStack(spacing:0) {
                                     Spacer()
-                                    
+
                                     Text("\(percentCompleted)% Complete")
                                         .fontWeight(.bold)
 
                                     Spacer()
                                 }
-                                .padding(.bottom, 10)
+                                .padding(.bottom, 18)
                                 .padding(.top,5)
                                 .scaleEffect(popScaleEffect)
                             }
-                            .frame(height: 130)
+                            .frame(height: 163)
                             
                             Spacer()
                             if timerEnabled {
@@ -368,6 +379,13 @@ struct WorkoutInProgressView: View {
 // % Complete label + animation functions
 extension WorkoutInProgressView {
 
+    var formattedElapsedTime: String {
+        let h = elapsedSeconds / 3600
+        let m = (elapsedSeconds % 3600) / 60
+        let s = elapsedSeconds % 60
+        return String(format: "%02d:%02d:%02d", h, m, s)
+    }
+
     func cancelWorkout() {
         // stop timers
         dismissBreakTimerView()
@@ -410,27 +428,26 @@ extension WorkoutInProgressView {
         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
         completedWorkoutsViewModel.saveCompletedWorkouts()
 
-        // update workout plans with any changes made to active workout plan during workout in progress
-        // (ie. log changes + added/re-ordered exercises). First, reset set completions.
-        for exerciseIndex in planViewModel.activePlan.exercises.indices {
-            for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
-                planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
-            }
-            planViewModel.activePlan.exercises[exerciseIndex].completed = false
-        }
-
-        // save workout plan to persistant storage
-        planViewModel.activePlan.lastCompleted = Date()
-        if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
-            planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
-        }
-        planViewModel.savePlans()
-
         triggerHapticFeedback()
         withAnimation(.easeInOut(duration: 1)) {
             isDoneCheckMarkVisible = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            // Reset set completions and save plan AFTER the dismiss animation,
+            // so the user never sees exercises visually unchecking.
+            for exerciseIndex in planViewModel.activePlan.exercises.indices {
+                for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
+                    planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed = false
+                }
+                planViewModel.activePlan.exercises[exerciseIndex].completed = false
+            }
+
+            planViewModel.activePlan.lastCompleted = Date()
+            if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
+                planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
+            }
+            planViewModel.savePlans()
+
             dismiss()
             // after dismissing this view, send user back to CompletedWorkoutsView
             completedWorkoutsViewModel.isSelectPlanViewActive = false
@@ -460,7 +477,7 @@ extension WorkoutInProgressView {
                 scrollViewScaleEffect = 1.0
                 timerEnabled = false       // removes BreakTimerView from view tree → its onDisappear cancels its timer subscription
                 breakTimerEndDate = nil
-                topToolBarHeight = 140
+                topToolBarHeight = 163
                 topToolBarCornerRadius = 0
             }
             updateLiveActivity()
