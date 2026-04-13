@@ -12,6 +12,7 @@ struct WorkoutInProgressView: View {
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
+    @EnvironmentObject var healthManager: WorkoutHealthManager
     
     
     @Environment(\.dismiss) private var dismiss
@@ -428,6 +429,9 @@ extension WorkoutInProgressView {
         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
         completedWorkoutsViewModel.saveCompletedWorkouts()
 
+        // Save to Apple Health
+        healthManager.saveWorkout(startDate: startDate, endDate: Date(), elapsedTime: Date().timeIntervalSince(startDate))
+
         triggerHapticFeedback()
         withAnimation(.easeInOut(duration: 1)) {
             isDoneCheckMarkVisible = true
@@ -709,6 +713,7 @@ struct WorkoutInProgressView_Previews: PreviewProvider {
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
+            .environmentObject(WorkoutHealthManager())
             .preferredColorScheme(.dark)
     }
 }

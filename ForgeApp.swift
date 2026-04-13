@@ -4,6 +4,7 @@ import SwiftUI
 struct ForgeApp: App {
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var healthManager = WorkoutHealthManager()
 
     init() {
         let center = UNUserNotificationCenter.current()
@@ -26,7 +27,11 @@ struct ForgeApp: App {
                 .environmentObject(CompletedWorkoutsViewModel())
                 .environmentObject(PlanViewModel())
                 .environmentObject(ExerciseViewModel())
+                .environmentObject(healthManager)
                 .environment(\.colorScheme, .dark)
+                .onAppear {
+                    healthManager.requestAuthorization()
+                }
         }
     }
 }

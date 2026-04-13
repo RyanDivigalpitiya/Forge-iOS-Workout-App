@@ -1,11 +1,9 @@
 import SwiftUI
-import Combine
 import UserNotifications
 
-/// 60-second rest timer shown between sets during an active workout.
-/// Owns its own timer state (`remainingTime`, `totalTime`, `breakTimerStartDate`, `timerSubscription`)
-/// and notification scheduling. The parent retains visibility coordination via `timerVisible` and
-/// reacts to expiry/cancellation via the two callbacks.
+/// Rest timer shown between sets during an active workout.
+/// Uses TimelineView for periodic updates, which survives parent view re-renders
+/// (unlike Timer.publish, which gets recreated and cancelled on each re-render).
 ///
 /// Three dismissal paths:
 /// - Natural expiry: parent's `onExpired` runs and should NOT cancel the pending notification
@@ -17,107 +15,88 @@ struct BreakTimerView: View {
 
     static let notificationIdentifier = "workoutRestTimerNotification"
 
-    @Binding var timerVisible: Bool
-
     let durationSeconds: Int
+    @Binding var timerVisible: Bool
     let onExpired: () -> Void
     let onCancelTapped: () -> Void
 
-    @State private var remainingTime: Int
-    @State private var totalTime: Int
     @State private var breakTimerStartDate: Date? = nil
-    @State private var timerSubscription: Cancellable? = nil
+    @State private var hasExpired = false
 
-    private let timer = Timer.publish(every: 1, on: .main, in: .common)
     private let fgColor = GlobalSettings.shared.fgColor
 
-    init(durationSeconds: Int,
-         timerVisible: Binding<Bool>,
-         onExpired: @escaping () -> Void,
-         onCancelTapped: @escaping () -> Void) {
-        self.durationSeconds = durationSeconds
-        self._timerVisible = timerVisible
-        self.onExpired = onExpired
-        self.onCancelTapped = onCancelTapped
-        self._remainingTime = State(initialValue: durationSeconds)
-        self._totalTime = State(initialValue: durationSeconds)
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            HStack {
-                Spacer()
-                Text("Rest for ")
-                    .font(.system(size: 40))
-                    .fontWeight(.bold)
-                    .foregroundColor(fgColor)
-                Spacer()
-            }
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = computeRemaining(at: context.date)
+            let total = durationSeconds
+            let progress = total > 0 ? CGFloat(remaining) / CGFloat(total) : 0
 
-            ZStack {
-                Circle()
-                    .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                    .foregroundColor(Color(.systemGray4))
-                Circle()
-                    .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
-                    .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                    .foregroundColor(fgColor)
-                    .rotationEffect(Angle(degrees: -90))
-                    .animation(.linear(duration: 1), value: remainingTime)
-                Text("\(remainingTime) s")
-                    .font(.system(size: 60))
-                    .foregroundColor(fgColor)
-                    .fontWeight(.bold)
+            VStack(spacing: 0) {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Text("Rest for ")
+                        .font(.system(size: 40))
+                        .fontWeight(.bold)
+                        .foregroundColor(fgColor)
+                    Spacer()
+                }
+
+                ZStack {
+                    Circle()
+                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .foregroundColor(Color(.systemGray4))
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .foregroundColor(fgColor)
+                        .rotationEffect(Angle(degrees: -90))
+                        .animation(.linear(duration: 1), value: remaining)
+                    Text("\(remaining) s")
+                        .font(.system(size: 60))
+                        .foregroundColor(fgColor)
+                        .fontWeight(.bold)
+                }
+                .padding(.vertical, 50)
+
+                Button(action: {
+                    onCancelTapped()
+                }) {
+                    ZStack {
+                        Circle()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(Color(.systemGray4))
+                        Image(systemName: "xmark")
+                            .resizable()
+                            .frame(width: 13, height: 13)
+                            .fontWeight(.bold)
+                            .foregroundColor(fgColor)
+                    }
+                }
+                Spacer()
             }
-            .padding(.vertical, 50)
-            .onReceive(timer) { _ in
-                updateRemainingTime()
-                if remainingTime == 0 {
+            .padding(.horizontal, 40)
+            .padding(.bottom, 20)
+            .opacity(timerVisible ? 1 : 0)
+            .onChange(of: remaining) { _, newValue in
+                if newValue == 0 && !hasExpired {
+                    hasExpired = true
                     triggerHapticFeedback()
                     onExpired()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                updateRemainingTime()
-            }
-            .onAppear {
-                remainingTime = durationSeconds
-                totalTime = remainingTime
-                breakTimerStartDate = Date()
-                sendNotification()
-                timerSubscription = timer.connect()
-            }
-            .onDisappear {
-                timerSubscription?.cancel()
-            }
-
-            Button(action: {
-                onCancelTapped()
-            }) {
-                ZStack {
-                    Circle()
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(Color(.systemGray4))
-                    Image(systemName: "xmark")
-                        .resizable()
-                        .frame(width: 13, height: 13)
-                        .fontWeight(.bold)
-                        .foregroundColor(fgColor)
-                }
-            }
-            Spacer()
         }
-        .padding(.horizontal, 40)
-        .padding(.bottom, 20)
-        .opacity(timerVisible ? 1 : 0)
+        .onAppear {
+            breakTimerStartDate = Date()
+            hasExpired = false
+            sendNotification()
+        }
     }
 
-    private func updateRemainingTime() {
-        guard let breakTimerStartDate else { return }
-        let elapsedTime = Date().timeIntervalSince(breakTimerStartDate)
-        let newRemainingTime = max(0, totalTime - Int(elapsedTime))
-        remainingTime = newRemainingTime
+    private func computeRemaining(at date: Date) -> Int {
+        guard let start = breakTimerStartDate else { return durationSeconds }
+        let elapsed = date.timeIntervalSince(start)
+        return max(0, durationSeconds - Int(elapsed))
     }
 
     private func sendNotification() {
@@ -134,14 +113,14 @@ struct BreakTimerView: View {
             content.sound = UNNotificationSound.default
             content.categoryIdentifier = "workoutCategory"
 
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(self.remainingTime), repeats: false)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(self.durationSeconds), repeats: false)
             let request = UNNotificationRequest(identifier: Self.notificationIdentifier, content: content, trigger: trigger)
 
             center.add(request) { error in
                 if let error = error {
                     print("[Forge] Notification schedule error: \(error)")
                 } else {
-                    print("[Forge] Scheduled notification for \(self.remainingTime)s from now")
+                    print("[Forge] Scheduled notification for \(self.durationSeconds)s from now")
                 }
             }
         }

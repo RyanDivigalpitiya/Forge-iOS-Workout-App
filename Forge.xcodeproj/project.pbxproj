@@ -14,6 +14,7 @@
 		C10000092B0000000000AA05 /* HomogeneousSetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */; };
 		C100000B2B0000000000AA06 /* HeterogeneousSetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */; };
 		C100000D2B0000000000AA07 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000C2B0000000000AA07 /* Validation.swift */; };
+		C10000112B0000000000AA0A /* WorkoutHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000102B0000000000AA0B /* WorkoutHealthManager.swift */; };
 		C100000F2B0000000000AA08 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
 		C10000102B0000000000AA09 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
 		F14E94742A4BD118008155FA /* ExerciseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94732A4BD118008155FA /* ExerciseEditorView.swift */; };
@@ -83,6 +84,7 @@
 		C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomogeneousSetPicker.swift; sourceTree = "<group>"; };
 		C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeterogeneousSetEditor.swift; sourceTree = "<group>"; };
 		C100000C2B0000000000AA07 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
+		C10000102B0000000000AA0B /* WorkoutHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHealthManager.swift; sourceTree = "<group>"; };
 		C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
 		F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F14E94732A4BD118008155FA /* ExerciseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorView.swift; sourceTree = "<group>"; };
@@ -245,6 +247,7 @@
 				F14E94752A4BD288008155FA /* ExerciseViewModel.swift */,
 				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
 				C100000C2B0000000000AA07 /* Validation.swift */,
+				C10000102B0000000000AA0B /* WorkoutHealthManager.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -453,6 +456,7 @@
 				F1F850892A4929E10093EE01 /* MockData.swift in Sources */,
 				F17247632A4CE4A800937621 /* WorkoutInProgressView.swift in Sources */,
 				F1F850872A4929390093EE01 /* GlobalSettings.swift in Sources */,
+				C10000112B0000000000AA0A /* WorkoutHealthManager.swift in Sources */,
 				F164606C2A64E87200C6CE3D /* HistoryView.swift in Sources */,
 				F1E2F2442A52D2470076290D /* AppDelegate.swift in Sources */,
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
@@ -729,6 +733,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads workout data to display your fitness history.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Forge saves your completed workouts to Apple Health.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -775,6 +781,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads workout data to display your fitness history.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Forge saves your completed workouts to Apple Health.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
