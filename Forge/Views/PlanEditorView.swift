@@ -15,8 +15,6 @@ struct PlanEditorView: View {
     private let availableDetents: [PresentationDetent] = [.medium, .large]
     @State private var isDoneCheckMarkVisible: Bool = false
     @State private var editMode: EditMode = .inactive
-    @State private var exerciseToDeleteIndex: Int? = nil
-    @State private var showDeleteConfirmation = false
     @State private var exerciseToTransferIndex: Int? = nil
     @State private var showTransferSheet = false
 
@@ -117,8 +115,7 @@ struct PlanEditorView: View {
                         .cornerRadius(16)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                exerciseToDeleteIndex = exerciseIndex
-                                showDeleteConfirmation = true
+                                planViewModel.deleteExercise(at: IndexSet(integer: exerciseIndex))
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -158,15 +155,6 @@ struct PlanEditorView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, $editMode)
-                .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) { exerciseToDeleteIndex = nil }
-                    Button("Delete", role: .destructive) {
-                        if let index = exerciseToDeleteIndex {
-                            planViewModel.deleteExercise(at: IndexSet(integer: index))
-                        }
-                        exerciseToDeleteIndex = nil
-                    }
-                }
                 .sheet(isPresented: $exerciseEditorIsPresented) {
                     ExerciseEditorView(selectedDetent: $selectedDetent)
                         .presentationDetents([.medium, .large], selection: $selectedDetent)
