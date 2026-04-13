@@ -51,6 +51,7 @@ struct ReorderDeleteView: View {
                     .onMove(perform: planViewModel.movePlan)
                     .onDelete(perform: planViewModel.deletePlan)
                 }
+                .scrollContentBackground(.hidden)
                 .environment(\.editMode, $isEditing)
             } else { // mode == "ExerciseMode
                 List {
@@ -62,6 +63,7 @@ struct ReorderDeleteView: View {
                     .onMove(perform: planViewModel.moveExercise)
                     .onDelete(perform: planViewModel.deleteExercise)
                 }
+                .scrollContentBackground(.hidden)
                 .environment(\.editMode, $isEditing)
             }
             
