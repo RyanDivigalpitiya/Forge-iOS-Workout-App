@@ -137,7 +137,7 @@ struct SelectPlanView: View {
 
                 // Bottom spacing to clear the toolbar
                 Color.clear
-                    .frame(height: 80)
+                    .frame(height: 120)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets())
