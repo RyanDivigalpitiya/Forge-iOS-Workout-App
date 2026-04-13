@@ -353,6 +353,7 @@ struct WorkoutInProgressView: View {
                         }
                     }
                     startLiveActivity()
+                    healthManager.startWorkoutSession()
                 }
             }
         }
@@ -391,6 +392,7 @@ extension WorkoutInProgressView {
         // stop timers
         dismissBreakTimerView()
         endLiveActivity()
+        healthManager.endWorkoutSession()
         isWorkoutDone = true
 
         // Reset set completions (same as finishWorkout)
@@ -429,8 +431,13 @@ extension WorkoutInProgressView {
         completedWorkoutsViewModel.completedWorkouts.append(completedWorkout)
         completedWorkoutsViewModel.saveCompletedWorkouts()
 
-        // Save to Apple Health
-        healthManager.saveWorkout(startDate: startDate, endDate: Date(), elapsedTime: Date().timeIntervalSince(startDate))
+        // Save to Apple Health — live session saves automatically via its builder;
+        // fall back to manual save if no session was started (e.g. HealthKit denied)
+        if healthManager.hasActiveSession {
+            healthManager.endWorkoutSession()
+        } else {
+            healthManager.saveWorkout(startDate: startDate, endDate: Date(), elapsedTime: Date().timeIntervalSince(startDate))
+        }
 
         triggerHapticFeedback()
         withAnimation(.easeInOut(duration: 1)) {

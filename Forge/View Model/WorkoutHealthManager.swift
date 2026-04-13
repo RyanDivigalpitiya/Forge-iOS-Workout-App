@@ -3,6 +3,8 @@ import HealthKit
 class WorkoutHealthManager: ObservableObject {
 
     let healthStore = HKHealthStore()
+    private var workoutSession: Any?  // HKWorkoutSession (iOS 26+), stored as Any for backward compat
+    private var workoutBuilder: Any?  // HKLiveWorkoutBuilder (iOS 26+)
 
     func requestAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else { return }
@@ -13,6 +15,49 @@ class WorkoutHealthManager: ObservableObject {
             }
         }
     }
+
+    // MARK: - Live Workout Session (iOS 26+)
+
+    func startWorkoutSession() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        if #available(iOS 26.0, *) {
+            let configuration = HKWorkoutConfiguration()
+            configuration.activityType = .functionalStrengthTraining
+            do {
+                let session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let builder = session.associatedWorkoutBuilder()
+                builder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+                workoutSession = session
+                workoutBuilder = builder
+                session.startActivity(with: Date())
+                builder.beginCollection(withStart: Date()) { _, _ in }
+            } catch {
+                print("[Forge] Failed to start workout session: \(error)")
+            }
+        }
+    }
+
+    func endWorkoutSession() {
+        if #available(iOS 26.0, *) {
+            guard let session = workoutSession as? HKWorkoutSession,
+                  let builder = workoutBuilder as? HKLiveWorkoutBuilder else { return }
+            session.end()
+            builder.endCollection(withEnd: Date()) { _, _ in
+                builder.finishWorkout { workout, error in
+                    if let error {
+                        print("[Forge] HealthKit finish error: \(error)")
+                    }
+                }
+            }
+        }
+        workoutSession = nil
+        workoutBuilder = nil
+    }
+
+    /// Whether a live session is active (used to skip the manual save path)
+    var hasActiveSession: Bool { workoutSession != nil }
+
+    // MARK: - Manual Workout Save (fallback for iOS < 26 or when session fails)
 
     func saveWorkout(startDate: Date, endDate: Date, elapsedTime: TimeInterval) {
         guard HKHealthStore.isHealthDataAvailable() else { return }
