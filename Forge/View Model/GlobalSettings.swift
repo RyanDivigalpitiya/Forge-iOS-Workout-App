@@ -20,7 +20,15 @@ class GlobalSettings {
     let setsSpacing: CGFloat = 3
 
     // Timing
-    let breakDuration: Int = 60
+    var breakDuration: Int {
+        get {
+            let value = UserDefaults.standard.integer(forKey: "breakDurationSeconds")
+            return value > 0 ? value : 60
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "breakDurationSeconds")
+        }
+    }
 
     private init() {}
 }

@@ -58,6 +58,8 @@ struct WorkoutInProgressView: View {
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     @State private var breakTimerEndDate: Date? = nil
+    @State private var showTimerSettings = false
+    @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     
     var body: some View {
         ZStack {
@@ -135,7 +137,7 @@ struct WorkoutInProgressView: View {
                                                                             topToolBarHeight = screenHeight*0.8
                                                                             topToolBarCornerRadius = 30
                                                                             timerEnabled = true
-                                                                            breakTimerEndDate = Date().addingTimeInterval(TimeInterval(GlobalSettings.shared.breakDuration))
+                                                                            breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
                                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                                                 withAnimation(.easeInOut(duration: 0.5)) {
                                                                                     timerVisible = true
@@ -198,7 +200,7 @@ struct WorkoutInProgressView: View {
                                                         }
                                                         .frame(width: setButtonSize)
                                                         .padding(.vertical,8)
-                                                        Text("Rest ( 1 Minute )")
+                                                        Text("Rest ( \(selectedBreakDuration)s )")
                                                             .font(.system(size: 14))
                                                             .fontWeight(.bold)
                                                             .foregroundColor(darkGray)
@@ -252,11 +254,15 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(fgColor)
                                     Spacer()
 
-                                    // Invisible counterweight to keep the title centered
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 20, weight: .bold))
-                                        .hidden()
-                                        .padding(.trailing, 15)
+                                    Button(action: { showTimerSettings = true }) {
+                                        Image(systemName: "timer")
+                                            .font(.system(size: 20, weight: .light))
+                                            .foregroundColor(fgColor)
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .disabled(timerEnabled)
+                                    .padding(.trailing, 5)
                                 }
                                 .padding(.bottom,1)
                                 
@@ -277,7 +283,7 @@ struct WorkoutInProgressView: View {
                             Spacer()
                             if timerEnabled {
                                 BreakTimerView(
-                                    durationSeconds: GlobalSettings.shared.breakDuration,
+                                    durationSeconds: selectedBreakDuration,
                                     timerVisible: $timerVisible,
                                     onExpired: {
                                         // do NOT cancel the pending notification on natural expiry —
@@ -344,6 +350,17 @@ struct WorkoutInProgressView: View {
             Button("Yes", role: .destructive) {
                 cancelWorkout()
             }
+        }
+        .sheet(isPresented: $showTimerSettings) {
+            BreakDurationPickerView(
+                selectedDuration: $selectedBreakDuration,
+                onSave: {
+                    GlobalSettings.shared.breakDuration = selectedBreakDuration
+                }
+            )
+            .fixedSize(horizontal: false, vertical: true)
+            .presentationDetents([.height(300)])
+            .environment(\.colorScheme, .dark)
         }
     }
 }
@@ -558,6 +575,115 @@ extension WorkoutInProgressView {
         self.workoutActivity = nil
     }
 
+}
+
+struct BreakDurationPickerView: View {
+    @Binding var selectedDuration: Int
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var editingDuration: Int = 0
+
+    private let fgColor = GlobalSettings.shared.fgColor
+    private let buttonCircleBgColor = GlobalSettings.shared.buttonCircleBgColor
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
+    private let step = 5
+    private let minDuration = 5
+    private let maxDuration = 300
+    private var durationRange: [Int] { Array(stride(from: maxDuration, through: minDuration, by: -step)) }
+
+    var body: some View {
+        VStack {
+            // Top toolbar: X button, title, checkmark button
+            HStack {
+                Button(action: { dismiss() }) {
+                    ZStack {
+                        Circle()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(buttonCircleBgColor)
+                        Image(systemName: "xmark")
+                            .resizable()
+                            .frame(width: 11, height: 11)
+                            .fontWeight(.bold)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.leading, 20)
+
+                Spacer()
+
+                Text("Break Timer")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(fgColor)
+
+                Spacer()
+
+                Button(action: {
+                    selectedDuration = editingDuration
+                    onSave()
+                    dismiss()
+                }) {
+                    ZStack {
+                        Circle()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(buttonCircleBgColor)
+                        Image("Checkmark")
+                            .resizable()
+                            .frame(width: 15, height: 13)
+                    }
+                }
+                .padding(.trailing, 20)
+            }
+            .padding(.top, 25)
+
+            Picker(selection: $editingDuration, label: Text("Duration")) {
+                ForEach(durationRange, id: \.self) { value in
+                    Text("\(value)s")
+                        .foregroundColor(fgColor)
+                        .tag(value)
+                }
+            }
+            .pickerStyle(WheelPickerStyle())
+            .frame(maxHeight: 150)
+
+            HStack {
+                Button(action: {
+                    if editingDuration > minDuration {
+                        editingDuration -= step
+                        feedbackGenerator.impactOccurred()
+                    }
+                }) {
+                    Image(systemName: "minus")
+                        .foregroundColor(.black)
+                        .font(.system(size: 15))
+                        .bold()
+                        .padding(5)
+                }
+
+                Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+                Button(action: {
+                    if editingDuration < maxDuration {
+                        editingDuration += step
+                        feedbackGenerator.impactOccurred()
+                    }
+                }) {
+                    Image(systemName: "plus")
+                        .foregroundColor(.black)
+                        .font(.system(size: 15))
+                        .bold()
+                        .padding(5)
+                }
+            }
+            .frame(width: 85, height: 30)
+            .background(fgColor)
+            .cornerRadius(5)
+            .padding(.bottom, 20)
+        }
+        .onAppear {
+            editingDuration = selectedDuration
+        }
+    }
 }
 
 struct WorkoutInProgressView_Previews: PreviewProvider {

@@ -65,8 +65,6 @@ struct ReorderDeleteView: View {
                 .environment(\.editMode, $isEditing)
             }
             
-            Spacer()
-            
             HStack {
                 Button(action: {
                     dismiss()
@@ -82,9 +80,9 @@ struct ReorderDeleteView: View {
                     .foregroundColor(fgColor)
                 }
                 .padding(.top, 15)
+                .padding(.bottom, 20)
             }
         }
-        .background(.black)
         .onAppear{self.isEditing = .active}
     }
 }

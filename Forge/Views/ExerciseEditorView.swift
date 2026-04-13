@@ -242,7 +242,6 @@ struct ExerciseEditorView: View {
             }
             
         }
-        .background(.black)
         .onAppear {
             homoHeteroControlsAreConnected = false
             // initialize UI dimensions, labels + toggle based on activeExercise and activeMode
