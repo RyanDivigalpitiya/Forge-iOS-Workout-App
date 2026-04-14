@@ -9,7 +9,11 @@ class WorkoutHealthManager: ObservableObject {
     func requestAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let typesToShare: Swift.Set<HKSampleType> = [HKObjectType.workoutType()]
-        healthStore.requestAuthorization(toShare: typesToShare, read: []) { success, error in
+        let typesToRead: Swift.Set<HKObjectType> = [
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.heartRate)
+        ]
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if let error {
                 print("[Forge] HealthKit authorization error: \(error)")
             }
@@ -37,18 +41,27 @@ class WorkoutHealthManager: ObservableObject {
         }
     }
 
-    func endWorkoutSession() {
+    func endWorkoutSession(completion: @escaping (Double?) -> Void = { _ in }) {
         if #available(iOS 26.0, *) {
             guard let session = workoutSession as? HKWorkoutSession,
-                  let builder = workoutBuilder as? HKLiveWorkoutBuilder else { return }
+                  let builder = workoutBuilder as? HKLiveWorkoutBuilder else {
+                completion(nil)
+                return
+            }
             session.end()
             builder.endCollection(withEnd: Date()) { _, _ in
                 builder.finishWorkout { workout, error in
                     if let error {
                         print("[Forge] HealthKit finish error: \(error)")
                     }
+                    let stats = workout?.statistics(for: HKQuantityType(.activeEnergyBurned))
+                    let calories = stats?.sumQuantity()?.doubleValue(for: .kilocalorie())
+                    print("[Forge] HealthKit workout: \(workout != nil ? "present" : "nil"), stats: \(stats != nil ? "present" : "nil"), calories: \(calories as Any)")
+                    DispatchQueue.main.async { completion(calories) }
                 }
             }
+        } else {
+            completion(nil)
         }
         workoutSession = nil
         workoutBuilder = nil

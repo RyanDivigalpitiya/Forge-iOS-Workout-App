@@ -34,6 +34,18 @@ struct HistoryView: View {
                         .foregroundColor(darkGray)
                         .fontWeight(.bold)
                         .font(.system(size: 20))
+                    Spacer().frame(height:3)
+                    if let calories = completedWorkout.caloriesBurned {
+                        Text("\(Int(calories)) cal")
+                            .foregroundColor(darkGray)
+                            .fontWeight(.bold)
+                            .font(.system(size: 16))
+                    } else {
+                        Text("No Apple Watch")
+                            .foregroundColor(darkGray)
+                            .fontWeight(.bold)
+                            .font(.system(size: 16))
+                    }
                 }
                 .padding(.top, 20)
                 

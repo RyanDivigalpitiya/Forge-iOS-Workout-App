@@ -432,9 +432,16 @@ extension WorkoutInProgressView {
         completedWorkoutsViewModel.saveCompletedWorkouts()
 
         // Save to Apple Health — live session saves automatically via its builder;
-        // fall back to manual save if no session was started (e.g. HealthKit denied)
+        // fall back to manual save if no session was started (e.g. HealthKit denied).
+        // When the live session finishes, patch calories into the just-saved workout.
         if healthManager.hasActiveSession {
-            healthManager.endWorkoutSession()
+            healthManager.endWorkoutSession { calories in
+                print("[Forge] endWorkoutSession callback — calories: \(calories as Any)")
+                if let lastIndex = completedWorkoutsViewModel.completedWorkouts.indices.last {
+                    completedWorkoutsViewModel.completedWorkouts[lastIndex].caloriesBurned = calories
+                    completedWorkoutsViewModel.saveCompletedWorkouts()
+                }
+            }
         } else {
             healthManager.saveWorkout(startDate: startDate, endDate: Date(), elapsedTime: Date().timeIntervalSince(startDate))
         }
