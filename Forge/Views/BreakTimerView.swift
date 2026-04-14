@@ -34,7 +34,7 @@ struct BreakTimerView: View {
             let progress = total > 0 ? CGFloat(remaining) / CGFloat(total) : 0
 
             VStack(spacing: 0) {
-                Spacer()
+                Spacer().frame(maxHeight: 10)
 
                 ZStack {
                     Circle()
@@ -57,7 +57,7 @@ struct BreakTimerView: View {
                     }
                 }
                 .padding(.horizontal, 50)
-                .padding(.bottom, 20)
+                .padding(.bottom, 55)
 
                 // Up next info
                 if let exerciseName = nextExerciseName, let setDescription = nextSetDescription {
@@ -68,9 +68,16 @@ struct BreakTimerView: View {
                         Text(exerciseName)
                             .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.white)
-                        Text(setDescription)
-                            .font(.system(size: 19, weight: .medium))
-                            .foregroundColor(Color(.systemGray))
+                        let parts = setDescription.components(separatedBy: "  →  ")
+                        if parts.count == 2 {
+                            (Text(parts[0]).foregroundColor(fgColor) +
+                             Text("  →  \(parts[1])").foregroundColor(Color(.systemGray)))
+                                .font(.system(size: 19, weight: .medium))
+                        } else {
+                            Text(setDescription)
+                                .font(.system(size: 19, weight: .medium))
+                                .foregroundColor(Color(.systemGray))
+                        }
                     }
                     .padding(.bottom, 30)
                 }
