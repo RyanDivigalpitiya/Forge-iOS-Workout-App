@@ -473,6 +473,10 @@ extension WorkoutInProgressView {
         withAnimation(.easeInOut(duration: 1)) {
             isDoneCheckMarkVisible = true
         }
+        withAnimation(.easeInOut(duration: 2.0)) {
+            scrollViewScaleEffect = 0.95
+            isWorkoutOpacityFull = false
+        }
         showConfetti = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             // Reset set completions and save plan AFTER the dismiss animation,
@@ -516,7 +520,9 @@ extension WorkoutInProgressView {
             withAnimation(.easeInOut(duration: 0.5)) {
                 isScrollViewDisabled = false
                 scrollViewVisible = true
-                scrollViewScaleEffect = 1.0
+                if !isWorkoutDone {
+                    scrollViewScaleEffect = 1.0
+                }
                 timerEnabled = false       // removes BreakTimerView from view tree → its onDisappear cancels its timer subscription
                 breakTimerEndDate = nil
                 topToolBarHeight = 163
