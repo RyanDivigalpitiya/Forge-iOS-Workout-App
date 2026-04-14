@@ -294,9 +294,12 @@ struct WorkoutInProgressView: View {
                             
                             Spacer()
                             if timerEnabled {
+                                let nextSet = findNextIncompleteSet()
                                 BreakTimerView(
                                     durationSeconds: selectedBreakDuration,
                                     timerVisible: $timerVisible,
+                                    nextExerciseName: nextSet?.exerciseName,
+                                    nextSetDescription: nextSet?.setDescription,
                                     onExpired: {
                                         // do NOT cancel the pending notification on natural expiry —
                                         // it has either already fired or is about to, and cancelling

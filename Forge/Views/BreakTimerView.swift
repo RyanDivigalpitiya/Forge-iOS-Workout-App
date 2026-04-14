@@ -17,6 +17,8 @@ struct BreakTimerView: View {
 
     let durationSeconds: Int
     @Binding var timerVisible: Bool
+    let nextExerciseName: String?
+    let nextSetDescription: String?
     let onExpired: () -> Void
     let onCancelTapped: () -> Void
 
@@ -33,14 +35,6 @@ struct BreakTimerView: View {
 
             VStack(spacing: 0) {
                 Spacer()
-                HStack {
-                    Spacer()
-                    Text("Rest for ")
-                        .font(.system(size: 40))
-                        .fontWeight(.bold)
-                        .foregroundColor(fgColor)
-                    Spacer()
-                }
 
                 ZStack {
                     Circle()
@@ -52,12 +46,34 @@ struct BreakTimerView: View {
                         .foregroundColor(fgColor)
                         .rotationEffect(Angle(degrees: -90))
                         .animation(.linear(duration: 1), value: remaining)
-                    Text("\(remaining) s")
-                        .font(.system(size: 60))
-                        .foregroundColor(fgColor)
-                        .fontWeight(.bold)
+                    VStack(spacing: 2) {
+                        Text("Rest for")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(fgColor)
+                        Text("\(remaining)s")
+                            .font(.system(size: 60, weight: .bold))
+                            .foregroundColor(fgColor)
+                            .monospacedDigit()
+                    }
                 }
-                .padding(.vertical, 50)
+                .padding(.horizontal, 50)
+                .padding(.bottom, 20)
+
+                // Up next info
+                if let exerciseName = nextExerciseName, let setDescription = nextSetDescription {
+                    VStack(spacing: 6) {
+                        Text("Up Next")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(Color(.systemGray))
+                        Text(exerciseName)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.white)
+                        Text(setDescription)
+                            .font(.system(size: 19, weight: .medium))
+                            .foregroundColor(Color(.systemGray))
+                    }
+                    .padding(.bottom, 30)
+                }
 
                 Button(action: {
                     onCancelTapped()
