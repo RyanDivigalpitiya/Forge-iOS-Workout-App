@@ -63,6 +63,7 @@ struct WorkoutInProgressView: View {
     @State private var breakTimerEndDate: Date? = nil
     @State private var showTimerSettings = false
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
+    @State private var showConfetti = false
     
     var body: some View {
         ZStack {
@@ -370,6 +371,12 @@ struct WorkoutInProgressView: View {
                     healthManager.startWorkoutSession()
                 }
             }
+
+            if showConfetti {
+                ConfettiView(colors: [settings.fgColor, .white, .black])
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
         }
         .disabled(isWorkoutDone)
         .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
@@ -466,7 +473,8 @@ extension WorkoutInProgressView {
         withAnimation(.easeInOut(duration: 1)) {
             isDoneCheckMarkVisible = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        showConfetti = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             // Reset set completions and save plan AFTER the dismiss animation,
             // so the user never sees exercises visually unchecking.
             for exerciseIndex in planViewModel.activePlan.exercises.indices {
