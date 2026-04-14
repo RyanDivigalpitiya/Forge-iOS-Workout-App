@@ -49,7 +49,7 @@ class WorkoutHealthManager: ObservableObject {
                 return
             }
             session.end()
-            builder.endCollection(withEnd: Date()) { _, _ in
+            builder.endCollection(withEnd: Date()) { [weak self] _, _ in
                 builder.finishWorkout { workout, error in
                     if let error {
                         print("[Forge] HealthKit finish error: \(error)")
@@ -57,14 +57,18 @@ class WorkoutHealthManager: ObservableObject {
                     let stats = workout?.statistics(for: HKQuantityType(.activeEnergyBurned))
                     let calories = stats?.sumQuantity()?.doubleValue(for: .kilocalorie())
                     print("[Forge] HealthKit workout: \(workout != nil ? "present" : "nil"), stats: \(stats != nil ? "present" : "nil"), calories: \(calories as Any)")
-                    DispatchQueue.main.async { completion(calories) }
+                    DispatchQueue.main.async {
+                        self?.workoutSession = nil
+                        self?.workoutBuilder = nil
+                        completion(calories)
+                    }
                 }
             }
         } else {
             completion(nil)
+            workoutSession = nil
+            workoutBuilder = nil
         }
-        workoutSession = nil
-        workoutBuilder = nil
     }
 
     /// Whether a live session is active (used to skip the manual save path)

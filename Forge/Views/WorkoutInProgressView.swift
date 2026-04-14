@@ -134,6 +134,7 @@ struct WorkoutInProgressView: View {
                                                                 if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                                     isScrollViewDisabled = true
                                                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                                                        guard !isWorkoutDone else { return }
                                                                         withAnimation(.easeInOut(duration: 0.5)) {
                                                                             scrollViewScaleEffect = 0.95
                                                                             scrollViewVisible = false
@@ -142,6 +143,7 @@ struct WorkoutInProgressView: View {
                                                                             timerEnabled = true
                                                                             breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
                                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                                                guard !isWorkoutDone else { return }
                                                                                 withAnimation(.easeInOut(duration: 0.5)) {
                                                                                     timerVisible = true
                                                                                 }

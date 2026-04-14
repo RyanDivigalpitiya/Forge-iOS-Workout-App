@@ -53,7 +53,11 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
 
         // Guaranteed eventual delivery — latest state wins.
-        try? WCSession.default.updateApplicationContext(payload)
+        do {
+            try WCSession.default.updateApplicationContext(payload)
+        } catch {
+            print("[Forge] WC updateApplicationContext error: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - WCSessionDelegate

@@ -64,8 +64,7 @@ struct PlanEditorView: View {
                 // LIST OF EXERCISES
                 List {
                     ForEach(planViewModel.activePlan.exercises) { exercise in
-                        let exerciseIndex = planViewModel.activePlan.exercises.firstIndex(where: { $0.id == exercise.id })!
-
+                      if let exerciseIndex = planViewModel.activePlan.exercises.firstIndex(where: { $0.id == exercise.id }) {
                         // EDIT BUTTON
                         Button(action: {
                             exerciseViewModel.activeExerciseMode = .edit
@@ -132,6 +131,7 @@ struct PlanEditorView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15))
+                      }
                     }
                     .onMove(perform: planViewModel.moveExercise)
 

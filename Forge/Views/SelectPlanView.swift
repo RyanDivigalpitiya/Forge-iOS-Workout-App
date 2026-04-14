@@ -23,7 +23,7 @@ struct SelectPlanView: View {
         ZStack {
             List {
                 ForEach(planViewModel.workoutPlans) { plan in
-                    let index = planViewModel.workoutPlans.firstIndex(where: { $0.id == plan.id })!
+                  if let index = planViewModel.workoutPlans.firstIndex(where: { $0.id == plan.id }) {
                     HStack(spacing:0){
                         VStack {
                             VStack {
@@ -132,6 +132,7 @@ struct SelectPlanView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 13, leading: 20, bottom: 13, trailing: 20))
+                  }
                 }
                 .onMove(perform: planViewModel.movePlan)
 
