@@ -34,21 +34,66 @@ struct HistoryView: View {
                         .foregroundColor(darkGray)
                         .fontWeight(.bold)
                         .font(.system(size: 20))
-                    Spacer().frame(height:3)
-                    if let calories = completedWorkout.caloriesBurned {
-                        Text("\(Int(calories)) cal")
-                            .foregroundColor(darkGray)
-                            .fontWeight(.bold)
-                            .font(.system(size: 16))
-                    } else {
-                        Text("No Apple Watch")
-                            .foregroundColor(darkGray)
-                            .fontWeight(.bold)
-                            .font(.system(size: 16))
-                    }
                 }
                 .padding(.top, 20)
-                
+
+                // Stats row: calories | completion ring | duration
+                HStack {
+                    // Calories
+                    VStack(spacing: 2) {
+                        if let calories = completedWorkout.caloriesBurned {
+                            Text("\(Int(calories))")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("cal")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(darkGray)
+                        } else {
+                            Text("—")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("cal")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(darkGray)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // Completion ring
+                    let percent = Int(completedWorkout.completion.replacingOccurrences(of: "%", with: "")) ?? 0
+                    ZStack {
+                        Circle()
+                            .stroke(darkGray.opacity(0.3), lineWidth: 6)
+                        Circle()
+                            .trim(from: 0, to: CGFloat(percent) / 100)
+                            .stroke(fgColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        VStack(spacing: 0) {
+                            Text("\(percent)%")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Finished")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(darkGray)
+                        }
+                    }
+                    .frame(width: 72, height: 72)
+
+                    // Duration
+                    VStack(spacing: 2) {
+                        Text("\(Int(completedWorkout.elapsedTime / 60))")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("min")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(darkGray)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 15)
+                .padding(.bottom, 10)
+
                 // EXERCISE LIST
                 ForEach(completedWorkout.workout.exercises.indices, id: \.self) { exerciseIndex in
                     
