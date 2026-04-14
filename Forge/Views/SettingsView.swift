@@ -39,33 +39,6 @@ struct SettingsView: View {
                 Text("Accent Color")
             }
 
-            Section {
-                ForEach(ConfettiStyle.allCases, id: \.self) { style in
-                    Button {
-                        settings.confettiStyle = style
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(style.displayName)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                Text(style.description)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            if settings.confettiStyle == style {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(settings.fgColor)
-                            }
-                        }
-                    }
-                    .listRowBackground(GlobalSettings.shared.bgColor)
-                }
-            } header: {
-                Text("Confetti Animation")
-            }
 
             Section {
                 let plansWithDate = planViewModel.workoutPlans.filter { $0.lastCompleted != nil }

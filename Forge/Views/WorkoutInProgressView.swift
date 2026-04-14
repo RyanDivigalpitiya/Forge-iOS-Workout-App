@@ -373,7 +373,7 @@ struct WorkoutInProgressView: View {
             }
 
             if showConfetti {
-                ConfettiView(colors: [settings.fgColor, .white, .black], style: settings.confettiStyle)
+                ConfettiView(colors: [settings.fgColor, .white, .black])
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }

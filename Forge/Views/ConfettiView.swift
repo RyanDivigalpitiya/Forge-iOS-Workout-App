@@ -1,11 +1,10 @@
 import SwiftUI
 
 /// Full-screen confetti overlay rendered via Canvas + TimelineView for smooth 60fps playback.
-/// Supports multiple animation styles controlled by `ConfettiStyle`.
+/// Two streams shoot from the bottom corners and float back down with air-drag physics.
 struct ConfettiView: View {
 
     let colors: [Color]
-    let style: ConfettiStyle
 
     @State private var particles: [Particle] = []
     @State private var startDate: Date = Date()
@@ -60,74 +59,44 @@ struct ConfettiView: View {
         }
     }
 
-    /// Computes particle position based on the active confetti style.
+    /// Air-drag physics: particles peak quickly (~0.5s) then float down at terminal velocity.
     private func position(for p: Particle, age t: CGFloat, screenHeight: CGFloat) -> CGPoint {
         let wobbleX = sin(t * p.wobbleFreq) * p.wobbleAmp
+        let g: CGFloat = 800
+        let k: CGFloat = 4.0
+        let termV = g / k
+        let decay = exp(-k * t)
+        let coeff = (p.vy - termV) / k
 
-        switch style {
-        case .rainDown:
-            // Burst from top: upward initial velocity, strong gravity pulls down
-            let gravity: CGFloat = 600
-            let x = p.startX + p.vx * t + wobbleX
-            let y = p.startY + p.vy * t + 0.5 * gravity * t * t
-            return CGPoint(x: x, y: y)
+        let yOffset = coeff * (1 - decay) + termV * t
+        let xOffset = (p.vx / k) * (1 - decay)
 
-        case .burstUp:
-            // Shoot up from bottom with air-drag physics so particles peak
-            // quickly (~0.5s) then float back down at terminal velocity.
-            //   v(t) = (v0 - g/k) * e^(-kt) + g/k
-            //   y(t) = (v0 - g/k)/k * (1 - e^(-kt)) + (g/k) * t
-            // Terminal velocity = g/k ≈ 200 pts/s (gentle descent).
-            let g: CGFloat = 800
-            let k: CGFloat = 4.0
-            let termV = g / k                          // 200 pts/s
-            let decay = exp(-k * t)                    // e^(-kt)
-            let coeff = (p.vy - termV) / k
-
-            let yOffset = coeff * (1 - decay) + termV * t
-            let xOffset = (p.vx / k) * (1 - decay)
-
-            let x = p.startX + xOffset + wobbleX
-            let y = screenHeight + p.startY + yOffset
-            return CGPoint(x: x, y: y)
-        }
+        let x = p.startX + xOffset + wobbleX
+        let y = screenHeight + p.startY + yOffset
+        return CGPoint(x: x, y: y)
     }
 
     private func generateParticles() {
         let screenWidth = UIScreen.main.bounds.width
+        let half = particleCount / 2
 
-        switch style {
-        case .rainDown:
-            particles = (0..<particleCount).map { _ in
-                makeParticle(
-                    startX: CGFloat.random(in: -20...(screenWidth + 20)),
-                    startY: CGFloat.random(in: -40...0),
-                    vx: CGFloat.random(in: -150...150),
-                    vy: CGFloat.random(in: -400 ... -100)
-                )
-            }
-
-        case .burstUp:
-            // Two streams from bottom corners, each angling inward
-            let half = particleCount / 2
-            let leftStream = (0..<half).map { _ in
-                makeParticle(
-                    startX: CGFloat.random(in: -20...40),
-                    startY: CGFloat.random(in: -30...30),
-                    vx: CGFloat.random(in: 50...900),
-                    vy: CGFloat.random(in: -3200 ... -1800)
-                )
-            }
-            let rightStream = (0..<(particleCount - half)).map { _ in
-                makeParticle(
-                    startX: screenWidth + CGFloat.random(in: -40...20),
-                    startY: CGFloat.random(in: -30...30),
-                    vx: CGFloat.random(in: -900 ... -50),
-                    vy: CGFloat.random(in: -3200 ... -1800)
-                )
-            }
-            particles = leftStream + rightStream
+        let leftStream = (0..<half).map { _ in
+            makeParticle(
+                startX: CGFloat.random(in: -20...40),
+                startY: CGFloat.random(in: -30...30),
+                vx: CGFloat.random(in: 50...900),
+                vy: CGFloat.random(in: -3200 ... -1800)
+            )
         }
+        let rightStream = (0..<(particleCount - half)).map { _ in
+            makeParticle(
+                startX: screenWidth + CGFloat.random(in: -40...20),
+                startY: CGFloat.random(in: -30...30),
+                vx: CGFloat.random(in: -900 ... -50),
+                vy: CGFloat.random(in: -3200 ... -1800)
+            )
+        }
+        particles = leftStream + rightStream
     }
 
     private func makeParticle(startX: CGFloat, startY: CGFloat, vx: CGFloat, vy: CGFloat) -> Particle {
