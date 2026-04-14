@@ -61,6 +61,7 @@ struct CompletedWorkoutsView: View {
                     }
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
+                .listRowBackground(bgColor)
             }
             .sheet(isPresented: $historyViewIsPresented) {
                 HistoryView()

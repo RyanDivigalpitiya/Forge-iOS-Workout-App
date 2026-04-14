@@ -47,7 +47,7 @@ All ViewModels are `ObservableObject` with `@Published` properties, accessed in 
 ## Data Models (`Forge/Data Model/`)
 
 - `WorkoutPlan` → has `[Exercise]` → each has `[Set]` (weight, reps, tillFailure, completed). All `Identifiable + Codable` with UUID identifiers.
-- `CompletedWorkout` — snapshot with date, elapsed time, completion percentage.
+- `CompletedWorkout` — snapshot with date, elapsed time, completion percentage, optional `caloriesBurned: Double?` (nil for workouts without Apple Watch).
 - `Exercise.sets` has a `didSet` observer that auto-computes `areSetsUnique` (via `doesExerciseHaveUniqueSets()`) and `completed` (true when every set is completed).
 - `EditorMode.swift` — three enums replacing the old string-based mode flags: `PlanEditorMode` (`.add`/`.edit`), `ExerciseEditorMode` (`.add`/`.edit`/`.log`), `ReorderDeleteMode` (`.plan`/`.exercise`).
 - `WorkoutActivityAttributes` — ActivityKit data contract for Live Activities. Static: `planName`. Dynamic `ContentState`: `percentCompleted`, `isResting`, `restEndDate`, `nextExerciseName`, `nextSetDescription`. Compiled into both `Forge` and `ForgeWidgetsExtension` targets.
@@ -66,10 +66,10 @@ The two largest views were decomposed into focused child components. Parent view
 | `HeterogeneousSetEditor` | ~235 | Per-set rows with weight/reps/till-failure controls — used by ExerciseEditorView |
 | `WorkoutInProgressView` | ~720 | Active workout — coordinator + Live Activity + HealthKit + stopwatch + break timer config |
 | `StartingCountdownView` | ~100 | 3-second pre-workout countdown — self-contained |
-| `BreakTimerView` | ~130 | Configurable rest timer (TimelineView-based) + notification — used by WorkoutInProgressView |
+| `BreakTimerView` | ~155 | Configurable rest timer (TimelineView-based) + notification + "Up Next" exercise/set info — used by WorkoutInProgressView |
 | `WorkoutBottomToolbarView` | ~120 | Add / Done / Edit toolbar — used by WorkoutInProgressView |
 | `SetView` | ~140 | Reusable set-row rendering — used by PlanEditorView, HistoryView, WorkoutInProgressView. Parameterized via `Content` (`.individual` / `.summary`) and `Appearance` (`.standard` / `.muted` / `.workoutActive(isCompleted:)`) enums. |
-| `HistoryView` | ~135 | Read-only detail view of a past workout |
+| `HistoryView` | ~200 | Read-only detail view of a past workout — stats row (calories, completion ring, duration) + Dismiss toolbar |
 | `ReorderDeleteView` | ~100 | Reorder/delete sheet for plans or exercises |
 
 ## Live Activity & Widget Extension (`ForgeWidgets/`)
@@ -98,8 +98,9 @@ The `ForgeWidgetsExtension` target provides a Live Activity that shows workout p
 
 **`WorkoutHealthManager`** (`Forge/View Model/WorkoutHealthManager.swift`) — injected as `@EnvironmentObject` from `ForgeApp`.
 
-- **Authorization:** Requests write access to `HKObjectType.workoutType()` on app launch.
-- **Live session (iOS 26+):** `startWorkoutSession()` creates an `HKWorkoutSession` + `HKLiveWorkoutBuilder` that collects heart rate and calorie data from Apple Watch during the workout. `endWorkoutSession()` ends the session and saves via the builder's `finishWorkout()`. The Live Activity also surfaces on the Apple Watch automatically.
+- **Authorization:** Requests write access to `HKObjectType.workoutType()` and read access to `activeEnergyBurned` + `heartRate` on app launch.
+- **Live session (iOS 26+):** `startWorkoutSession()` creates an `HKWorkoutSession` + `HKLiveWorkoutBuilder` that collects heart rate and calorie data from Apple Watch during the workout. `endWorkoutSession(completion:)` ends the session, extracts calories from `workout.statistics(for: .activeEnergyBurned)`, and returns them via a completion handler. The Live Activity also surfaces on the Apple Watch automatically.
+- **Calorie capture:** `endWorkoutSession` accepts an `@escaping (Double?) -> Void` completion handler (default `{ _ in }`). On iOS 26+, calories are extracted from the finished workout's statistics and dispatched on the main thread. `finishWorkout()` saves the `CompletedWorkout` immediately with nil calories, then patches the value in via the completion handler. `cancelWorkout()` passes the default empty handler since cancelled workouts aren't saved.
 - **Manual save (fallback):** `saveWorkout(startDate:endDate:elapsedTime:)` uses `HKWorkoutBuilder` to save a `.functionalStrengthTraining` workout without a live session. Used when the live session fails to start or on iOS < 26.
 - **Lifecycle:** Session starts after the 3-second countdown (alongside `startLiveActivity()`). On `finishWorkout()`, the live session is ended if active; otherwise falls back to manual save. On `cancelWorkout()`, the session is ended unconditionally.
 - **Note:** `Swift.Set` must be used instead of `Set` when calling HealthKit APIs, because the project's `Set` data model type shadows Swift's built-in `Set`.
@@ -159,6 +160,7 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 10. Configurable break timer (5–300s) with UserDefaults persistence + wheel picker UI. BreakTimerView migrated from `Timer.publish` to `TimelineView` to survive parent re-renders.
 11. HealthKit integration — completed workouts saved as Functional Strength Training. Live `HKWorkoutSession` on iOS 26+ with Apple Watch data collection.
 12. Dark mode enforcement — `UIUserInterfaceStyle=Dark` in Info.plist, adaptive system colors replaced with fixed dark values, Liquid Glass sheet backgrounds.
+13. HealthKit calorie capture — `endWorkoutSession` returns calories via completion handler, `CompletedWorkout.caloriesBurned` field, HistoryView stats row (calories/completion ring/duration), break timer "Up Next" display.
 
 ## Git usage
 
