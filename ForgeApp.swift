@@ -19,6 +19,8 @@ struct ForgeApp: App {
                 print("Notification permissions denied")
             }
         }
+
+        PhoneSessionManager.shared.activateSession()
     }
 
     var body: some Scene {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications, ActivityKit, WidgetKit, HealthKit). Dark-mode only.
+Forge is a minimal native iOS app (SwiftUI, Swift 5) for tracking weightlifting workouts. No external dependencies — uses only system frameworks (SwiftUI, Combine, UIKit, UserNotifications, ActivityKit, WidgetKit, HealthKit, WatchConnectivity). Dark-mode only. Includes an Apple Watch companion app for break timer haptic alerts.
 
 User flow: History screen → Plan Selector → Active Workout → back to History with the completed workout logged.
 
@@ -25,8 +25,8 @@ xcodebuild test -project Forge.xcodeproj -scheme Forge \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- iOS deployment target: 18.6 (`Forge` and `ForgeWidgetsExtension` targets). The `ForgeTests` target uses iOS 26.4 — Xcode's default for newly-created targets — which is fine because tests only run on the simulator.
-- Bundle ID: `Ryan-Div.Forge`. Widget extension: `Ryan-Div.Forge.ForgeWidgets`. Test bundle: `Ryan-Div.ForgeTests`.
+- iOS deployment target: 18.6 (`Forge` and `ForgeWidgetsExtension` targets). watchOS deployment target: 11.0 (`ForgeWatch`). The `ForgeTests` target uses iOS 26.4 — Xcode's default for newly-created targets — which is fine because tests only run on the simulator.
+- Bundle ID: `Ryan-Div.Forge`. Widget extension: `Ryan-Div.Forge.ForgeWidgets`. Watch app: `Ryan-Div.Forge.watchkitapp`. Test bundle: `Ryan-Div.ForgeTests`.
 - Builds should be **warning-free**. If you introduce a deprecation warning, fix it in the same change.
 
 ## Architecture
@@ -71,6 +71,7 @@ The two largest views were decomposed into focused child components. Parent view
 | `SetView` | ~140 | Reusable set-row rendering — used by PlanEditorView, HistoryView, WorkoutInProgressView. Parameterized via `Content` (`.individual` / `.summary`) and `Appearance` (`.standard` / `.muted` / `.workoutActive(isCompleted:)`) enums. |
 | `HistoryView` | ~200 | Read-only detail view of a past workout — stats row (calories, completion ring, duration) + Dismiss toolbar |
 | `ReorderDeleteView` | ~100 | Reorder/delete sheet for plans or exercises |
+| `BreakTimerWatchView` | ~110 | watchOS break timer — countdown ring + haptic on expiry (ForgeWatch target) |
 
 ## Live Activity & Widget Extension (`ForgeWidgets/`)
 
@@ -104,6 +105,27 @@ The `ForgeWidgetsExtension` target provides a Live Activity that shows workout p
 - **Manual save (fallback):** `saveWorkout(startDate:endDate:elapsedTime:)` uses `HKWorkoutBuilder` to save a `.functionalStrengthTraining` workout without a live session. Used when the live session fails to start or on iOS < 26.
 - **Lifecycle:** Session starts after the 3-second countdown (alongside `startLiveActivity()`). On `finishWorkout()`, the live session is ended if active; otherwise falls back to manual save. On `cancelWorkout()`, the session is ended unconditionally.
 - **Note:** `Swift.Set` must be used instead of `Set` when calling HealthKit APIs, because the project's `Set` data model type shadows Swift's built-in `Set`.
+
+## Apple Watch Companion App (`ForgeWatch/`)
+
+The `ForgeWatch` target is a standalone watchOS app that receives break timer state from the iPhone via WatchConnectivity and fires a haptic alert when the timer expires — solving the problem that iOS won't route notifications to the watch while the phone is in the foreground.
+
+**Files:**
+- `ForgeWatchApp.swift` — `@main` App struct, activates `WatchSessionManager` on init
+- `WatchSessionManager.swift` — `WCSessionDelegate` singleton, receives messages from phone, manages `@Published timerState` (`.idle` / `.counting` / `.expired`)
+- `BreakTimerWatchView.swift` — single SwiftUI view with three visual states (idle, countdown ring, "Start Next Set" prompt). Uses `TimelineView` for countdown (same pattern as iOS `BreakTimerView`)
+
+**Phone side:**
+- `PhoneSessionManager.swift` (`Forge/View Model/`) — `WCSessionDelegate` singleton, activated in `ForgeApp.init()`
+- Three call sites in `WorkoutInProgressView`: timer starts → `sendTimerStarted()`, timer dismissed → `sendTimerDismissed()`, workout ends → `sendWorkoutEnded()`
+
+**Message protocol (phone → watch):**
+- `timerStarted` — carries `endDate` (TimeInterval), `duration` (Int), `exerciseName`, `setDescription`
+- `timerDismissed` / `workoutEnded` — signals watch to return to idle state
+
+**Dual delivery:** Each message is sent via both `sendMessage` (real-time when watch is reachable) and `updateApplicationContext` (guaranteed eventual delivery). The watch checks `receivedApplicationContext` on activation to catch messages sent while the app was suspended.
+
+**Haptic:** `WKInterfaceDevice.current().play(.notification)` fires once when the countdown reaches zero or when a `timerStarted` message arrives with an already-past `endDate`.
 
 ## Timer & Notification System
 
@@ -161,6 +183,7 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 11. HealthKit integration — completed workouts saved as Functional Strength Training. Live `HKWorkoutSession` on iOS 26+ with Apple Watch data collection.
 12. Dark mode enforcement — `UIUserInterfaceStyle=Dark` in Info.plist, adaptive system colors replaced with fixed dark values, Liquid Glass sheet backgrounds.
 13. HealthKit calorie capture — `endWorkoutSession` returns calories via completion handler, `CompletedWorkout.caloriesBurned` field, HistoryView stats row (calories/completion ring/duration), break timer "Up Next" display.
+14. Apple Watch companion app — `ForgeWatch` watchOS target with WatchConnectivity. Phone sends break timer state to watch; watch shows countdown ring and fires haptic on expiry. `PhoneSessionManager` (phone) and `WatchSessionManager` (watch) singletons with dual `sendMessage` + `updateApplicationContext` delivery.
 
 ## Git usage
 

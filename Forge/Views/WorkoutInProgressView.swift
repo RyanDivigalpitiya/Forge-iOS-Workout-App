@@ -148,10 +148,17 @@ struct WorkoutInProgressView: View {
                                                                             }
                                                                         }
                                                                         updateLiveActivity()
+                                                                        let nextSetForWatch = findNextIncompleteSet()
+                                                                        PhoneSessionManager.shared.sendTimerStarted(
+                                                                            endDate: breakTimerEndDate!,
+                                                                            duration: selectedBreakDuration,
+                                                                            exerciseName: nextSetForWatch?.exerciseName,
+                                                                            setDescription: nextSetForWatch?.setDescription
+                                                                        )
                                                                     }
                                                                 }
                                                             }
-                                                            
+
                                                             feedbackGenerator.impactOccurred()
                                                             calcPercentCompleted()
                                                             updateLiveActivity()
@@ -395,6 +402,7 @@ extension WorkoutInProgressView {
         // stop timers
         dismissBreakTimerView()
         endLiveActivity()
+        PhoneSessionManager.shared.sendWorkoutEnded()
         healthManager.endWorkoutSession()
         isWorkoutDone = true
 
@@ -422,6 +430,7 @@ extension WorkoutInProgressView {
         // stop timers
         dismissBreakTimerView()
         endLiveActivity()
+        PhoneSessionManager.shared.sendWorkoutEnded()
         isWorkoutDone = true
 
         // save completed workout to persistant storage
@@ -502,6 +511,7 @@ extension WorkoutInProgressView {
                 topToolBarCornerRadius = 0
             }
             updateLiveActivity()
+            PhoneSessionManager.shared.sendTimerDismissed()
         }
     }
 
