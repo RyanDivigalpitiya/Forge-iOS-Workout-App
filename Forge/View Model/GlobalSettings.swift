@@ -26,6 +26,25 @@ enum ColorTheme: String, CaseIterable, Codable {
     }
 }
 
+enum ConfettiStyle: String, CaseIterable, Codable {
+    case rainDown
+    case burstUp
+
+    var displayName: String {
+        switch self {
+        case .rainDown: return "Confetti #1"
+        case .burstUp:  return "Confetti #2"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .rainDown: return "Rains from above"
+        case .burstUp:  return "Shoots up, floats down"
+        }
+    }
+}
+
 class GlobalSettings: ObservableObject {
     static let shared = GlobalSettings()
 
@@ -34,6 +53,7 @@ class GlobalSettings: ObservableObject {
     // didSet on @Published properties can break objectWillChange
     // delivery in some Swift versions.
     @Published var colorTheme: ColorTheme = .red
+    @Published var confettiStyle: ConfettiStyle = .rainDown
 
     var fgColor: Color { colorTheme.color }
 
@@ -62,18 +82,27 @@ class GlobalSettings: ObservableObject {
         }
     }
 
-    private var cancellable: AnyCancellable?
+    private var cancellables: [AnyCancellable] = []
 
     private init() {
         if let raw = UserDefaults.standard.string(forKey: "colorTheme"),
            let theme = ColorTheme(rawValue: raw) {
             _colorTheme = Published(initialValue: theme)
         }
+        if let raw = UserDefaults.standard.string(forKey: "confettiStyle"),
+           let style = ConfettiStyle(rawValue: raw) {
+            _confettiStyle = Published(initialValue: style)
+        }
 
-        cancellable = $colorTheme
+        cancellables.append($colorTheme
             .dropFirst()
             .sink { theme in
                 UserDefaults.standard.set(theme.rawValue, forKey: "colorTheme")
-            }
+            })
+        cancellables.append($confettiStyle
+            .dropFirst()
+            .sink { style in
+                UserDefaults.standard.set(style.rawValue, forKey: "confettiStyle")
+            })
     }
 }

@@ -1,16 +1,16 @@
 import SwiftUI
 
 /// Full-screen confetti overlay rendered via Canvas + TimelineView for smooth 60fps playback.
-/// Particles burst from the top edge and fall under gravity with wobble and rotation.
+/// Supports multiple animation styles controlled by `ConfettiStyle`.
 struct ConfettiView: View {
 
     let colors: [Color]
+    let style: ConfettiStyle
 
     @State private var particles: [Particle] = []
     @State private var startDate: Date = Date()
 
     private let particleCount = 150
-    private let gravity: CGFloat = 600
     private let totalDuration: TimeInterval = 2.5
 
     var body: some View {
@@ -23,14 +23,10 @@ struct ConfettiView: View {
                         let age = elapsed - particle.spawnDelay
                         guard age > 0 else { continue }
 
-                        // Position: initial velocity + gravity + sinusoidal wobble
-                        let x = particle.startX + particle.vx * age
-                            + sin(age * particle.wobbleFreq) * particle.wobbleAmp
-                        let y = particle.startY + particle.vy * age
-                            + 0.5 * gravity * age * age
+                        let pos = position(for: particle, age: age, screenHeight: size.height)
 
-                        // Skip particles that have fallen well below the screen
-                        guard y < size.height + 100 else { continue }
+                        // Skip particles outside the visible area
+                        guard pos.y < size.height + 100 && pos.y > -100 else { continue }
 
                         let rotation = Angle(radians: particle.rotation + particle.angularVelocity * age)
 
@@ -50,7 +46,7 @@ struct ConfettiView: View {
 
                         var ctx = context
                         ctx.opacity = opacity
-                        ctx.translateBy(x: x, y: y)
+                        ctx.translateBy(x: pos.x, y: pos.y)
                         ctx.rotate(by: rotation)
                         ctx.fill(rect, with: .color(particle.color))
                     }
@@ -64,14 +60,35 @@ struct ConfettiView: View {
         }
     }
 
+    /// Computes particle position based on the active confetti style.
+    private func position(for p: Particle, age: CGFloat, screenHeight: CGFloat) -> CGPoint {
+        let wobbleX = sin(age * p.wobbleFreq) * p.wobbleAmp
+
+        switch style {
+        case .rainDown:
+            // Burst from top: upward initial velocity, strong gravity pulls down
+            let gravity: CGFloat = 600
+            let x = p.startX + p.vx * age + wobbleX
+            let y = p.startY + p.vy * age + 0.5 * gravity * age * age
+            return CGPoint(x: x, y: y)
+
+        case .burstUp:
+            // Shoot up from bottom: strong upward velocity, gentle gravity floats down
+            let gravity: CGFloat = 200
+            let x = p.startX + p.vx * age + wobbleX
+            let y = screenHeight + p.startY + p.vy * age + 0.5 * gravity * age * age
+            return CGPoint(x: x, y: y)
+        }
+    }
+
     private func generateParticles() {
         let screenWidth = UIScreen.main.bounds.width
         particles = (0..<particleCount).map { _ in
             Particle(
                 startX: CGFloat.random(in: -20...(screenWidth + 20)),
-                startY: CGFloat.random(in: -40...0),
+                startY: startY(for: style),
                 vx: CGFloat.random(in: -150...150),
-                vy: CGFloat.random(in: -400 ... -100),
+                vy: initialVY(for: style),
                 rotation: CGFloat.random(in: 0...(2 * .pi)),
                 angularVelocity: CGFloat.random(in: -8...8),
                 width: CGFloat.random(in: 6...12),
@@ -81,6 +98,20 @@ struct ConfettiView: View {
                 wobbleFreq: CGFloat.random(in: 2...5),
                 wobbleAmp: CGFloat.random(in: 10...30)
             )
+        }
+    }
+
+    private func startY(for style: ConfettiStyle) -> CGFloat {
+        switch style {
+        case .rainDown: return CGFloat.random(in: -40...0)
+        case .burstUp:  return CGFloat.random(in: 0...40)
+        }
+    }
+
+    private func initialVY(for style: ConfettiStyle) -> CGFloat {
+        switch style {
+        case .rainDown: return CGFloat.random(in: -400 ... -100)
+        case .burstUp:  return CGFloat.random(in: -700 ... -400)
         }
     }
 }
