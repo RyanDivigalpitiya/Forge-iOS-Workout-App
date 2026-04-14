@@ -17,162 +17,184 @@ struct HistoryView: View {
     let setsFontSize = GlobalSettings.shared.setsFontSize
     let setsSpacing = GlobalSettings.shared.setsSpacing
     
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        
+
         let completedWorkout = completedWorkoutsViewModel.activePlan
-        
-        ScrollView {
-            LazyVStack {
-                
-                VStack(spacing: 0) {
-                    Text(completedWorkout.workout.name)
-                        .foregroundColor(fgColor)
-                        .fontWeight(.medium)
-                        .font(.system(size: 35))
-                    Spacer().frame(height:3)
-                    Text(completedWorkoutsViewModel.formatDate(completedWorkout.dateCompleted))
-                        .foregroundColor(darkGray)
-                        .fontWeight(.bold)
-                        .font(.system(size: 20))
-                }
-                .padding(.top, 20)
 
-                // Stats row: calories | completion ring | duration
-                HStack {
-                    // Calories
-                    VStack(spacing: 2) {
-                        if let calories = completedWorkout.caloriesBurned {
-                            Text("\(Int(calories))")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("cal")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(darkGray)
-                        } else {
-                            Text("—")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("cal")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(darkGray)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
+        NavigationStack {
+            ScrollView {
+                LazyVStack {
 
-                    // Completion ring
-                    let percent = Int(completedWorkout.completion.replacingOccurrences(of: "%", with: "")) ?? 0
-                    ZStack {
-                        Circle()
-                            .stroke(darkGray.opacity(0.3), lineWidth: 6)
-                        Circle()
-                            .trim(from: 0, to: CGFloat(percent) / 100)
-                            .stroke(fgColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        VStack(spacing: 0) {
-                            Text("\(percent)%")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("Finished")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(darkGray)
-                        }
-                    }
-                    .frame(width: 72, height: 72)
-
-                    // Duration
-                    VStack(spacing: 2) {
-                        Text("\(Int(completedWorkout.elapsedTime / 60))")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("min")
-                            .font(.system(size: 13, weight: .bold))
+                    VStack(spacing: 0) {
+                        Text(completedWorkout.workout.name)
+                            .foregroundColor(fgColor)
+                            .fontWeight(.medium)
+                            .font(.system(size: 35))
+                        Spacer().frame(height:3)
+                        Text(completedWorkoutsViewModel.formatDate(completedWorkout.dateCompleted))
                             .foregroundColor(darkGray)
+                            .fontWeight(.bold)
+                            .font(.system(size: 20))
                     }
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.horizontal, 30)
-                .padding(.top, 15)
-                .padding(.bottom, 10)
+                    .padding(.top, 20)
 
-                // EXERCISE LIST
-                ForEach(completedWorkout.workout.exercises.indices, id: \.self) { exerciseIndex in
-                    
-                    VStack {
-                        
-                        // EXERCISE NAME + LOG CHANGE BUTTON
-                        HStack {
-                            Text(completedWorkout.workout.exercises[exerciseIndex].name)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .font(.system(size: 30))
-                            Spacer()
-                            
-
+                    // Stats row: calories | completion ring | duration
+                    HStack {
+                        // Calories
+                        VStack(spacing: 2) {
+                            if let calories = completedWorkout.caloriesBurned {
+                                Text("\(Int(calories))")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("cal")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(darkGray)
+                            } else {
+                                Text("—")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("cal")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(darkGray)
+                            }
                         }
-                        
-                        // EXERCISE SETS
-                        VStack(spacing: 0){
-                            ForEach(completedWorkout.workout.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
-                                HStack(spacing: 0) {
-                                    // SET BUTTON
-                                    // marks set.completed to TRUE OR FALSE
-                                    Button(action: { }) { // this button is just to show the checkmark or not and is, thus, disabled
-                                        if completedWorkout.workout.exercises[exerciseIndex].sets[setIndex].completed {
-                                            ZStack {
-                                                Image(systemName: "checkmark")
-                                                    .resizable()
-                                                    .frame(width: 11, height: 9)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.white)
-                                                    .padding(.trailing, 16)
+                        .frame(maxWidth: .infinity)
+
+                        // Completion ring
+                        let percent = Int(completedWorkout.completion.replacingOccurrences(of: "%", with: "")) ?? 0
+                        ZStack {
+                            Circle()
+                                .stroke(darkGray.opacity(0.3), lineWidth: 6)
+                            Circle()
+                                .trim(from: 0, to: CGFloat(percent) / 100)
+                                .stroke(fgColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                            VStack(spacing: 0) {
+                                Text("\(percent)%")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("Finished")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(darkGray)
+                            }
+                        }
+                        .frame(width: 72, height: 72)
+
+                        // Duration
+                        VStack(spacing: 2) {
+                            Text("\(Int(completedWorkout.elapsedTime / 60))")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("min")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(darkGray)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 15)
+                    .padding(.bottom, 10)
+
+                    // EXERCISE LIST
+                    ForEach(completedWorkout.workout.exercises.indices, id: \.self) { exerciseIndex in
+
+                        VStack {
+
+                            // EXERCISE NAME + LOG CHANGE BUTTON
+                            HStack {
+                                Text(completedWorkout.workout.exercises[exerciseIndex].name)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 30))
+                                Spacer()
+
+
+                            }
+
+                            // EXERCISE SETS
+                            VStack(spacing: 0){
+                                ForEach(completedWorkout.workout.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
+                                    HStack(spacing: 0) {
+                                        // SET BUTTON
+                                        // marks set.completed to TRUE OR FALSE
+                                        Button(action: { }) { // this button is just to show the checkmark or not and is, thus, disabled
+                                            if completedWorkout.workout.exercises[exerciseIndex].sets[setIndex].completed {
+                                                ZStack {
+                                                    Image(systemName: "checkmark")
+                                                        .resizable()
+                                                        .frame(width: 11, height: 9)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.white)
+                                                        .padding(.trailing, 16)
+                                                    Circle()
+                                                        .stroke(lineWidth: 2)
+                                                        .frame(width: setButtonSize, height: setButtonSize)
+                                                        .foregroundColor(.white)
+                                                        .padding(.trailing, 16)
+                                                }
+                                                .opacity(0.4)
+                                            } else {
                                                 Circle()
                                                     .stroke(lineWidth: 2)
                                                     .frame(width: setButtonSize, height: setButtonSize)
                                                     .foregroundColor(.white)
                                                     .padding(.trailing, 16)
                                             }
-                                            .opacity(0.4)
-                                        } else {
-                                            Circle()
-                                                .stroke(lineWidth: 2)
-                                                .frame(width: setButtonSize, height: setButtonSize)
-                                                .foregroundColor(.white)
-                                                .padding(.trailing, 16)
+
                                         }
-                                
+                                        .padding(.trailing, 3)
+                                        .disabled(true)
+
+
+                                        SetView(
+                                            content: .individual(
+                                                set: completedWorkout.workout.exercises[exerciseIndex].sets[setIndex],
+                                                index: setIndex
+                                            ),
+                                            appearance: .muted
+                                        )
                                     }
-                                    .padding(.trailing, 3)
-                                    .disabled(true)
+                                    if setIndex < completedWorkout.workout.exercises[exerciseIndex].sets.count - 1 {
+                                        Spacer().frame(height: 25)
+                                    }
 
-                                    
-                                    SetView(
-                                        content: .individual(
-                                            set: completedWorkout.workout.exercises[exerciseIndex].sets[setIndex],
-                                            index: setIndex
-                                        ),
-                                        appearance: .muted
-                                    )
                                 }
-                                if setIndex < completedWorkout.workout.exercises[exerciseIndex].sets.count - 1 {
-                                    Spacer().frame(height: 25)
-                                }
-
                             }
+
                         }
-
+                        .padding(17)
+                        .background(bgColor)
+                        .cornerRadius(16)
                     }
-                    .padding(17) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
-                    .background(bgColor)
-                    .cornerRadius(16)
-                }
-                .padding(.horizontal, 15)
-                .padding(.vertical, 8)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 8)
 
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.down")
+                                .resizable()
+                                .frame(width: 15, height: 9)
+                                .padding(.trailing, 3)
+                            Text("Dismiss")
+                        }
+                    }
+                    .padding(5)
+                    .padding(.horizontal, 10)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(fgColor)
+                }
             }
         }
-            .background(.black)
-        
-        
+        .background(.black)
 
     }
 }
