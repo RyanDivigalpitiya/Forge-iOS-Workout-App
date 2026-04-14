@@ -50,7 +50,7 @@ struct ExerciseEditorView: View {
     @State private var heterogenousSetMaxViewHeight: CGFloat = CGFloat((150*3)+80)
     @State private var heterogenousSetRowHeight: CGFloat = 1000000
     
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let fontTitleSize: CGFloat = 35
     let darkGray = GlobalSettings.shared.editorDarkGray
@@ -89,17 +89,17 @@ struct ExerciseEditorView: View {
                         if exerciseViewModel.activeExerciseMode == .add {
                             Text("Add Exercise")
                                 .font(.system(size:fontTitleSize))
-                                .foregroundColor(fgColor)
+                                .foregroundColor(settings.fgColor)
                                 .fontWeight(.bold)
                         } else if exerciseViewModel.activeExerciseMode == .edit {
                             Text("Edit Exercise")
                                 .font(.system(size:fontTitleSize))
-                                .foregroundColor(fgColor)
+                                .foregroundColor(settings.fgColor)
                                 .fontWeight(.bold)
                         } else if exerciseViewModel.activeExerciseMode == .log {
                             Text("Log Change")
                                 .font(.system(size:fontTitleSize))
-                                .foregroundColor(fgColor)
+                                .foregroundColor(settings.fgColor)
                                 .fontWeight(.bold)
                         }
                     }
@@ -119,7 +119,7 @@ struct ExerciseEditorView: View {
                                         .resizable()
                                         .frame(width: 13, height: 13)
                                         .fontWeight(.bold)
-                                        .foregroundColor(fgColor)
+                                        .foregroundColor(settings.fgColor)
                                 } else if exerciseViewModel.activeExerciseMode == .edit || exerciseViewModel.activeExerciseMode == .log {
                                     Circle()
                                         .frame(width: 28, height: 28)
@@ -173,7 +173,7 @@ struct ExerciseEditorView: View {
                 HStack {
                     Toggle(isOn: $areSetsUnique) {
                         Text("Change Specific Sets")
-                            .foregroundColor(areSetsUnique ? fgColor : darkGray)
+                            .foregroundColor(areSetsUnique ? settings.fgColor : darkGray)
                             .fontWeight(.bold)
                     }
                     .onChange(of: areSetsUnique) { _, newValue in
@@ -412,6 +412,7 @@ struct ExerciseEditorView_Previews: PreviewProvider {
         ExerciseEditorView(selectedDetent: .constant(.medium))
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(ExerciseViewModel())
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

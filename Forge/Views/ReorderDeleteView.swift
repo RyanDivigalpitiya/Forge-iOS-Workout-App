@@ -10,14 +10,14 @@ struct ReorderDeleteView: View {
     @State private var isEditing: EditMode = .inactive
     
     var mode: ReorderDeleteMode = .plan
-    let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
     
     var body: some View {
         VStack {
             Text(mode == .plan ? "Reorder or Delete Plans" : "Reorder or Delete Exercises")
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundColor(fgColor)
+                .foregroundColor(settings.fgColor)
                 .padding(.top,25)
                 .padding(.bottom,2)
             
@@ -45,7 +45,7 @@ struct ReorderDeleteView: View {
                 List {
                     ForEach(planViewModel.workoutPlans.indices, id: \.self) { index in
                         Text(planViewModel.workoutPlans[index].name)
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .fontWeight(.bold)
                     }
                     .onMove(perform: planViewModel.movePlan)
@@ -57,7 +57,7 @@ struct ReorderDeleteView: View {
                 List {
                     ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { index in
                         Text(planViewModel.activePlan.exercises[index].name)
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .fontWeight(.bold)
                     }
                     .onMove(perform: planViewModel.moveExercise)
@@ -79,7 +79,7 @@ struct ReorderDeleteView: View {
                         Text("Dismiss")
                             .font(.headline)
                     }
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
                 }
                 .padding(.top, 15)
                 .padding(.bottom, 20)
@@ -95,6 +95,7 @@ struct ReorderDeleteView_Previews: PreviewProvider {
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

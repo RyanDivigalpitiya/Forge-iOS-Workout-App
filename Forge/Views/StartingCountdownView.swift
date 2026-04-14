@@ -13,7 +13,7 @@ struct StartingCountdownView: View {
     @State private var timerSubscription: Cancellable? = nil
     @State private var contentOpacity: Double = 0.0
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
 
     init(initialSeconds: Int = 3, onCompletion: @escaping () -> Void) {
         self.initialSeconds = initialSeconds
@@ -30,7 +30,7 @@ struct StartingCountdownView: View {
                 Text("Starting in ...")
                     .font(.system(size: 40))
                     .fontWeight(.bold)
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
                     .opacity(contentOpacity)
                 Spacer()
             }
@@ -46,15 +46,15 @@ struct StartingCountdownView: View {
                     Circle()
                         .trim(from: 0, to: CGFloat(remainingTime) / CGFloat(totalTime))
                         .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                         .rotationEffect(Angle(degrees: -90))
                         .animation(.easeOut(duration: 1), value: remainingTime)
-                        .shadow(color: fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
+                        .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
                     Text("\(remainingTime)")
                         .font(.system(size: 60))
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                         .fontWeight(.bold)
-                        .shadow(color: fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
+                        .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
                 }
                 .opacity(contentOpacity)
                 .onAppear {
@@ -98,6 +98,7 @@ struct StartingCountdownView: View {
 struct StartingCountdownView_Previews: PreviewProvider {
     static var previews: some View {
         StartingCountdownView(initialSeconds: 3) { }
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

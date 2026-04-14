@@ -20,7 +20,7 @@ struct HeterogeneousSetEditor: View {
     let isSaveDisabled: Bool
     let onSave: () -> Void
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
     private let darkGray = GlobalSettings.shared.editorDarkGray
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
 
@@ -62,7 +62,7 @@ struct HeterogeneousSetEditor: View {
                                     .padding(buttonPlusMinusSize)
                             }
                             .frame(width: 60, height: buttonPlusMinusHeight)
-                            .background(fgColor)
+                            .background(settings.fgColor)
                             .cornerRadius(5)
                         }
                         .padding(.trailing, 10)
@@ -108,7 +108,7 @@ struct HeterogeneousSetEditor: View {
                                 }
                             }
                             .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                            .background(fgColor)
+                            .background(settings.fgColor)
                             .cornerRadius(5)
                         }
 
@@ -186,7 +186,7 @@ struct HeterogeneousSetEditor: View {
                                 }
                             }
                             .frame(width: buttonPlusMinusWidth + 50, height: buttonPlusMinusHeight)
-                            .background(fgColor)
+                            .background(settings.fgColor)
                             .cornerRadius(5)
                         }
                     }
@@ -208,7 +208,7 @@ struct HeterogeneousSetEditor: View {
                     Text("Add Set").fontWeight(.bold)
                 }
                 .frame(height: 20)
-                .foregroundColor(fgColor)
+                .foregroundColor(settings.fgColor)
             }
             .padding(.top, 20)
 
@@ -225,7 +225,7 @@ struct HeterogeneousSetEditor: View {
                             .fontWeight(.bold)
                     }
                     .padding(EdgeInsets(top: 6, leading: 13, bottom: 6, trailing: 14))
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
                     .background(Color(red: 0.17, green: 0.17, blue: 0.18))
                     .cornerRadius(100)
                 }

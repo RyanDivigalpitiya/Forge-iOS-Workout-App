@@ -13,6 +13,7 @@
 		C10000072B0000000000AA04 /* WorkoutBottomToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */; };
 		C10000092B0000000000AA05 /* HomogeneousSetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */; };
 		C100000B2B0000000000AA06 /* HeterogeneousSetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */; };
+		D10000022D0000000000DD01 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000012D0000000000DD01 /* SettingsView.swift */; };
 		C100000D2B0000000000AA07 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000C2B0000000000AA07 /* Validation.swift */; };
 		C100000F2B0000000000AA08 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
 		C10000102B0000000000AA09 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */; };
@@ -103,6 +104,7 @@
 		C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBottomToolbarView.swift; sourceTree = "<group>"; };
 		C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomogeneousSetPicker.swift; sourceTree = "<group>"; };
 		C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeterogeneousSetEditor.swift; sourceTree = "<group>"; };
+		D10000012D0000000000DD01 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C100000C2B0000000000AA07 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
 		C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
 		C10000102B0000000000AA0B /* WorkoutHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHealthManager.swift; sourceTree = "<group>"; };
@@ -265,6 +267,7 @@
 				C10000062B0000000000AA04 /* WorkoutBottomToolbarView.swift */,
 				C10000082B0000000000AA05 /* HomogeneousSetPicker.swift */,
 				C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */,
+				D10000012D0000000000DD01 /* SettingsView.swift */,
 				F14E94772A4BEC29008155FA /* testingViews.playground */,
 			);
 			path = Views;
@@ -529,6 +532,7 @@
 				F164606C2A64E87200C6CE3D /* HistoryView.swift in Sources */,
 				F1E2F2442A52D2470076290D /* AppDelegate.swift in Sources */,
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
+				D10000022D0000000000DD01 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

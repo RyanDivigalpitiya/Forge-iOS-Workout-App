@@ -22,7 +22,7 @@ struct PlanEditorView: View {
         Validation.trimmedName(planViewModel.activePlan.name) == nil || planViewModel.activePlan.exercises.isEmpty
     }
 
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray = GlobalSettings.shared.editorDarkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
@@ -41,7 +41,7 @@ struct PlanEditorView: View {
                     Text(planViewModel.activePlanMode == .add ? "Create New Plan" : "Edit Plan")
                         .font(.system(size: 40))
                         .fontWeight(.bold)
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                     Spacer()
                 }
 
@@ -77,7 +77,7 @@ struct PlanEditorView: View {
                                     Text(exercise.name)
                                         .multilineTextAlignment(.leading)
                                         .fontWeight(.bold)
-                                        .foregroundColor(fgColor)
+                                        .foregroundColor(settings.fgColor)
                                         .font(.system(size: 30))
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     Spacer()
@@ -136,7 +136,10 @@ struct PlanEditorView: View {
                     .onMove(perform: planViewModel.moveExercise)
 
                     if planViewModel.activePlan.exercises.count > 0 {
-                        Text("Tap an exercise to edit it")
+                        VStack(spacing: 4) {
+                            Text("Tap an exercise to edit it")
+                            Text("Swipe an exercise to manage it")
+                        }
                             .foregroundColor(darkGray)
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
@@ -197,7 +200,7 @@ struct PlanEditorView: View {
                             .padding(.top)
                             .padding(.bottom, 8)
                             .padding(.trailing, 10)
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                         }
 
                     }
@@ -219,7 +222,7 @@ struct PlanEditorView: View {
                                 .font(.headline)
                                 .frame(width: 55)
                         }
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
 
                         Spacer()
 
@@ -257,7 +260,7 @@ struct PlanEditorView: View {
                                         .bold()
                                 }
                                 .frame(width: 75, height: 35)
-                                .background(fgColor)
+                                .background(settings.fgColor)
                                 .foregroundColor(.black)
                                 .cornerRadius(500)
                                 .opacity(isDoneCheckMarkVisible ? 0 : 1)
@@ -268,7 +271,7 @@ struct PlanEditorView: View {
                                         .bold()
                                 }
                                 .frame(width: 75, height: 35)
-                                .background(fgColor)
+                                .background(settings.fgColor)
                                 .foregroundColor(.black)
                                 .cornerRadius(500)
                                 .opacity(isDoneCheckMarkVisible ? 1 : 0)
@@ -289,7 +292,7 @@ struct PlanEditorView: View {
                                 .font(.headline)
                                 .frame(width: 55)
                         }
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
 
                         Spacer()
                     }
@@ -333,14 +336,14 @@ struct TransferExerciseView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPlanIndices: Swift.Set<Int> = []
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Transfer to Plan")
+            Text("Transfer to Another Plan")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(fgColor)
+                .foregroundColor(settings.fgColor)
                 .padding(.top, 25)
                 .padding(.bottom, 15)
 
@@ -363,7 +366,7 @@ struct TransferExerciseView: View {
                                 Image(systemName: selectedPlanIndices.contains(index)
                                     ? "checkmark.circle.fill"
                                     : "circle")
-                                    .foregroundColor(fgColor)
+                                    .foregroundColor(settings.fgColor)
                                     .font(.title3)
                             }
                         }
@@ -382,7 +385,7 @@ struct TransferExerciseView: View {
                     .font(.system(size: 20))
                     .bold()
                     .frame(width: 120, height: 40)
-                    .background(fgColor)
+                    .background(settings.fgColor)
                     .foregroundColor(.black)
                     .cornerRadius(500)
             }
@@ -399,6 +402,7 @@ struct PlanEditorView_Previews: PreviewProvider {
         PlanEditorView()
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans)) // mockPlans: mockWorkoutPlans
             .environmentObject(ExerciseViewModel())
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

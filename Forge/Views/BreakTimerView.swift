@@ -25,7 +25,7 @@ struct BreakTimerView: View {
     @State private var breakTimerStartDate: Date? = nil
     @State private var hasExpired = false
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -43,16 +43,16 @@ struct BreakTimerView: View {
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                         .rotationEffect(Angle(degrees: -90))
                         .animation(.linear(duration: 1), value: remaining)
                     VStack(spacing: 2) {
                         Text("Rest for")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                         Text("\(remaining)s")
                             .font(.system(size: 60, weight: .bold))
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .monospacedDigit()
                     }
                 }
@@ -70,7 +70,7 @@ struct BreakTimerView: View {
                             .foregroundColor(.white)
                         let parts = setDescription.components(separatedBy: "  →  ")
                         if parts.count == 2 {
-                            (Text(parts[0]).foregroundColor(fgColor) +
+                            (Text(parts[0]).foregroundColor(settings.fgColor) +
                              Text("  →  \(parts[1])").foregroundColor(Color(.systemGray)))
                                 .font(.system(size: 19, weight: .medium))
                         } else {
@@ -93,7 +93,7 @@ struct BreakTimerView: View {
                             .resizable()
                             .frame(width: 13, height: 13)
                             .fontWeight(.bold)
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                     }
                 }
                 Spacer()

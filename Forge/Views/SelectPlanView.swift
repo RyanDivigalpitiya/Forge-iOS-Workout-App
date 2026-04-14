@@ -15,7 +15,7 @@ struct SelectPlanView: View {
     @State private var planToDeleteIndex: Int? = nil
     @State private var showDeleteConfirmation = false
 
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
 
@@ -31,7 +31,7 @@ struct SelectPlanView: View {
                                     Text(plan.name)
                                         .fontWeight(.bold)
                                         .font(.system(size: 30))
-                                        .foregroundColor(fgColor)
+                                        .foregroundColor(settings.fgColor)
                                         .multilineTextAlignment(.leading)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     Spacer()
@@ -43,10 +43,10 @@ struct SelectPlanView: View {
                                     }
                                     .padding(8)
                                     .padding(.horizontal,1)
-                                    .background(fgColor)
+                                    .background(settings.fgColor)
                                     .cornerRadius(5)
                                     .shadow(
-                                        color: fgColor.opacity(0.4), // color + transparency
+                                        color: settings.fgColor.opacity(0.4), // color + transparency
                                         radius: 15,                  // blur
                                         x: 0,                        // horizontal offset
                                         y: 0                         // vertical offset
@@ -183,7 +183,7 @@ struct SelectPlanView: View {
                                 .font(.system(size: 20))
                         }
                         .fontWeight(.bold)
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                     }
                     .fullScreenCover(isPresented: $planEditorIsPresented) {
                         PlanEditorView()
@@ -209,7 +209,7 @@ struct SelectPlanView: View {
                                 .font(.system(size: 20))
                         }
                         .fontWeight(.bold)
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                     }
 
                     Spacer()
@@ -248,6 +248,7 @@ struct SelectPlanView_Previews: PreviewProvider {
             .environmentObject(ExerciseViewModel())
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

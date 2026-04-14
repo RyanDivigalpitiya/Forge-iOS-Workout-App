@@ -30,6 +30,7 @@ struct ForgeApp: App {
                 .environmentObject(PlanViewModel())
                 .environmentObject(ExerciseViewModel())
                 .environmentObject(healthManager)
+                .environmentObject(GlobalSettings.shared)
                 .environment(\.colorScheme, .dark)
                 .onAppear {
                     healthManager.requestAuthorization()

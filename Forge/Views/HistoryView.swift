@@ -9,7 +9,7 @@ struct HistoryView: View {
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
 
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray = GlobalSettings.shared.darkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
@@ -29,7 +29,7 @@ struct HistoryView: View {
 
                     VStack(spacing: 0) {
                         Text(completedWorkout.workout.name)
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .fontWeight(.medium)
                             .font(.system(size: 35))
                         Spacer().frame(height:3)
@@ -69,7 +69,7 @@ struct HistoryView: View {
                                 .stroke(darkGray.opacity(0.3), lineWidth: 6)
                             Circle()
                                 .trim(from: 0, to: CGFloat(percent) / 100)
-                                .stroke(fgColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                                .stroke(settings.fgColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                                 .rotationEffect(.degrees(-90))
                             VStack(spacing: 0) {
                                 Text("\(percent)%")
@@ -190,7 +190,7 @@ struct HistoryView: View {
                     .padding(.horizontal, 10)
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
                 }
             }
         }
@@ -205,6 +205,7 @@ struct HistoryView_Previews: PreviewProvider {
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
 
     }

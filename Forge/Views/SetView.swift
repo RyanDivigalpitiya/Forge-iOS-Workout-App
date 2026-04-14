@@ -10,7 +10,7 @@ struct SetView: View {
     }
 
     enum Appearance {
-        case standard                           // PlanEditor: solid fgColor label, dark text
+        case standard                           // PlanEditor: solid accent-color label, dark text
         case muted                              // History: buttonCircleBgColor label, white text
         case workoutActive(isCompleted: Bool)   // Workout: animated strikethrough + dimmed when completed
     }
@@ -18,7 +18,7 @@ struct SetView: View {
     let content: Content
     let appearance: Appearance
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
     private let bgColor = GlobalSettings.shared.bgColor
     private let setsFontSize = GlobalSettings.shared.setsFontSize
     private let setsSpacing = GlobalSettings.shared.setsSpacing
@@ -54,7 +54,7 @@ struct SetView: View {
 
         let labelBg: Color = {
             switch appearance {
-            case .standard, .workoutActive: return fgColor
+            case .standard, .workoutActive: return settings.fgColor
             case .muted: return GlobalSettings.shared.buttonCircleBgColor
             }
         }()
@@ -134,6 +134,7 @@ struct SetView_Previews: PreviewProvider {
         }
         .padding()
         .background(GlobalSettings.shared.bgColor)
+        .environmentObject(GlobalSettings.shared)
         .preferredColorScheme(.dark)
     }
 }

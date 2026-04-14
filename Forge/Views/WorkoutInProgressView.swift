@@ -47,7 +47,7 @@ struct WorkoutInProgressView: View {
     @State var scrollViewScaleEffect: CGFloat = 0.95
 
 
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray = GlobalSettings.shared.darkGray
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
@@ -99,7 +99,7 @@ struct WorkoutInProgressView: View {
                                                 Image(systemName: "plusminus.circle.fill")
                                                     .resizable()
                                                     .frame(width: 25, height: 25)
-                                                    .foregroundColor(fgColor)
+                                                    .foregroundColor(settings.fgColor)
                                                     .padding(.top,5)
                                                     .padding(.trailing, 8)
                                             }
@@ -176,7 +176,7 @@ struct WorkoutInProgressView: View {
                                                                 Circle()
                                                                     .stroke(lineWidth: 2)
                                                                     .frame(width: setButtonSize, height: setButtonSize)
-                                                                    .foregroundColor(fgColor)
+                                                                    .foregroundColor(settings.fgColor)
                                                                     .padding(.trailing, 16)
                                                             }
                                                             .opacity(0.5)
@@ -184,7 +184,7 @@ struct WorkoutInProgressView: View {
                                                             Circle()
                                                                 .stroke(lineWidth: 2)
                                                                 .frame(width: setButtonSize, height: setButtonSize)
-                                                                .foregroundColor(fgColor)
+                                                                .foregroundColor(settings.fgColor)
                                                                 .padding(.trailing, 16)
                                                         }
                                                 
@@ -252,7 +252,7 @@ struct WorkoutInProgressView: View {
                                     Button(action: { showCancelConfirmation = true }) {
                                         Image(systemName: "chevron.left")
                                             .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(fgColor)
+                                            .foregroundColor(settings.fgColor)
                                             .frame(width: 44, height: 44)
                                             .contentShape(Rectangle())
                                     }
@@ -263,13 +263,13 @@ struct WorkoutInProgressView: View {
                                     Text("\(planViewModel.activePlan.name)")
                                         .font(.system(size: 30))
                                         .fontWeight(.bold)
-                                        .foregroundColor(fgColor)
+                                        .foregroundColor(settings.fgColor)
                                     Spacer()
 
                                     Button(action: { showTimerSettings = true }) {
                                         Image(systemName: "timer")
                                             .font(.system(size: 20, weight: .light))
-                                            .foregroundColor(fgColor)
+                                            .foregroundColor(settings.fgColor)
                                             .frame(width: 44, height: 44)
                                             .contentShape(Rectangle())
                                     }
@@ -633,7 +633,7 @@ struct BreakDurationPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editingDuration: Int = 0
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
     private let buttonCircleBgColor = GlobalSettings.shared.buttonCircleBgColor
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     private let step = 5
@@ -664,7 +664,7 @@ struct BreakDurationPickerView: View {
                 Text("Break Timer")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
 
                 Spacer()
 
@@ -689,7 +689,7 @@ struct BreakDurationPickerView: View {
             Picker(selection: $editingDuration, label: Text("Duration")) {
                 ForEach(durationRange, id: \.self) { value in
                     Text("\(value)s")
-                        .foregroundColor(fgColor)
+                        .foregroundColor(settings.fgColor)
                         .tag(value)
                 }
             }
@@ -726,7 +726,7 @@ struct BreakDurationPickerView: View {
                 }
             }
             .frame(width: 85, height: 30)
-            .background(fgColor)
+            .background(settings.fgColor)
             .cornerRadius(5)
             .padding(.bottom, 20)
         }
@@ -743,6 +743,7 @@ struct WorkoutInProgressView_Previews: PreviewProvider {
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
             .environmentObject(WorkoutHealthManager())
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

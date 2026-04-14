@@ -7,8 +7,10 @@ struct CompletedWorkoutsView: View {
     //-//////////////////////////////////////////
     
     @State private var historyViewIsPresented = false
-    
-    let fgColor = GlobalSettings.shared.fgColor // foreground colour
+    @State private var settingsViewIsPresented = false
+
+    @EnvironmentObject var settings: GlobalSettings
+
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
     var body: some View {
@@ -34,7 +36,7 @@ struct CompletedWorkoutsView: View {
                             Text(completedWorkout.workout.name)
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(fgColor)
+                                .foregroundColor(settings.fgColor)
                                 .padding(.top, 3)
                                 .padding(.bottom, 9)
                             
@@ -69,8 +71,16 @@ struct CompletedWorkoutsView: View {
                     .environment(\.colorScheme, .dark)
             }
             .navigationBarTitle(Text("History"))
-            .navigationBarTitleTextColor(fgColor)
+            .navigationBarTitleTextColor(settings.fgColor)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        settingsViewIsPresented = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(settings.fgColor)
+                    }
+                }
                 ToolbarItemGroup(placement: .bottomBar){
                     Button {
                         completedWorkoutsViewModel.isSelectPlanViewActive = true
@@ -87,15 +97,18 @@ struct CompletedWorkoutsView: View {
                     .padding(.horizontal, 10)
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(fgColor)
+                    .foregroundColor(settings.fgColor)
                 }
             }
             .navigationDestination(isPresented: $completedWorkoutsViewModel.isSelectPlanViewActive) {
                 SelectPlanView()
             }
+            .navigationDestination(isPresented: $settingsViewIsPresented) {
+                SettingsView()
+            }
         }
         .background(.black)
-        .accentColor(fgColor)
+        .accentColor(settings.fgColor)
         .onAppear{
             completedWorkoutsViewModel.isSelectPlanViewActive = false
         }
@@ -122,6 +135,7 @@ struct CompletedWorkoutsView_Previews: PreviewProvider {
         CompletedWorkoutsView()
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+            .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }
 }

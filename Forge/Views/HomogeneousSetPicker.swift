@@ -16,7 +16,7 @@ struct HomogeneousSetPicker: View {
     let minReps: Int
     let maxReps: Int
 
-    private let fgColor = GlobalSettings.shared.fgColor
+    @EnvironmentObject var settings: GlobalSettings
     private let darkGray = GlobalSettings.shared.editorDarkGray
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
 
@@ -38,7 +38,7 @@ struct HomogeneousSetPicker: View {
                 Picker(selection: $sets, label: Text("Sets")) {
                     ForEach(setsRange, id: \.self) { value in
                         Text("\(value) set\(value == 1 ? "" : "s")")
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .tag(value)
                     }
                 }
@@ -78,7 +78,7 @@ struct HomogeneousSetPicker: View {
                     }
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                .background(fgColor)
+                .background(settings.fgColor)
                 .cornerRadius(5)
             }
 
@@ -95,7 +95,7 @@ struct HomogeneousSetPicker: View {
                 Picker(selection: $weight, label: Text("Weight")) {
                     ForEach(weightRange, id: \.self) { value in
                         Text("\(value) lbs")
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .tag(value)
                     }
                 }
@@ -135,7 +135,7 @@ struct HomogeneousSetPicker: View {
                     }
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                .background(fgColor)
+                .background(settings.fgColor)
                 .cornerRadius(5)
             }
 
@@ -152,7 +152,7 @@ struct HomogeneousSetPicker: View {
                 Picker(selection: $reps, label: Text("Reps")) {
                     ForEach(repsRange, id: \.self) { value in
                         Text("\(value) rep\(value == 1 ? "" : "s")")
-                            .foregroundColor(fgColor)
+                            .foregroundColor(settings.fgColor)
                             .tag(value)
                     }
                 }
@@ -192,7 +192,7 @@ struct HomogeneousSetPicker: View {
                     }
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
-                .background(fgColor)
+                .background(settings.fgColor)
                 .cornerRadius(5)
             }
         }
