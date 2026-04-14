@@ -168,9 +168,11 @@ struct WorkoutInProgressView: View {
                                                     }) {
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                             ZStack {
-                                                                Image("Checkmark")
+                                                                Image(systemName: "checkmark")
                                                                     .resizable()
                                                                     .frame(width: 13, height: 11)
+                                                                    .fontWeight(.bold)
+                                                                    .foregroundColor(settings.fgColor)
                                                                     .padding(.top,1)
                                                                     .padding(.trailing, 16)
                                                                 Circle()
@@ -677,9 +679,11 @@ struct BreakDurationPickerView: View {
                         Circle()
                             .frame(width: 28, height: 28)
                             .foregroundColor(buttonCircleBgColor)
-                        Image("Checkmark")
+                        Image(systemName: "checkmark")
                             .resizable()
                             .frame(width: 15, height: 13)
+                            .fontWeight(.bold)
+                            .foregroundColor(settings.fgColor)
                     }
                 }
                 .padding(.trailing, 20)

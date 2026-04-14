@@ -116,16 +116,46 @@ struct CompletedWorkoutsView: View {
 }
 
 extension View {
-    // Sets the text colour for a navigation bar title
-    // Parameter color: Color the title should be set to
-    // Supports both regular and large titles
-    @available(iOS 14, *) // only possible on iOS14+
+    // Sets the text colour for a navigation bar title.
+    // Updates the appearance proxy for future bars AND force-updates
+    // any existing UINavigationBar instances so the change is visible
+    // immediately (not only after an app restart).
+    @available(iOS 14, *)
     func navigationBarTitleTextColor(_ color: Color) -> some View {
         let uiColor = UIColor(color)
-        // Set appearance for both normal and large sizes.
-        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: uiColor ]
-        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: uiColor ]
-        return self
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: uiColor]
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: uiColor]
+        return self.onChange(of: color) { _, newColor in
+            applyNavigationBarTitleColor(UIColor(newColor))
+        }
+    }
+}
+
+private func applyNavigationBarTitleColor(_ color: UIColor) {
+    UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: color]
+    UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: color]
+    for scene in UIApplication.shared.connectedScenes {
+        guard let windowScene = scene as? UIWindowScene else { continue }
+        for window in windowScene.windows {
+            updateNavigationBars(in: window, color: color)
+        }
+    }
+}
+
+private func updateNavigationBars(in view: UIView, color: UIColor) {
+    if let navBar = view as? UINavigationBar {
+        let standard = navBar.standardAppearance.copy()
+        standard.titleTextAttributes[.foregroundColor] = color
+        standard.largeTitleTextAttributes[.foregroundColor] = color
+        navBar.standardAppearance = standard
+        if let scroll = navBar.scrollEdgeAppearance?.copy() {
+            scroll.titleTextAttributes[.foregroundColor] = color
+            scroll.largeTitleTextAttributes[.foregroundColor] = color
+            navBar.scrollEdgeAppearance = scroll
+        }
+    }
+    for subview in view.subviews {
+        updateNavigationBars(in: subview, color: color)
     }
 }
 

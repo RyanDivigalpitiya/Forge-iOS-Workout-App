@@ -221,6 +221,7 @@ struct SelectPlanView: View {
         }
         .background(.black)
         .navigationBarTitle(Text("Select Plan"))
+        .navigationBarTitleTextColor(settings.fgColor)
         .ignoresSafeArea(.all, edges: .bottom)
     }
 }

@@ -124,9 +124,11 @@ struct ExerciseEditorView: View {
                                     Circle()
                                         .frame(width: 28, height: 28)
                                         .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
-                                    Image("Checkmark")
+                                    Image(systemName: "checkmark")
                                         .resizable()
                                         .frame(width: 15, height: 13)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(settings.fgColor)
                                         .padding(.top,1)
                                 }
                             }
