@@ -193,7 +193,8 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 
 ## Git usage
 
-Do not credit yourself as a co-author when creating commit messages.
+- Do not credit yourself as a co-author when creating commit messages.
+- Do not perform any git commands unless explicitly asked in the most recent prompt to perform a git-related task. Git commands that are related to the task you are asked to perform in the most recent prompt are, of course, okay to use
 
 ## Error Handling Philosophy: Fail Loud, Never Fake
 
