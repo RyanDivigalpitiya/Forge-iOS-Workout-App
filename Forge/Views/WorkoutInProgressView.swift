@@ -474,7 +474,7 @@ extension WorkoutInProgressView {
             isDoneCheckMarkVisible = true
         }
         showConfetti = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             // Reset set completions and save plan AFTER the dismiss animation,
             // so the user never sees exercises visually unchecking.
             for exerciseIndex in planViewModel.activePlan.exercises.indices {
