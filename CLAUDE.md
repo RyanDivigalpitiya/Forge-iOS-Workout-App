@@ -31,18 +31,19 @@ xcodebuild test -project Forge.xcodeproj -scheme Forge \
 
 ## Architecture
 
-**MVVM with SwiftUI EnvironmentObjects.** Four ViewModels are injected at the app root (`ForgeApp.swift`):
+**MVVM with SwiftUI EnvironmentObjects.** Five objects are injected at the app root (`ForgeApp.swift`):
 
 - `CompletedWorkoutsViewModel` — workout history CRUD, date/time formatting
 - `PlanViewModel` — workout plan CRUD, reordering, duration estimation, exercise transfer between plans
 - `ExerciseViewModel` — active exercise state during editing
 - `WorkoutHealthManager` — HealthKit authorization, live workout sessions (iOS 26+), manual workout saves
+- `GlobalSettings.shared` — theming singleton (see below), also injected as `@EnvironmentObject` so views reactively update when the color theme changes
 
 All ViewModels are `ObservableObject` with `@Published` properties, accessed in views via `@EnvironmentObject`.
 
-**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`, `"breakDurationSeconds"`. `PlanViewModel` and `CompletedWorkoutsViewModel` accept an optional `userDefaults: UserDefaults = .standard` init parameter so tests can inject an isolated `UserDefaults(suiteName:)` — production code calls them with no arguments.
+**Persistence:** UserDefaults with JSON encoding/decoding (`Codable`). Keys: `"workoutPlans"`, `"completedWorkouts"`, `"breakDurationSeconds"`, `"colorTheme"`. `PlanViewModel` and `CompletedWorkoutsViewModel` accept an optional `userDefaults: UserDefaults = .standard` init parameter so tests can inject an isolated `UserDefaults(suiteName:)` — production code calls them with no arguments.
 
-**Global theming:** `GlobalSettings.shared` singleton (`Forge/View Model/GlobalSettings.swift`) — accent color `#FF436B`, background `#161616`, plus all shared layout constants (`darkGray`, `editorDarkGray`, `buttonCircleBgColor`, `setButtonSize`, `setsFontSize`, `setsSpacing`, `breakDuration`, `bottomToolbarHeight`). Two distinct grays: `darkGray` (0.25) for workout/history connectors, `editorDarkGray` (0.33) for editor labels. `breakDuration` is a UserDefaults-backed computed property (default 60s, configurable 5–300s via in-workout picker).
+**Global theming:** `GlobalSettings.shared` singleton (`Forge/View Model/GlobalSettings.swift`) — an `ObservableObject` injected as `@EnvironmentObject` from `ForgeApp`. `fgColor` is a computed property derived from `@Published colorTheme: ColorTheme` (persisted to UserDefaults via a Combine sink — **not** `didSet`, which breaks `objectWillChange` on `@Published` properties). Six accent color themes: red (default, `#FF436B`), blue, green, orange, purple, yellow. Background `#161616`. All views reference `settings.fgColor` (not a local `let` copy) so the accent color updates reactively. Static layout constants: `darkGray` (0.25) for workout/history connectors, `editorDarkGray` (0.33) for editor labels, `buttonCircleBgColor`, `setButtonSize`, `setsFontSize`, `setsSpacing`, `bottomToolbarHeight`. `breakDuration` is a UserDefaults-backed computed property (default 60s, configurable 5–300s via in-workout picker).
 
 ## Data Models (`Forge/Data Model/`)
 
@@ -58,7 +59,8 @@ The two largest views were decomposed into focused child components. Parent view
 
 | View | Lines | Purpose |
 |------|---|---------|
-| `CompletedWorkoutsView` | ~125 | Home screen — workout history list |
+| `CompletedWorkoutsView` | ~125 | Home screen — workout history list, settings gear icon in nav bar |
+| `SettingsView` | ~95 | Color theme picker (6 accent colors) + per-plan "Reset Last Completed" |
 | `SelectPlanView` | ~240 | Choose/manage workout plans — inline swipe-to-delete + drag-to-reorder via List |
 | `PlanEditorView` | ~310 | Create/edit a plan and its exercises — inline reorder/delete + swipe-right transfer |
 | `ExerciseEditorView` | ~410 | Add/edit exercises — coordinator only |
@@ -164,6 +166,9 @@ Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) c
 - **`homoHeteroControlsAreConnected` and `editedExerciseStartedWithUniqueSets` flags** in `ExerciseEditorView` gate the data sync between homogeneous and heterogeneous picker state. The `onAppear` ordering matters — set the connected flag false, load data, then set it true. Otherwise the toggle's `onChange` fires during init and wipes the loaded data. The big comment block in the toggle's `onChange` handler explains the second flag.
 - **`activeExerciseIndex` is stale in `.add` mode.** When the user adds a new exercise during a workout, `ExerciseViewModel.activeExerciseIndex` still points at whichever exercise they last logged or edited. `ExerciseEditorView.saveExercise()` gates its `existingExercise` lookup on the mode being `.edit` or `.log` — never trust `activeExerciseIndex` in `.add` mode. (Without this gate, new exercises inherit completion state from the previously-edited exercise.)
 - **`Timer.publish` in child views breaks when parents re-render frequently.** `WorkoutInProgressView` updates `elapsedSeconds` every second via a stopwatch, causing all child views to re-render. `BreakTimerView` originally used `Timer.publish` which got recreated (and thus never fired) on each re-render. The fix was migrating to `TimelineView(.periodic(from:by:))` which SwiftUI manages internally and survives re-renders. If you add a new timer-based child view, use `TimelineView`, not `Timer.publish`.
+- **`didSet` on `@Published` properties breaks `objectWillChange`.** Never use `didSet` (or `willSet`) on `@Published` properties — the compiler-generated setter bypasses the property wrapper's `objectWillChange.send()`, so SwiftUI views won't update. `GlobalSettings.colorTheme` uses a Combine `$colorTheme.dropFirst().sink(...)` subscriber for UserDefaults persistence instead.
+- **`navigationBarTitleTextColor` must force-update existing bars.** `UINavigationBar.appearance()` only applies to newly created navigation bars. The extension in `CompletedWorkoutsView.swift` uses `.onChange(of: color)` to traverse all `UIWindowScene` windows and directly set `standardAppearance`/`scrollEdgeAppearance` on existing `UINavigationBar` instances (via `.copy()` + reassign to trigger UIKit change detection).
+- **Multiple `Button`s in a single `List` row require `.buttonStyle(.borderless)`.** Without it, SwiftUI's List treats the entire row as one tappable area and fires the last button's action regardless of where the user taps.
 - **`UIScreen.main.bounds`** is used in 3 views for fixed-fraction layout (`0.33 * screenWidth` etc). It's deprecated in iOS 16+ in favor of `view.window.windowScene.screen`, but doesn't currently emit a warning at our deployment target. Migrating would require `GeometryReader` or environment-based screen access — out of scope for "polish" work.
 
 ## Refactor history
@@ -184,6 +189,7 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 12. Dark mode enforcement — `UIUserInterfaceStyle=Dark` in Info.plist, adaptive system colors replaced with fixed dark values, Liquid Glass sheet backgrounds.
 13. HealthKit calorie capture — `endWorkoutSession` returns calories via completion handler, `CompletedWorkout.caloriesBurned` field, HistoryView stats row (calories/completion ring/duration), break timer "Up Next" display.
 14. Apple Watch companion app — `ForgeWatch` watchOS target with WatchConnectivity. Phone sends break timer state to watch; watch shows countdown ring and fires haptic on expiry. `PhoneSessionManager` (phone) and `WatchSessionManager` (watch) singletons with dual `sendMessage` + `updateApplicationContext` delivery.
+15. Settings view with color theme selector (6 accent colors persisted via UserDefaults). `GlobalSettings` converted to `ObservableObject`; all views use `@EnvironmentObject var settings: GlobalSettings` with `settings.fgColor` instead of static `let` copies. Navigation bar title color updates live via `onChange` + UINavigationBar hierarchy traversal. Static `Image("Checkmark")` assets replaced with SF Symbol `Image(systemName: "checkmark")`. Per-plan "Reset Last Completed" feature in Settings.
 
 ## Git usage
 
