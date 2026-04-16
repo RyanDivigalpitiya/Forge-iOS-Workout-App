@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 /// Watch face for the break timer. Three states: idle, counting down, expired.
 /// Uses TimelineView for countdown updates (same pattern as the iOS BreakTimerView).
@@ -76,8 +77,20 @@ struct BreakTimerWatchView: View {
                         exerciseName: exerciseName,
                         setDescription: setDescription
                     )
-                    sessionManager.playHaptic()
+                    // Fire haptic directly (reliable while app is alive via HKWorkoutSession).
+                    // The scheduled local notification is a background fallback.
+                    WKInterfaceDevice.current().play(.notification)
                 }
+            }
+        }
+        .onAppear {
+            // User opened the app after the timer already expired in the background.
+            // Transition to expired immediately so countingView isn't stuck at 0.
+            if Date() >= endDate {
+                sessionManager.timerState = .expired(
+                    exerciseName: exerciseName,
+                    setDescription: setDescription
+                )
             }
         }
     }

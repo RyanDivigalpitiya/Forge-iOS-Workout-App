@@ -37,6 +37,10 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         send(["type": "timerDismissed"])
     }
 
+    func sendWorkoutStarted() {
+        send(["type": "workoutStarted"])
+    }
+
     func sendWorkoutEnded() {
         send(["type": "workoutEnded"])
     }

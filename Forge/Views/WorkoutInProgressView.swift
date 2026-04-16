@@ -369,6 +369,7 @@ struct WorkoutInProgressView: View {
                     }
                     startLiveActivity()
                     healthManager.startWorkoutSession()
+                    PhoneSessionManager.shared.sendWorkoutStarted()
                 }
             }
 

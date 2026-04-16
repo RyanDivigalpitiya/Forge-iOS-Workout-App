@@ -35,6 +35,19 @@ class WorkoutHealthManager: ObservableObject {
                 workoutBuilder = builder
                 session.startActivity(with: Date())
                 builder.beginCollection(withStart: Date()) { _, _ in }
+
+                // Explicitly launch the companion watch app so its break-timer
+                // countdown runs reliably and fires its expiry haptic on time.
+                // `startWatchApp` is deprecated but is still the working iOS → watch
+                // launch trigger; the replacement (`startMirroringToCompanionDevice`)
+                // is marked `@available(iOS, unavailable)` and lives only on watchOS.
+                healthStore.startWatchApp(with: configuration) { success, error in
+                    if let error {
+                        print("[Forge] startWatchApp error: \(error.localizedDescription)")
+                    } else {
+                        print("[Forge] startWatchApp success: \(success)")
+                    }
+                }
             } catch {
                 print("[Forge] Failed to start workout session: \(error)")
             }
