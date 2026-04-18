@@ -52,6 +52,7 @@ All ViewModels are `ObservableObject` with `@Published` properties, accessed in 
 - `Exercise.sets` has a `didSet` observer that auto-computes `areSetsUnique` (via `doesExerciseHaveUniqueSets()`) and `completed` (true when every set is completed).
 - `EditorMode.swift` — three enums replacing the old string-based mode flags: `PlanEditorMode` (`.add`/`.edit`), `ExerciseEditorMode` (`.add`/`.edit`/`.log`), `ReorderDeleteMode` (`.plan`/`.exercise`).
 - `WorkoutActivityAttributes` — ActivityKit data contract for Live Activities. Static: `planName`. Dynamic `ContentState`: `percentCompleted`, `isResting`, `restEndDate`, `nextExerciseName`, `nextSetDescription`. Compiled into both `Forge` and `ForgeWidgetsExtension` targets.
+- `PlanTransferType.swift` — `UTType.forgePlan` (exported UTI `Ryan-Div.Forge.workoutPlan`) + `WorkoutPlan: Transferable` via `FileRepresentation`. Also exposes `WorkoutPlan.sharePreviewImage` — a pre-rendered `UIImage` of `dumbbell.fill` (handing `Image(systemName:)` to `SharePreview` renders blank).
 
 ## Key Views (`Forge/Views/`)
 
@@ -61,7 +62,7 @@ The two largest views were decomposed into focused child components. Parent view
 |------|---|---------|
 | `CompletedWorkoutsView` | ~125 | Home screen — workout history list, settings gear icon in nav bar |
 | `SettingsView` | ~95 | Color theme picker (6 accent colors) + per-plan "Reset Last Completed" |
-| `SelectPlanView` | ~240 | Choose/manage workout plans — inline swipe-to-delete + drag-to-reorder via List |
+| `SelectPlanView` | ~250 | Choose/manage workout plans — swipe-right to share `.forgeplan`, swipe-left to delete, drag-to-reorder via List |
 | `PlanEditorView` | ~310 | Create/edit a plan and its exercises — inline reorder/delete + swipe-right transfer |
 | `ExerciseEditorView` | ~410 | Add/edit exercises — coordinator only |
 | `HomogeneousSetPicker` | ~200 | 3-column wheel pickers (sets × weight × reps) — used by ExerciseEditorView |
@@ -129,6 +130,21 @@ The `ForgeWatch` target is a standalone watchOS app that receives break timer st
 
 **Haptic:** `WKInterfaceDevice.current().play(.notification)` fires once when the countdown reaches zero or when a `timerStarted` message arrives with an already-past `endDate`.
 
+## Plan Sharing (`.forgeplan` files)
+
+Users share workout plans device-to-device via the iOS share sheet (AirDrop / Messages / Mail / Save to Files). Plans travel as `.forgeplan` files — JSON-encoded `WorkoutPlan`s under a custom exported UTType.
+
+**Files:**
+- `Forge/Data Model/PlanTransferType.swift` — defines `UTType.forgePlan` + `WorkoutPlan: Transferable` via `FileRepresentation`. Exports a temp file named after the plan; decodes the file back into a `WorkoutPlan` on import.
+- `Forge/Info.plist` — `UTExportedTypeDeclarations` (makes the UTI known) + `CFBundleDocumentTypes` with `LSHandlerRank=Owner` (claims `.forgeplan` files for Forge). `LSSupportsOpeningDocumentsInPlace=false` — Forge always copies to its own library rather than editing the source file.
+- `Forge/Views/SelectPlanView.swift` — leading-edge `.swipeActions` with a blue `ShareLink(item: plan)` button.
+- `Forge/View Model/PlanViewModel.swift` — `importPlan(_:)` is the single funnel for incoming plans. Strips `completed` flags on every set, clears `lastCompleted` (shared plans are templates, not snapshots), and auto-suffixes name collisions with `" (Imported)"` / `" (Imported) 2"` / ...
+- `Forge/Views/CompletedWorkoutsView.swift` — `.onOpenURL` decodes incoming `.forgeplan` files and routes them through `planViewModel.importPlan(_:)`.
+
+**SharePreview icon caveat:** `Image(systemName:)` handed directly to `SharePreview` renders blank in the share-sheet thumbnail. `WorkoutPlan.sharePreviewImage` pre-renders `dumbbell.fill` to a 160pt `UIImage` tinted Forge-red so the preview shows an actual icon.
+
+**Info.plist setup:** The Forge target uses `GENERATE_INFOPLIST_FILE=YES` with the `INFOPLIST_KEY_*` pattern for most values, but array-of-dictionary entries (document types, UTI declarations) can't be expressed as build settings — they need a real plist file. `Forge/Info.plist` contains only those entries; `INFOPLIST_FILE = Forge/Info.plist` in both Debug/Release configs tells Xcode to merge the `INFOPLIST_KEY_*` values on top. If you add another array-of-dict Info.plist key later, extend this file — don't flip back to pure build-settings generation.
+
 ## Timer & Notification System
 
 - **Workout start countdown:** 3 seconds (skippable). Owned entirely by `StartingCountdownView` — signals completion via `onCompletion` callback.
@@ -149,9 +165,9 @@ Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) c
 
 **Target:** `ForgeTests/`. Uses Xcode 16's `PBXFileSystemSynchronizedRootGroup`, so any `.swift` file dropped into the directory is auto-detected — no `project.pbxproj` edits needed for new test files.
 
-**43 test cases** across four files:
+**47 test cases** across four files:
 - `ExerciseTests.swift` — `doesExerciseHaveUniqueSets()` and `sets` didSet observer (8 cases)
-- `PlanViewModelTests.swift` — `calculateWorkoutDuration`, `isThereNonZeroDecimal`, save/load round-trip, move/delete plan/exercise (12 cases)
+- `PlanViewModelTests.swift` — `calculateWorkoutDuration`, `isThereNonZeroDecimal`, save/load round-trip, move/delete plan/exercise, `importPlan` state-strip + collision suffixing (16 cases)
 - `CompletedWorkoutsViewModelTests.swift` — `format(timeInterval:)`, `numberOfDaysString`, persistence round-trip, reverse-index `deleteCompletedWorkouts` (13 cases)
 - `ValidationTests.swift` — input validation: whitespace, empty, max length, normal strings (10 cases)
 
@@ -170,6 +186,7 @@ Uses boolean `@Published` flags on ViewModels (e.g., `isSelectPlanViewActive`) c
 - **`navigationBarTitleTextColor` must force-update existing bars.** `UINavigationBar.appearance()` only applies to newly created navigation bars. The extension in `CompletedWorkoutsView.swift` uses `.onChange(of: color)` to traverse all `UIWindowScene` windows and directly set `standardAppearance`/`scrollEdgeAppearance` on existing `UINavigationBar` instances (via `.copy()` + reassign to trigger UIKit change detection).
 - **Multiple `Button`s in a single `List` row require `.buttonStyle(.borderless)`.** Without it, SwiftUI's List treats the entire row as one tappable area and fires the last button's action regardless of where the user taps.
 - **`UIScreen.main.bounds`** is used in 3 views for fixed-fraction layout (`0.33 * screenWidth` etc). It's deprecated in iOS 16+ in favor of `view.window.windowScene.screen`, but doesn't currently emit a warning at our deployment target. Migrating would require `GeometryReader` or environment-based screen access — out of scope for "polish" work.
+- **Don't put workflow-critical `@StateObject`s on the `App` struct if any view's `onAppear` resets navigation flags.** Promoting `PlanViewModel` to `@StateObject` on `ForgeApp` caused the Scene body to re-evaluate on every `planViewModel` publish, which re-fired `CompletedWorkoutsView.onAppear` and reset `isSelectPlanViewActive = false` — popping `SelectPlanView` and the workout fullScreenCover every time a plan was tapped (the 3-sec countdown appeared, then the whole stack collapsed back to the history screen). Keep VMs that mutate during active workflows out of `App`-level `@StateObject`s. The working pattern is inline `.environmentObject(PlanViewModel())` in `ForgeApp.body` + `@EnvironmentObject` in the views that need it. If you need app-wide access to a shared VM for something like `.onOpenURL`, attach the handler to the root *view* (`CompletedWorkoutsView`), not the Scene.
 
 ## Refactor history
 
@@ -190,6 +207,7 @@ The codebase went through a 7-stage refactor (see git log for `Stage N` commits)
 13. HealthKit calorie capture — `endWorkoutSession` returns calories via completion handler, `CompletedWorkout.caloriesBurned` field, HistoryView stats row (calories/completion ring/duration), break timer "Up Next" display.
 14. Apple Watch companion app — `ForgeWatch` watchOS target with WatchConnectivity. Phone sends break timer state to watch; watch shows countdown ring and fires haptic on expiry. `PhoneSessionManager` (phone) and `WatchSessionManager` (watch) singletons with dual `sendMessage` + `updateApplicationContext` delivery.
 15. Settings view with color theme selector (6 accent colors persisted via UserDefaults). `GlobalSettings` converted to `ObservableObject`; all views use `@EnvironmentObject var settings: GlobalSettings` with `settings.fgColor` instead of static `let` copies. Navigation bar title color updates live via `onChange` + UINavigationBar hierarchy traversal. Static `Image("Checkmark")` assets replaced with SF Symbol `Image(systemName: "checkmark")`. Per-plan "Reset Last Completed" feature in Settings.
+16. Plan sharing — swipe right on a plan in `SelectPlanView` to share a `.forgeplan` file via the iOS share sheet (AirDrop/Messages/Mail/Save to Files). Receiving iPhones open the file via `.onOpenURL` on `CompletedWorkoutsView`, routed through `PlanViewModel.importPlan(_:)` — strips set-completion state, clears `lastCompleted`, auto-suffixes name collisions. `WorkoutPlan: Transferable` via `FileRepresentation`; custom `Ryan-Div.Forge.workoutPlan` UTType exported in `Forge/Info.plist`. First use of a real Info.plist file for the Forge target (merged on top of `INFOPLIST_KEY_*` build settings).
 
 ## Git usage
 
