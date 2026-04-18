@@ -71,27 +71,11 @@ struct BreakTimerWatchView: View {
                     }
                 }
             }
-            .onChange(of: remaining) { _, newValue in
-                if newValue == 0 {
-                    sessionManager.timerState = .expired(
-                        exerciseName: exerciseName,
-                        setDescription: setDescription
-                    )
-                    // Fire haptic directly (reliable while app is alive via HKWorkoutSession).
-                    // The scheduled local notification is a background fallback.
-                    WKInterfaceDevice.current().play(.notification)
-                }
-            }
         }
         .onAppear {
-            // User opened the app after the timer already expired in the background.
-            // Transition to expired immediately so countingView isn't stuck at 0.
-            if Date() >= endDate {
-                sessionManager.timerState = .expired(
-                    exerciseName: exerciseName,
-                    setDescription: setDescription
-                )
-            }
+            // If the timer already expired while the app was not visible, sync the UI
+            // immediately instead of leaving the countdown stuck at 0.
+            sessionManager.syncExpiredStateIfNeeded(for: endDate)
         }
     }
 

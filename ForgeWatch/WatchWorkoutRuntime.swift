@@ -6,9 +6,9 @@ import HealthKit
 /// allows the break timer's TimelineView + onChange to fire the expiry haptic
 /// the moment it hits zero.
 ///
-/// iOS launches the watch app via `HKHealthStore.startWatchApp(with:)`; the
-/// phone then sends a `workoutStarted` WCSession message which triggers
-/// `startWorkout()` here.
+/// iOS launches the watch app via `HKHealthStore.startWatchApp(with:)`, and the
+/// watch app delegate forwards that workout configuration here immediately.
+/// A later WCSession `workoutStarted` message is still accepted as a fallback.
 final class WatchWorkoutRuntime: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate, ObservableObject {
 
     static let shared = WatchWorkoutRuntime()
@@ -44,20 +44,23 @@ final class WatchWorkoutRuntime: NSObject, HKWorkoutSessionDelegate, HKLiveWorko
     // MARK: - Lifecycle
 
     func startWorkout() {
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .functionalStrengthTraining
+        configuration.locationType = .indoor
+        startWorkout(with: configuration)
+    }
+
+    func startWorkout(with configuration: HKWorkoutConfiguration) {
         guard session == nil else { return }
         guard HKHealthStore.isHealthDataAvailable() else {
             print("[ForgeWatch] HealthKit unavailable — cannot start workout session")
             return
         }
 
-        let config = HKWorkoutConfiguration()
-        config.activityType = .functionalStrengthTraining
-        config.locationType = .indoor
-
         do {
-            let s = try HKWorkoutSession(healthStore: healthStore, configuration: config)
+            let s = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             let b = s.associatedWorkoutBuilder()
-            b.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
+            b.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
             s.delegate = self
             b.delegate = self
 

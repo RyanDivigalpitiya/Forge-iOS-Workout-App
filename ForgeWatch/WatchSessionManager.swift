@@ -1,14 +1,11 @@
 import WatchConnectivity
 import WatchKit
-import UserNotifications
 
-/// Manages the watch side of WatchConnectivity, receiving break timer state from the iPhone.
-/// Schedules a local notification at `endDate` so the haptic fires even when the watch app
-/// is backgrounded (TimelineView-based timers only update in foreground).
-final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, UNUserNotificationCenterDelegate {
+/// Manages the watch side of WatchConnectivity and owns the single haptic-only
+/// break-timer expiry path.
+final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     static let shared = WatchSessionManager()
-    static let expiryNotificationIdentifier = "watchBreakTimerExpiry"
 
     enum TimerState: Equatable {
         case idle
@@ -30,11 +27,12 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, 
         }
     }
 
-    @Published var timerState: TimerState = .idle
+    @Published private(set) var timerState: TimerState = .idle
 
     // Tracks the endDate of the most recently processed timerStarted message so
     // duplicate deliveries (sendMessage + applicationContext) don't double-process.
     private var lastHandledEndDate: Date?
+    private var expiryTask: Task<Void, Never>?
 
     private override init() {
         super.init()
@@ -44,6 +42,25 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, 
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
+    }
+
+    func expireTimerFromCountdown(endDate: Date, playHaptic: Bool) {
+        guard case let .counting(currentEndDate, _, exerciseName, setDescription) = timerState,
+              currentEndDate == endDate else { return }
+
+        expiryTask?.cancel()
+        expiryTask = nil
+        timerState = .expired(exerciseName: exerciseName, setDescription: setDescription)
+
+        if playHaptic {
+            WKInterfaceDevice.current().play(.notification)
+        }
+    }
+
+    func syncExpiredStateIfNeeded(for endDate: Date) {
+        if Date() >= endDate {
+            expireTimerFromCountdown(endDate: endDate, playHaptic: false)
+        }
     }
 
     // MARK: - WCSessionDelegate
@@ -93,12 +110,13 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, 
             lastHandledEndDate = endDate
 
             if endDate > Date() {
-                // Future timer — start counting & schedule haptic via local notification
-                // so the haptic fires regardless of foreground/background state.
+                // Future timer — start counting and arm the direct watch-side
+                // expiry task that will fire the haptic at the end date.
+                expiryTask?.cancel()
                 timerState = .counting(endDate: endDate, duration: duration,
                                       exerciseName: exerciseName,
                                       setDescription: setDescription)
-                scheduleExpiryNotification(at: endDate, exerciseName: exerciseName)
+                scheduleExpiryTask(for: endDate)
             } else {
                 // Stale message from a previous session (e.g. via receivedApplicationContext).
                 // Do NOT transition to .expired or fire a haptic — user would get a phantom
@@ -107,20 +125,21 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, 
             }
 
         case "timerDismissed":
+            expiryTask?.cancel()
+            expiryTask = nil
             timerState = .idle
             lastHandledEndDate = nil
-            cancelExpiryNotification()
 
         case "workoutStarted":
             // Start an HKWorkoutSession on the watch to keep the app alive for
-            // the workout duration so the break-timer TimelineView fires its
-            // expiry haptic the instant the countdown hits zero.
+            // the workout duration so the break-timer haptic can fire on time.
             WatchWorkoutRuntime.shared.startWorkout()
 
         case "workoutEnded":
+            expiryTask?.cancel()
+            expiryTask = nil
             timerState = .idle
             lastHandledEndDate = nil
-            cancelExpiryNotification()
             WatchWorkoutRuntime.shared.endWorkout()
 
         default:
@@ -128,44 +147,26 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate, 
         }
     }
 
-    // MARK: - Local Notification Scheduling
+    // MARK: - Expiry Scheduling
 
-    private func scheduleExpiryNotification(at endDate: Date, exerciseName: String) {
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [Self.expiryNotificationIdentifier])
+    private func scheduleExpiryTask(for endDate: Date) {
+        let delay = endDate.timeIntervalSinceNow
+        guard delay > 0 else {
+            expireTimerFromCountdown(endDate: endDate, playHaptic: true)
+            return
+        }
 
-        let timeInterval = endDate.timeIntervalSinceNow
-        guard timeInterval > 0 else { return }
+        expiryTask = Task { [weak self] in
+            let duration = UInt64(delay * 1_000_000_000)
+            do {
+                try await Task.sleep(nanoseconds: duration)
+            } catch {
+                return
+            }
 
-        let content = UNMutableNotificationContent()
-        content.title = "Break Timer Done"
-        content.body = exerciseName.isEmpty ? "Time to start your next set!" : "Up next: \(exerciseName)"
-        content.sound = .default   // Triggers haptic on watch
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
-        let request = UNNotificationRequest(identifier: Self.expiryNotificationIdentifier,
-                                            content: content, trigger: trigger)
-
-        center.add(request) { error in
-            if let error {
-                print("[ForgeWatch] Notification schedule error: \(error.localizedDescription)")
-            } else {
-                print("[ForgeWatch] Scheduled expiry notification for \(Int(timeInterval))s from now")
+            await MainActor.run {
+                self?.expireTimerFromCountdown(endDate: endDate, playHaptic: true)
             }
         }
-    }
-
-    private func cancelExpiryNotification() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [Self.expiryNotificationIdentifier])
-    }
-
-    // MARK: - UNUserNotificationCenterDelegate
-
-    // In foreground, suppress the banner but keep sound/haptic so the haptic still fires
-    // without obscuring the countdown view with a banner.
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.sound])
     }
 }

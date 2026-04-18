@@ -27,6 +27,7 @@ class WorkoutHealthManager: ObservableObject {
         if #available(iOS 26.0, *) {
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = .functionalStrengthTraining
+            configuration.locationType = .indoor
             do {
                 let session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
                 let builder = session.associatedWorkoutBuilder()
@@ -93,6 +94,7 @@ class WorkoutHealthManager: ObservableObject {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .functionalStrengthTraining
+        configuration.locationType = .indoor
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         builder.beginCollection(withStart: startDate) { success, error in
             guard success else {
