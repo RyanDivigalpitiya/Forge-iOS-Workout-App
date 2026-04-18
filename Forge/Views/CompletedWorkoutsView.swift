@@ -5,7 +5,8 @@ struct CompletedWorkoutsView: View {
     //-//////////////////////////////////////////
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-//////////////////////////////////////////
-    
+    @EnvironmentObject var planViewModel: PlanViewModel
+
     @State private var historyViewIsPresented = false
     @State private var settingsViewIsPresented = false
 
@@ -112,6 +113,27 @@ struct CompletedWorkoutsView: View {
         .onAppear{
             completedWorkoutsViewModel.isSelectPlanViewActive = false
         }
+        .onOpenURL { url in
+            importIncomingPlan(from: url)
+        }
+    }
+
+    private func importIncomingPlan(from url: URL) {
+        guard url.pathExtension.lowercased() == "forgeplan" else { return }
+        let needsScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if needsScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        guard
+            let data = try? Data(contentsOf: url),
+            let plan = try? JSONDecoder().decode(WorkoutPlan.self, from: data)
+        else {
+            print("Failed to decode shared plan at \(url.lastPathComponent)")
+            return
+        }
+        planViewModel.importPlan(plan)
     }
 }
 
