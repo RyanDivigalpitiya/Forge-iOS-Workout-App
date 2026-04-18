@@ -5,6 +5,7 @@ struct ForgeApp: App {
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var healthManager = WorkoutHealthManager()
+    @StateObject private var planViewModel = PlanViewModel()
 
     init() {
         let center = UNUserNotificationCenter.current()
@@ -27,7 +28,7 @@ struct ForgeApp: App {
         WindowGroup {
             CompletedWorkoutsView()
                 .environmentObject(CompletedWorkoutsViewModel())
-                .environmentObject(PlanViewModel())
+                .environmentObject(planViewModel)
                 .environmentObject(ExerciseViewModel())
                 .environmentObject(healthManager)
                 .environmentObject(GlobalSettings.shared)
@@ -35,6 +36,27 @@ struct ForgeApp: App {
                 .onAppear {
                     healthManager.requestAuthorization()
                 }
+                .onOpenURL { url in
+                    importIncomingPlan(from: url)
+                }
         }
+    }
+
+    private func importIncomingPlan(from url: URL) {
+        guard url.pathExtension.lowercased() == "forgeplan" else { return }
+        let needsScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if needsScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        guard
+            let data = try? Data(contentsOf: url),
+            let plan = try? JSONDecoder().decode(WorkoutPlan.self, from: data)
+        else {
+            print("Failed to decode shared plan at \(url.lastPathComponent)")
+            return
+        }
+        planViewModel.importPlan(plan)
     }
 }

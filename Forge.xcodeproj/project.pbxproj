@@ -47,6 +47,7 @@
 		F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850932A494DFD0093EE01 /* PlanViewModel.swift */; };
 		F1F850962A4956CA0093EE01 /* PlanEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850952A4956CA0093EE01 /* PlanEditorView.swift */; };
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
+		F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F00012F8579A300FAE979 /* PlanTransferType.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -144,6 +145,8 @@
 		F1F850932A494DFD0093EE01 /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
 		F1F850952A4956CA0093EE01 /* PlanEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanEditorView.swift; sourceTree = "<group>"; };
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
+		F10F00012F8579A300FAE979 /* PlanTransferType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTransferType.swift; sourceTree = "<group>"; };
+		F10F00032F8579A300FAE979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -240,6 +243,7 @@
 				F1F850972A4958270093EE01 /* UI Support */,
 				F1F8506C2A4920AD0093EE01 /* Assets.xcassets */,
 				F1F8506E2A4920AD0093EE01 /* Forge.entitlements */,
+				F10F00032F8579A300FAE979 /* Info.plist */,
 				F1F8506F2A4920AD0093EE01 /* Preview Content */,
 			);
 			path = Forge;
@@ -301,6 +305,7 @@
 				F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */,
 				C10000002B0000000000AA01 /* EditorMode.swift */,
 				C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */,
+				F10F00012F8579A300FAE979 /* PlanTransferType.swift */,
 				F1F8508A2A4936250093EE01 /* TestingDataModel.playground */,
 			);
 			path = "Data Model";
@@ -544,6 +549,7 @@
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
 				D10000022D0000000000DD01 /* SettingsView.swift in Sources */,
 				E10000022E0000000000EE01 /* ConfettiView.swift in Sources */,
+				F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -899,6 +905,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Forge/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads workout data to display your fitness history.";
@@ -949,6 +956,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Forge/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forge;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads workout data to display your fitness history.";

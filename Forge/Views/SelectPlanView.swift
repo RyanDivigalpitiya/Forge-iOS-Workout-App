@@ -120,6 +120,18 @@ struct SelectPlanView: View {
                     .padding(.leading)
                     .background(bgColor)
                     .cornerRadius(15)
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        ShareLink(
+                            item: plan,
+                            preview: SharePreview(
+                                plan.name.isEmpty ? "Workout Plan" : plan.name,
+                                image: WorkoutPlan.sharePreviewImage
+                            )
+                        ) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        .tint(.blue)
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             planToDeleteIndex = index

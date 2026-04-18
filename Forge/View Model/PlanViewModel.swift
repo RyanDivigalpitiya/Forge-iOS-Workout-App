@@ -76,6 +76,35 @@ extension PlanViewModel {
         activePlan.exercises.remove(at: exerciseIndex)
         savePlans()
     }
+
+    // Imports a plan received from another user. Strips completion state so the
+    // plan arrives as a clean template, and auto-suffixes the name on collision.
+    func importPlan(_ plan: WorkoutPlan) {
+        var sanitized = plan
+        sanitized.lastCompleted = nil
+        for exerciseIndex in sanitized.exercises.indices {
+            var clearedSets = sanitized.exercises[exerciseIndex].sets
+            for setIndex in clearedSets.indices {
+                clearedSets[setIndex].completed = false
+            }
+            sanitized.exercises[exerciseIndex].sets = clearedSets
+        }
+        sanitized.name = uniqueName(for: sanitized.name)
+        workoutPlans.append(sanitized)
+        savePlans()
+    }
+
+    private func uniqueName(for proposed: String) -> String {
+        let existing = Swift.Set(workoutPlans.map { $0.name })
+        guard existing.contains(proposed) else { return proposed }
+        let base = "\(proposed) (Imported)"
+        if !existing.contains(base) { return base }
+        var counter = 2
+        while existing.contains("\(base) \(counter)") {
+            counter += 1
+        }
+        return "\(base) \(counter)"
+    }
 }
 
 // data manipulation to passed to views

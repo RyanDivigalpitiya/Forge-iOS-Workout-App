@@ -162,4 +162,53 @@ final class PlanViewModelTests {
 
         #expect(vm.activePlan.exercises.count == originalCount - 1)
     }
+
+    // MARK: - importPlan
+
+    @Test func importPlanStripsCompletionState() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let sets = [
+            Set(weight: 100, reps: 10, tillFailure: false, completed: true),
+            Set(weight: 100, reps: 10, tillFailure: false, completed: true),
+        ]
+        let exercise = Exercise(name: "Bench", sets: sets)
+        var plan = WorkoutPlan(name: "Shared", exercises: [exercise])
+        plan.lastCompleted = Date()
+
+        vm.importPlan(plan)
+
+        let imported = vm.workoutPlans[0]
+        #expect(imported.lastCompleted == nil)
+        #expect(imported.exercises[0].sets.allSatisfy { $0.completed == false })
+        #expect(imported.exercises[0].completed == false)
+    }
+
+    @Test func importPlanSuffixesOnNameCollision() {
+        let existing = WorkoutPlan(name: "Push Day", exercises: [])
+        let vm = PlanViewModel(mockPlans: [existing], userDefaults: testDefaults)
+        let incoming = WorkoutPlan(name: "Push Day", exercises: [])
+
+        vm.importPlan(incoming)
+        #expect(vm.workoutPlans.map(\.name) == ["Push Day", "Push Day (Imported)"])
+
+        vm.importPlan(WorkoutPlan(name: "Push Day", exercises: []))
+        #expect(vm.workoutPlans.map(\.name).last == "Push Day (Imported) 2")
+    }
+
+    @Test func importPlanKeepsOriginalNameWhenNoCollision() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let plan = WorkoutPlan(name: "Leg Day", exercises: [])
+
+        vm.importPlan(plan)
+
+        #expect(vm.workoutPlans.first?.name == "Leg Day")
+    }
+
+    @Test func importPlanPersistsAcrossReload() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        vm.importPlan(WorkoutPlan(name: "Shared", exercises: []))
+
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.first?.name == "Shared")
+    }
 }
