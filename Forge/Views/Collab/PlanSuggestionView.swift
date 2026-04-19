@@ -440,20 +440,20 @@ private func previewSessionClient(withSuggestion: Bool) -> SessionClient {
     return client
 }
 
-#Preview("Plan Suggested") {
+#Preview("No Suggestion") {
     NavigationStack {
         PlanSuggestionView()
-            .environmentObject(previewSessionClient(withSuggestion: true))
+            .environmentObject(previewSessionClient(withSuggestion: false))
             .environmentObject(GlobalSettings.shared)
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
     }
     .preferredColorScheme(.dark)
 }
 
-#Preview("No Suggestion") {
+#Preview("Plan Suggested") {
     NavigationStack {
         PlanSuggestionView()
-            .environmentObject(previewSessionClient(withSuggestion: false))
+            .environmentObject(previewSessionClient(withSuggestion: true))
             .environmentObject(GlobalSettings.shared)
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
     }
