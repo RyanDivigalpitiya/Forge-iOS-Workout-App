@@ -345,8 +345,7 @@ struct PlanCarouselCard: View {
                 }
                 .font(.caption2)
                 .fontWeight(.bold)
-                .frame(width: 80)
-                .padding(.vertical, 8)
+                .frame(width: 80, height: 30)
             }
             .background(settings.fgColor)
             .foregroundColor(.black)
