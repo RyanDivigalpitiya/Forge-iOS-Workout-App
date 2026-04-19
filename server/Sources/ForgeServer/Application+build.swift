@@ -10,6 +10,7 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
 
     let manager = SessionManager.shared
     let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
 
     let router = Router()
     router.add(middleware: LogRequestsMiddleware(.info))
@@ -52,7 +53,7 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
             }
             return
         case .added(let existingPeers):
-            let welcome = ServerMessage.welcome(yourId: myId, existingPeers: existingPeers)
+            let welcome = ServerMessage.welcome(yourId: myId, peers: existingPeers)
             if let data = try? encoder.encode(welcome),
                let text = String(data: data, encoding: .utf8) {
                 try? await outbound.write(.text(text))
@@ -70,8 +71,24 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 }
                 group.addTask {
                     do {
-                        for try await _ in inbound.messages(maxSize: 64_000) {
-                            // Stage 1: client sends nothing yet.
+                        for try await frame in inbound.messages(maxSize: 256 * 1024) {
+                            guard case .text(let text) = frame,
+                                  let data = text.data(using: .utf8),
+                                  let message = try? decoder.decode(ClientMessage.self, from: data)
+                            else { continue }
+                            switch message {
+                            case .profileUpdate(let profile):
+                                await manager.updateProfile(
+                                    sessionId: sessionId,
+                                    participantId: myId,
+                                    profile: profile
+                                )
+                                await manager.broadcast(
+                                    .peerProfileUpdated(peerId: myId, profile: profile),
+                                    in: sessionId,
+                                    except: myId
+                                )
+                            }
                         }
                     } catch {
                         // Client disconnected — fall through to cleanup.

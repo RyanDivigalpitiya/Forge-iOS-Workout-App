@@ -7,14 +7,18 @@ actor SessionManager {
 
     private final class Session {
         let id: UUID
-        var participants: [UUID: AsyncStream<ServerMessage>.Continuation] = [:]
+        struct ParticipantInfo {
+            let continuation: AsyncStream<ServerMessage>.Continuation
+            var profile: Profile?
+        }
+        var participants: [UUID: ParticipantInfo] = [:]
         init(id: UUID) { self.id = id }
     }
 
     private var sessions: [UUID: Session] = [:]
 
     enum AddResult {
-        case added(existingPeers: [UUID])
+        case added(existingPeers: [PeerInfo])
         case sessionFull
     }
 
@@ -29,8 +33,13 @@ actor SessionManager {
             return new
         }()
         if session.participants.count >= Self.capacity { return .sessionFull }
-        let existingPeers = Array(session.participants.keys)
-        session.participants[participantId] = continuation
+        let existingPeers: [PeerInfo] = session.participants.map { pid, info in
+            PeerInfo(peerId: pid, profile: info.profile)
+        }
+        session.participants[participantId] = Session.ParticipantInfo(
+            continuation: continuation,
+            profile: nil
+        )
         return .added(existingPeers: existingPeers)
     }
 
@@ -42,10 +51,17 @@ actor SessionManager {
         }
     }
 
+    func updateProfile(sessionId: UUID, participantId: UUID, profile: Profile) {
+        guard let session = sessions[sessionId] else { return }
+        guard var info = session.participants[participantId] else { return }
+        info.profile = profile
+        session.participants[participantId] = info
+    }
+
     func broadcast(_ message: ServerMessage, in sessionId: UUID, except exceptId: UUID? = nil) {
         guard let session = sessions[sessionId] else { return }
-        for (pid, continuation) in session.participants where pid != exceptId {
-            continuation.yield(message)
+        for (pid, info) in session.participants where pid != exceptId {
+            info.continuation.yield(message)
         }
     }
 }
