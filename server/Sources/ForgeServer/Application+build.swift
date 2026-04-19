@@ -18,18 +18,12 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
         "ForgeServer online"
     }
 
-    router.post("/sessions") { _, _ -> [String: String] in
-        let id = await manager.createSession()
-        return ["sessionId": id.uuidString]
-    }
-
     let wsRouter = Router(context: BasicWebSocketRequestContext.self)
     wsRouter.add(middleware: LogRequestsMiddleware(.info))
 
-    wsRouter.ws("sessions/:id") { request, context in
+    wsRouter.ws("sessions/:id") { _, context in
         guard let idString = context.parameters.get("id"),
-              let id = UUID(uuidString: idString),
-              await manager.sessionExists(id)
+              UUID(uuidString: idString) != nil
         else {
             return .dontUpgrade
         }
@@ -51,8 +45,6 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
         )
 
         switch addResult {
-        case .sessionNotFound:
-            return
         case .sessionFull:
             if let data = try? encoder.encode(ServerMessage.sessionFull),
                let text = String(data: data, encoding: .utf8) {

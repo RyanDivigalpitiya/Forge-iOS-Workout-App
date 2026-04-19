@@ -14,7 +14,6 @@ final class SessionClient: ObservableObject {
 
     enum State: Equatable {
         case idle
-        case creating
         case connecting
         case waitingForPeer
         case connected
@@ -30,31 +29,11 @@ final class SessionClient: ObservableObject {
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
 
-    func createSession() async {
+    func createSession() {
         disconnect()
-        state = .creating
-
-        var request = URLRequest(url: URL(string: "https://\(Self.serverHost)/sessions")!)
-        request.httpMethod = "POST"
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                state = .error("Server rejected session create")
-                return
-            }
-            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],
-                  let idString = json["sessionId"],
-                  let id = UUID(uuidString: idString)
-            else {
-                state = .error("Unexpected server response")
-                return
-            }
-            sessionId = id
-            openSocket(sessionId: id)
-        } catch {
-            state = .error(error.localizedDescription)
-        }
+        let id = UUID()
+        sessionId = id
+        openSocket(sessionId: id)
     }
 
     func joinSession(id: UUID) {
@@ -63,15 +42,28 @@ final class SessionClient: ObservableObject {
         openSocket(sessionId: id)
     }
 
+    func reconnect() {
+        guard let id = sessionId else { return }
+        guard case .disconnected = state else { return }
+        cleanupSocket()
+        myId = nil
+        peerIds = []
+        openSocket(sessionId: id)
+    }
+
     func disconnect() {
-        receiveLoop?.cancel()
-        receiveLoop = nil
-        task?.cancel(with: .goingAway, reason: nil)
-        task = nil
+        cleanupSocket()
         sessionId = nil
         myId = nil
         peerIds = []
         state = .idle
+    }
+
+    private func cleanupSocket() {
+        receiveLoop?.cancel()
+        receiveLoop = nil
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
     }
 
     func shareLinkURL() -> URL? {

@@ -31,7 +31,7 @@ struct WorkoutWithFriendView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    Task { await generateAndCopy() }
+                    generateAndCopy()
                 } label: {
                     Label("Copy Link", systemImage: "doc.on.doc.fill")
                         .fontWeight(.semibold)
@@ -43,7 +43,7 @@ struct WorkoutWithFriendView: View {
                 .cornerRadius(12)
 
                 Button {
-                    Task { await generateAndShare() }
+                    generateAndShare()
                 } label: {
                     Label("Share Link", systemImage: "square.and.arrow.up.fill")
                         .fontWeight(.semibold)
@@ -70,15 +70,15 @@ struct WorkoutWithFriendView: View {
         }
     }
 
-    private func generateAndCopy() async {
-        await sessionClient.createSession()
+    private func generateAndCopy() {
+        sessionClient.createSession()
         guard let url = sessionClient.shareLinkURL() else { return }
         UIPasteboard.general.string = url.absoluteString
         connectingActive = true
     }
 
-    private func generateAndShare() async {
-        await sessionClient.createSession()
+    private func generateAndShare() {
+        sessionClient.createSession()
         guard let url = sessionClient.shareLinkURL() else { return }
         shareURL = ShareableURL(url: url)
         connectingActive = true
@@ -146,11 +146,10 @@ struct ConnectingView: View {
     private var headerText: String {
         switch sessionClient.state {
         case .idle: return "Idle"
-        case .creating: return "Creating session…"
         case .connecting: return "Connecting…"
         case .waitingForPeer: return "Waiting for friend…"
         case .connected: return "Connected."
-        case .disconnected(let reason): return "Disconnected\n\(reason)"
+        case .disconnected: return "Reconnecting…"
         case .error(let msg): return "Error\n\(msg)"
         }
     }

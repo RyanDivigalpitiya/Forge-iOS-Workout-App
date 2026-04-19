@@ -16,6 +16,8 @@ struct CompletedWorkoutsView: View {
 
     @EnvironmentObject var settings: GlobalSettings
 
+    @Environment(\.scenePhase) private var scenePhase
+
     let bgColor = GlobalSettings.shared.bgColor // background colour
     
     var body: some View {
@@ -137,6 +139,11 @@ struct CompletedWorkoutsView: View {
         }
         .onOpenURL { url in
             handleIncomingURL(url)
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active && oldPhase != .active {
+                sessionClient.reconnect()
+            }
         }
     }
 

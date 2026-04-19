@@ -15,18 +15,7 @@ actor SessionManager {
 
     enum AddResult {
         case added(existingPeers: [UUID])
-        case sessionNotFound
         case sessionFull
-    }
-
-    func createSession() -> UUID {
-        let id = UUID()
-        sessions[id] = Session(id: id)
-        return id
-    }
-
-    func sessionExists(_ id: UUID) -> Bool {
-        sessions[id] != nil
     }
 
     func addParticipant(
@@ -34,7 +23,11 @@ actor SessionManager {
         participantId: UUID,
         continuation: AsyncStream<ServerMessage>.Continuation
     ) -> AddResult {
-        guard let session = sessions[sessionId] else { return .sessionNotFound }
+        let session = sessions[sessionId] ?? {
+            let new = Session(id: sessionId)
+            sessions[sessionId] = new
+            return new
+        }()
         if session.participants.count >= Self.capacity { return .sessionFull }
         let existingPeers = Array(session.participants.keys)
         session.participants[participantId] = continuation
