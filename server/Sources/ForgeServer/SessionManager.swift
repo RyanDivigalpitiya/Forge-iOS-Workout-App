@@ -12,13 +12,14 @@ actor SessionManager {
             var profile: Profile?
         }
         var participants: [UUID: ParticipantInfo] = [:]
+        var suggestedPlan: PlanSnapshot?
         init(id: UUID) { self.id = id }
     }
 
     private var sessions: [UUID: Session] = [:]
 
     enum AddResult {
-        case added(existingPeers: [PeerInfo])
+        case added(existingPeers: [PeerInfo], suggestedPlan: PlanSnapshot?)
         case sessionFull
     }
 
@@ -40,7 +41,7 @@ actor SessionManager {
             continuation: continuation,
             profile: nil
         )
-        return .added(existingPeers: existingPeers)
+        return .added(existingPeers: existingPeers, suggestedPlan: session.suggestedPlan)
     }
 
     func removeParticipant(sessionId: UUID, participantId: UUID) {
@@ -56,6 +57,10 @@ actor SessionManager {
         guard var info = session.participants[participantId] else { return }
         info.profile = profile
         session.participants[participantId] = info
+    }
+
+    func updateSuggestedPlan(sessionId: UUID, plan: PlanSnapshot) {
+        sessions[sessionId]?.suggestedPlan = plan
     }
 
     func broadcast(_ message: ServerMessage, in sessionId: UUID, except exceptId: UUID? = nil) {

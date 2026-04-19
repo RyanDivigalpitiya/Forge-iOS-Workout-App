@@ -10,16 +10,60 @@ struct PeerInfo: Codable, Equatable {
     let profile: Profile?
 }
 
+struct SetSnapshot: Codable, Equatable {
+    let weight: Float
+    let reps: Int
+    let tillFailure: Bool
+}
+
+struct ExerciseSnapshot: Codable, Equatable, Identifiable {
+    let id: UUID
+    let name: String
+    let sets: [SetSnapshot]
+}
+
+struct PlanSnapshot: Codable, Equatable, Identifiable {
+    let id: UUID
+    let name: String
+    let exercises: [ExerciseSnapshot]
+
+    init(id: UUID, name: String, exercises: [ExerciseSnapshot]) {
+        self.id = id
+        self.name = name
+        self.exercises = exercises
+    }
+
+    init(from plan: WorkoutPlan) {
+        self.id = plan.id
+        self.name = plan.name
+        self.exercises = plan.exercises.map { exercise in
+            ExerciseSnapshot(
+                id: exercise.id,
+                name: exercise.name,
+                sets: exercise.sets.map { set in
+                    SetSnapshot(
+                        weight: set.weight,
+                        reps: set.reps,
+                        tillFailure: set.tillFailure
+                    )
+                }
+            )
+        }
+    }
+}
+
 enum ServerMessage: Codable {
-    case welcome(yourId: UUID, peers: [PeerInfo])
+    case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?)
     case peerJoined(peerId: UUID)
     case peerLeft(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
+    case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case sessionFull
 }
 
 enum ClientMessage: Codable {
     case profileUpdate(Profile)
+    case suggestPlan(PlanSnapshot)
 }
 
 @MainActor
@@ -44,6 +88,7 @@ final class SessionClient: ObservableObject {
     @Published var peerProfiles: [UUID: Profile] = [:]
     @Published var myProfile: Profile?
     @Published var hasSubmittedProfile: Bool = false
+    @Published var suggestedPlan: PlanSnapshot?
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -90,6 +135,7 @@ final class SessionClient: ObservableObject {
         peerIds = []
         peerProfiles = [:]
         hasSubmittedProfile = false
+        suggestedPlan = nil
         state = .idle
     }
 
@@ -100,6 +146,12 @@ final class SessionClient: ObservableObject {
             UserDefaults.standard.set(data, forKey: Self.profileKey)
         }
         sendProfileOverSocket(profile)
+    }
+
+    func suggestPlan(from plan: WorkoutPlan) {
+        let snapshot = PlanSnapshot(from: plan)
+        suggestedPlan = snapshot
+        sendClientMessage(.suggestPlan(snapshot))
     }
 
     func shareLinkURL() -> URL? {
@@ -147,12 +199,13 @@ final class SessionClient: ObservableObject {
         else { return }
 
         switch message {
-        case .welcome(let yourId, let peers):
+        case .welcome(let yourId, let peers, let suggested):
             myId = yourId
             peerIds = peers.map(\.peerId)
             peerProfiles = Dictionary(uniqueKeysWithValues: peers.compactMap { peer in
                 peer.profile.map { (peer.peerId, $0) }
             })
+            suggestedPlan = suggested
             state = peerIds.isEmpty ? .waitingForPeer : .connected
             if hasSubmittedProfile, let profile = myProfile {
                 sendProfileOverSocket(profile)
@@ -172,6 +225,9 @@ final class SessionClient: ObservableObject {
         case .peerProfileUpdated(let peerId, let profile):
             peerProfiles[peerId] = profile
 
+        case .planSuggested(_, let plan):
+            suggestedPlan = plan
+
         case .sessionFull:
             state = .error("Session is full (2 participants max)")
             task?.cancel(with: .goingAway, reason: nil)
@@ -179,7 +235,10 @@ final class SessionClient: ObservableObject {
     }
 
     private func sendProfileOverSocket(_ profile: Profile) {
-        let message = ClientMessage.profileUpdate(profile)
+        sendClientMessage(.profileUpdate(profile))
+    }
+
+    private func sendClientMessage(_ message: ClientMessage) {
         guard let data = try? JSONEncoder().encode(message),
               let text = String(data: data, encoding: .utf8),
               let task = task

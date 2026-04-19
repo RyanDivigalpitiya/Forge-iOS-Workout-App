@@ -52,8 +52,12 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 try? await outbound.write(.text(text))
             }
             return
-        case .added(let existingPeers):
-            let welcome = ServerMessage.welcome(yourId: myId, peers: existingPeers)
+        case .added(let existingPeers, let suggestedPlan):
+            let welcome = ServerMessage.welcome(
+                yourId: myId,
+                peers: existingPeers,
+                suggestedPlan: suggestedPlan
+            )
             if let data = try? encoder.encode(welcome),
                let text = String(data: data, encoding: .utf8) {
                 try? await outbound.write(.text(text))
@@ -85,6 +89,16 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                 )
                                 await manager.broadcast(
                                     .peerProfileUpdated(peerId: myId, profile: profile),
+                                    in: sessionId,
+                                    except: myId
+                                )
+                            case .suggestPlan(let plan):
+                                await manager.updateSuggestedPlan(
+                                    sessionId: sessionId,
+                                    plan: plan
+                                )
+                                await manager.broadcast(
+                                    .planSuggested(peerId: myId, plan: plan),
                                     in: sessionId,
                                     except: myId
                                 )
