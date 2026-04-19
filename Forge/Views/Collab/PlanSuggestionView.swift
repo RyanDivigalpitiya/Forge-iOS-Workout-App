@@ -352,3 +352,41 @@ struct PlanPreviewSheet: View {
         }
     }
 }
+
+// MARK: - Previews
+
+@MainActor
+private func previewSessionClient(withSuggestion: Bool) -> SessionClient {
+    let client = SessionClient()
+    let peerId = UUID()
+    client.myId = UUID()
+    client.peerIds = [peerId]
+    client.myProfile = Profile(name: "Ryan", photoData: nil)
+    client.peerProfiles = [peerId: Profile(name: "Alex", photoData: nil)]
+    client.hasSubmittedProfile = true
+    client.state = .connected
+    if withSuggestion, let firstPlan = mockWorkoutPlans.first {
+        client.suggestedPlan = PlanSnapshot(from: firstPlan)
+    }
+    return client
+}
+
+#Preview("Plan Suggested") {
+    NavigationStack {
+        PlanSuggestionView()
+            .environmentObject(previewSessionClient(withSuggestion: true))
+            .environmentObject(GlobalSettings.shared)
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("No Suggestion") {
+    NavigationStack {
+        PlanSuggestionView()
+            .environmentObject(previewSessionClient(withSuggestion: false))
+            .environmentObject(GlobalSettings.shared)
+            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+    }
+    .preferredColorScheme(.dark)
+}
