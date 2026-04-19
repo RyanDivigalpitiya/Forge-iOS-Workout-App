@@ -170,7 +170,7 @@ struct PlanSuggestionView: View {
             Spacer()
 
             readyUpButton
-                .padding(.trailing, 6)
+                .padding(.trailing, 14)
 
             avatar(
                 data: sessionClient.myProfile?.photoData,
@@ -188,7 +188,7 @@ struct PlanSuggestionView: View {
             )
 
             readyUpButton
-                .padding(.leading, 6)
+                .padding(.leading, 14)
 
             Spacer()
         }
@@ -199,11 +199,11 @@ struct PlanSuggestionView: View {
             // Stage 3: dummy — wired to the ready-flag protocol in Stage 5
         } label: {
             Text("READY UP")
-                .font(.caption)
+                .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(.black)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background(settings.fgColor)
                 .cornerRadius(5)
         }
