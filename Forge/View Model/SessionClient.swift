@@ -50,6 +50,26 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
             )
         }
     }
+
+    // Mirrors PlanViewModel.calculateWorkoutDuration(for:) but operates on the
+    // wire snapshot so the Suggested-Workout pane can show duration without
+    // having the live WorkoutPlan object.
+    var durationMinutes: Int {
+        let timeInbetweenSets = 60 * 5
+        let breakTime = 60
+        let repTime = 3
+        let exercisesWithSets = exercises.filter { !$0.sets.isEmpty }
+        guard !exercisesWithSets.isEmpty else { return 0 }
+        var workoutTime = timeInbetweenSets
+        for exercise in exercisesWithSets {
+            var exerciseTime = 0
+            for set in exercise.sets {
+                exerciseTime += set.reps * repTime + breakTime
+            }
+            workoutTime += exerciseTime + timeInbetweenSets - breakTime
+        }
+        return workoutTime > 60 ? workoutTime / 60 : 0
+    }
 }
 
 enum ServerMessage: Codable {

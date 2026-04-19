@@ -84,38 +84,81 @@ struct PlanSuggestionView: View {
     @ViewBuilder
     private var suggestedWorkoutPane: some View {
         if let suggested = sessionClient.suggestedPlan {
-            Button {
-                previewPlan = suggested
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(suggested.name)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(settings.fgColor)
-                        Text("\(suggested.exercises.count) exercise\(suggested.exercises.count == 1 ? "" : "s") · tap to preview")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity)
-                .background(Color(white: 0.1))
-                .cornerRadius(12)
+            HStack(alignment: .top, spacing: 12) {
+                suggestedPaneInfo(plan: suggested)
+                Spacer(minLength: 0)
+                suggestedPaneButtonStack(plan: suggested)
             }
-            .buttonStyle(.plain)
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .frame(height: 110)
+            .background(Color(white: 0.1))
+            .cornerRadius(16)
         } else {
             Text("No plan suggested yet")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(height: 110)
                 .background(Color(white: 0.08))
-                .cornerRadius(12)
+                .cornerRadius(16)
+        }
+    }
+
+    private func suggestedPaneInfo(plan: PlanSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(plan.name)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(settings.fgColor)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            HStack(spacing: 6) {
+                Image(systemName: "dumbbell.fill")
+                    .resizable()
+                    .frame(width: 18, height: 13)
+                    .opacity(0.4)
+                Text("\(plan.exercises.count) \(plan.exercises.count == 1 ? "Exercise" : "Exercises")")
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .resizable()
+                    .frame(width: 13, height: 13)
+                Text("\(plan.durationMinutes) min")
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
+        }
+    }
+
+    private func suggestedPaneButtonStack(plan: PlanSnapshot) -> some View {
+        VStack(spacing: 6) {
+            Text("SUGGESTED")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.gray)
+                .frame(width: 80)
+                .padding(.vertical, 8)
+
+            Button {
+                previewPlan = plan
+            } label: {
+                Text("PREVIEW")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .frame(width: 80)
+                    .padding(.vertical, 8)
+            }
+            .background(Color(white: 0.2))
+            .foregroundColor(.white)
+            .cornerRadius(5)
+            .buttonStyle(.borderless)
         }
     }
 
@@ -159,7 +202,7 @@ struct PlanSuggestionView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(settings.fgColor)
-                .cornerRadius(16)
+                .cornerRadius(5)
         }
         .buttonStyle(.plain)
     }
@@ -241,17 +284,17 @@ struct PlanCarouselCard: View {
             buttonStack
         }
         .padding(12)
-        .frame(width: 280, height: 110)
+        .frame(width: 280, height: 88)
         .background(Color(white: 0.1))
-        .cornerRadius(16)
+        .cornerRadius(8)
     }
 
     private var planInfo: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(plan.name)
-                .font(.headline)
+                .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(settings.fgColor)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
@@ -266,30 +309,36 @@ struct PlanCarouselCard: View {
             .fontWeight(.bold)
             .foregroundColor(.gray.opacity(0.5))
 
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .resizable()
-                    .frame(width: 13, height: 13)
-                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
-            }
-            .font(.caption)
-            .fontWeight(.bold)
-            .foregroundColor(.gray.opacity(0.5))
+//            HStack(spacing: 6) {
+//                Image(systemName: "clock.fill")
+//                    .resizable()
+//                    .frame(width: 13, height: 13)
+//                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
+//            }
+//            .font(.caption)
+//            .fontWeight(.bold)
+//            .foregroundColor(.gray.opacity(0.5))
         }
     }
 
     private var buttonStack: some View {
         VStack(spacing: 6) {
             Button(action: onSuggest) {
-                Text(isCurrentlySuggested ? "SUGGESTED" : "SUGGEST")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .frame(width: 80)
-                    .padding(.vertical, 8)
+                Group {
+                    if isCurrentlySuggested {
+                        Image(systemName: "checkmark")
+                    } else {
+                        Text("SUGGEST")
+                    }
+                }
+                .font(.caption2)
+                .fontWeight(.bold)
+                .frame(width: 80)
+                .padding(.vertical, 8)
             }
-            .background(isCurrentlySuggested ? Color(white: 0.25) : settings.fgColor)
-            .foregroundColor(.white)
-            .cornerRadius(8)
+            .background(settings.fgColor)
+            .foregroundColor(.black)
+            .cornerRadius(5)
             .buttonStyle(.borderless)
 
             Button(action: onPreview) {
@@ -301,7 +350,7 @@ struct PlanCarouselCard: View {
             }
             .background(Color(white: 0.2))
             .foregroundColor(.white)
-            .cornerRadius(8)
+            .cornerRadius(5)
             .buttonStyle(.borderless)
         }
     }
