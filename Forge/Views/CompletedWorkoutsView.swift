@@ -145,6 +145,12 @@ struct CompletedWorkoutsView: View {
                 sessionClient.reconnect()
             }
         }
+        .onChange(of: sessionClient.state) { _, newState in
+            if newState == .idle {
+                workoutWithFriendActive = false
+                joinerConnectingActive = false
+            }
+        }
     }
 
     private func handleIncomingURL(_ url: URL) {

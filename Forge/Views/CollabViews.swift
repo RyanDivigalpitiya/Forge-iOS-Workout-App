@@ -282,20 +282,8 @@ struct JoinSessionView: View {
             .foregroundColor(.white)
             .cornerRadius(12)
             .padding(.horizontal, 24)
+            .padding(.bottom, 32)
             .disabled(!canSubmit)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("state: \(stateDescription)")
-                Text("peers: \(sessionClient.peerIds.count) · profiles: \(sessionClient.peerProfiles.count) · submitted: \(sessionClient.hasSubmittedProfile ? "Y" : "N")")
-                Text("last: \(sessionClient.lastEvent)")
-                    .lineLimit(2)
-            }
-            .font(.caption2.monospaced())
-            .foregroundColor(.gray)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
@@ -362,17 +350,6 @@ struct JoinSessionView: View {
     private func submit() {
         let profile = Profile(name: trimmedName, photoData: photoData)
         sessionClient.submitProfile(profile)
-    }
-
-    private var stateDescription: String {
-        switch sessionClient.state {
-        case .idle: return "idle"
-        case .connecting: return "connecting"
-        case .waitingForPeer: return "waitingForPeer"
-        case .connected: return "connected"
-        case .disconnected(let r): return "disconnected: \(r)"
-        case .error(let m): return "error: \(m)"
-        }
     }
 }
 

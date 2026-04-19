@@ -72,25 +72,12 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 group.addTask {
                     do {
                         for try await frame in inbound.messages(maxSize: 256 * 1024) {
-                            guard case .text(let text) = frame else {
-                                logger.info("[\(myId)] non-text frame ignored")
-                                continue
-                            }
-                            logger.info("[\(myId)] received text frame (\(text.count) chars)")
-                            guard let data = text.data(using: .utf8) else {
-                                logger.info("[\(myId)] could not utf8-decode frame")
-                                continue
-                            }
-                            let message: ClientMessage
-                            do {
-                                message = try decoder.decode(ClientMessage.self, from: data)
-                            } catch {
-                                logger.info("[\(myId)] failed to decode ClientMessage: \(error)")
-                                continue
-                            }
+                            guard case .text(let text) = frame,
+                                  let data = text.data(using: .utf8),
+                                  let message = try? decoder.decode(ClientMessage.self, from: data)
+                            else { continue }
                             switch message {
                             case .profileUpdate(let profile):
-                                logger.info("[\(myId)] profileUpdate name=\(profile.name) photo=\(profile.photoData?.count ?? 0) bytes")
                                 await manager.updateProfile(
                                     sessionId: sessionId,
                                     participantId: myId,
@@ -101,11 +88,10 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
-                                logger.info("[\(myId)] broadcasted peerProfileUpdated to session \(sessionId)")
                             }
                         }
                     } catch {
-                        logger.info("[\(myId)] inbound loop ended with error: \(error)")
+                        // Client disconnected — fall through to cleanup.
                     }
                     continuation.finish()
                 }
