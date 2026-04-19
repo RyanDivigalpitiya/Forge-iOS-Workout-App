@@ -69,7 +69,7 @@ enum ClientMessage: Codable {
 @MainActor
 final class SessionClient: ObservableObject {
 
-    static let serverHost = "expensive-installations-douglas-recording.trycloudflare.com"
+    static let serverHost = "reserve-hiring-vegetables-adsl.trycloudflare.com"
     private static let profileKey = "collabProfile"
 
     enum State: Equatable {
