@@ -75,6 +75,8 @@ The two largest views were decomposed into focused child components. Parent view
 | `HistoryView` | ~200 | Read-only detail view of a past workout — stats row (calories, completion ring, duration) + Dismiss toolbar |
 | `ReorderDeleteView` | ~100 | Reorder/delete sheet for plans or exercises |
 | `BreakTimerWatchView` | ~110 | watchOS break timer — countdown ring + haptic on expiry (ForgeWatch target) |
+| `WorkoutWithFriendView` | ~80 | Collab feature — Copy Link / Share Link buttons that generate a `forge://session/<id>` URL (lives in `CollabViews.swift`) |
+| `ConnectingView` | ~75 | Collab feature — state-driven "Connecting… / Waiting for friend… / Connected." screen (lives in `CollabViews.swift`) |
 
 ## Live Activity & Widget Extension (`ForgeWidgets/`)
 
@@ -143,7 +145,75 @@ Users share workout plans device-to-device via the iOS share sheet (AirDrop / Me
 
 **SharePreview icon caveat:** `Image(systemName:)` handed directly to `SharePreview` renders blank in the share-sheet thumbnail. `WorkoutPlan.sharePreviewImage` pre-renders `dumbbell.fill` to a 160pt `UIImage` tinted Forge-red so the preview shows an actual icon.
 
-**Info.plist setup:** The Forge target uses `GENERATE_INFOPLIST_FILE=YES` with the `INFOPLIST_KEY_*` pattern for most values, but array-of-dictionary entries (document types, UTI declarations) can't be expressed as build settings — they need a real plist file. `Forge/Info.plist` contains only those entries; `INFOPLIST_FILE = Forge/Info.plist` in both Debug/Release configs tells Xcode to merge the `INFOPLIST_KEY_*` values on top. If you add another array-of-dict Info.plist key later, extend this file — don't flip back to pure build-settings generation.
+**Info.plist setup:** The Forge target uses `GENERATE_INFOPLIST_FILE=YES` with the `INFOPLIST_KEY_*` pattern for most values, but array-of-dictionary entries (document types, UTI declarations, URL schemes) can't be expressed as build settings — they need a real plist file. `Forge/Info.plist` contains only those entries (`CFBundleDocumentTypes` + `UTExportedTypeDeclarations` for `.forgeplan`, and `CFBundleURLTypes` for the collab feature's `forge://` scheme); `INFOPLIST_FILE = Forge/Info.plist` in both Debug/Release configs tells Xcode to merge the `INFOPLIST_KEY_*` values on top. If you add another array-of-dict Info.plist key later, extend this file — don't flip back to pure build-settings generation.
+
+## Collaborative Workout Feature (In Progress)
+
+Two friends each running Forge can join a shared, real-time workout session. Person 1 taps **Add Friend** (`person.2.fill` in the History nav bar) → `WorkoutWithFriendView` → **Copy Link** or **Share Link**, which generates a `forge://session/<uuid>` URL. Person 2 taps the link (AirDrop/Messages/Mail/any app that recognises URLs); Forge opens and auto-joins. Once paired they'll (eventually) see each other's set completions, break timers, and profile avatars during the workout, and can chat while selecting a plan.
+
+**Stack:** self-hosted Swift server in `server/` (separate SwiftPM package, lives alongside the iOS project in the same git repo) running on the user's Mac mini. Public HTTPS exposure via Cloudflare Quick Tunnel (`*.trycloudflare.com`). Single WebSocket per client carries all real-time state and, in later stages, chat. Server holds session state in memory — no database.
+
+### Stage roadmap
+
+| # | Goal | Status |
+|---|------|--------|
+| 0 | Plumbing spike — iOS → Cloudflare Tunnel → Hummingbird echo | done (replaced by Stage 1) |
+| 1 | Session pairing — Add Friend → link → Connecting → Connected. Includes scenePhase-driven auto-reconnect and server-side lazy-create so backgrounded phones can revive sessions. | **DONE** |
+| 2 | Profile + Join Session view — name (required) + optional photo, persisted to UserDefaults, exchanged over the socket | **current focus** |
+| 3 | Plan Suggestion view (static) — horizontal plan carousel with Suggest/Preview, suggested-workout pane, no chat yet | pending |
+| 4 | Chat over the same WebSocket | pending |
+| 5 | Ready flag + shared 3-second countdown → both phones navigate to joint `WorkoutInProgressView` | pending |
+| 6 | Joint workout UI — avatar column with set-position arrows, dual per-row checkboxes, set-completion + break-timer sync. Sub-stage 6a (sets), 6b (timer), 6c (polish). | pending |
+| 7 | Full resilience polish — heartbeat, graceful peer-disconnected banner, mid-workout Add Friend re-invite, Named Tunnel on `forge-ws.ryan-div.com`, launchd auto-start plist | partially done (reconnect + lazy-create landed in Stage 1); remaining: named tunnel, launchd, re-invite UI, heartbeat |
+
+### Current focus — Stage 2
+
+Build the "Join Session" screen: after both phones show "Connected.", tapping **Continue** brings up a screen with a name field (required; pre-filled if the user has saved one before) and an optional profile-photo picker. Photo stored locally as base64 and included in the profile-update message on the socket. Both clients broadcast their `Profile { name, photoData? }` to each other over the same WebSocket, then advance together to a placeholder "Plan Suggestion" screen (Stage 3 territory).
+
+Implementation sketch:
+- New `Profile` struct (Codable) in `SessionClient.swift` or a new `Forge/Data Model/CollabProfile.swift`.
+- Extend `ClientMessage` (or introduce it — currently Stage 1 doesn't have one) with a `profileUpdate(Profile)` case. Server relays to peers without interpretation.
+- New `JoinSessionView` in `CollabViews.swift` (keep the file flat — it's ~170 lines, still manageable).
+- Persist profile to UserDefaults under key `"collabProfile"` (mirror the pattern used for `"colorTheme"`).
+- `ConnectingView`'s "End Session" button becomes "Continue →" when state is `.connected`, routing to `JoinSessionView`.
+
+### File map
+
+**Server (`server/`):**
+- `Package.swift` — Hummingbird 2 + HummingbirdWebSocket deps
+- `Sources/ForgeServer/main.swift` — top-level async entry (file is literally `main.swift`, so no `@main` struct; see gotcha below)
+- `Sources/ForgeServer/Application+build.swift` — HTTP `/` health + `WS /sessions/:id` upgrade + per-connection task group (inbound reader + outbound stream drain)
+- `Sources/ForgeServer/Protocol.swift` — `ServerMessage` enum (`welcome` / `peerJoined` / `peerLeft` / `sessionFull`), Codable + Sendable
+- `Sources/ForgeServer/SessionManager.swift` — actor holding `[UUID: Session]`; lazy-creates sessions on first `addParticipant`; deletes when empty. Capacity = 2.
+
+**iOS (Forge target):**
+- `Forge/View Model/SessionClient.swift` — `@MainActor` ObservableObject. `createSession()` (generates a local UUID, opens socket), `joinSession(id:)`, `reconnect()` (private split from `disconnect()` so sessionId survives socket errors), `disconnect()` (user-initiated, clears everything). Mirrors `ServerMessage` enum for JSON decoding. Owned by `CompletedWorkoutsView` as `@StateObject` — deliberately NOT on `ForgeApp`, per the existing gotcha about App-level StateObjects + navigation flags.
+- `Forge/Views/CollabViews.swift` — `WorkoutWithFriendView` (Copy/Share buttons) + `ConnectingView` (state-driven banner) + `ShareSheet` UIKit wrapper + `ShareableURL` Identifiable wrapper.
+- `Forge/Views/CompletedWorkoutsView.swift` — Add Friend toolbar button (`person.2.fill`, top-leading), `forge://session/<id>` routing in `.onOpenURL`, `.onChange(of: scenePhase)` → `sessionClient.reconnect()` when the app returns to `.active`.
+- `Forge/Info.plist` — `CFBundleURLTypes` registers `forge://` scheme alongside existing `.forgeplan` document types.
+
+### Running the server
+
+On the Mac mini (which hosts the server 24/7):
+
+```bash
+cd server
+swift build                                          # first time: ~2 min
+swift run ForgeServer                                # binds 127.0.0.1:8080
+# In a second terminal, left running alongside:
+cloudflared tunnel --url http://localhost:8080       # prints a trycloudflare.com URL
+```
+
+The iOS client hardcodes the hostname in `SessionClient.serverHost`. **`cloudflared` can stay up indefinitely; `ForgeServer` can be killed + restarted without changing the tunnel URL.** If `cloudflared` itself is restarted, the Quick Tunnel URL changes and the constant must be updated + the app rebuilt. Stage 7 migrates to a Named Tunnel on `forge-ws.ryan-div.com` for a permanent URL and adds a launchd plist at `~/Library/LaunchAgents/com.ryandiv.forgeserver.plist` so the server auto-starts on boot.
+
+### Feature-specific gotchas
+
+- **iOS backgrounding kills WebSockets within seconds.** Copy-Link-via-iMessage exposed this: Phone 1 backgrounds to paste the link, socket dies. Two mitigations coexist and neither alone suffices: (a) **server lazy-creates sessions** on first WS connect, so a returning Phone 1 (or a Phone 2 arriving later) always materialises the session for its ID; (b) **client auto-reconnects** via `.onChange(of: scenePhase)` at `CompletedWorkoutsView` level, calling `SessionClient.reconnect()` whenever the app returns to `.active`.
+- **`SessionClient.disconnect()` clears `sessionId`; the read-loop error path does NOT.** This split is load-bearing for reconnect — if sessionId were cleared on socket error, there'd be no way to know what to rejoin. `disconnect()` is user-initiated (Cancel button in `ConnectingView`). Socket failures surface as `state = .disconnected(reason:)` with sessionId intact.
+- **Hummingbird 2 `onUpgrade` context lacks `.parameters`.** Only the `shouldUpgrade` closure's context has route params. In `onUpgrade`, parse from `context.request.uri.path.split(separator: "/").last` (or equivalent).
+- **Reconnect gets a new `myId` from the server.** The server assigns a fresh UUID on each WebSocket connection, so the peer briefly sees `peerLeft → peerJoined` during a reconnect. Stage 2+ will need identity continuity: client sends its last-known `myId` (+ profile) on rejoin so the server can merge the slot.
+- **`main.swift` in Swift cannot contain `@main`.** The filename itself makes it the entry point, conflicting with the attribute. Use top-level async code (what `server/Sources/ForgeServer/main.swift` does) or rename the file.
+- **Cloudflare Quick Tunnel URL is ephemeral per `cloudflared` invocation.** Survives `ForgeServer` restarts but not `cloudflared` restarts. Treat as session-scoped during development.
 
 ## Timer & Notification System
 
