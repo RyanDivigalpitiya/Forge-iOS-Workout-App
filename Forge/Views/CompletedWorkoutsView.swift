@@ -10,6 +10,9 @@ struct CompletedWorkoutsView: View {
     @State private var historyViewIsPresented = false
     @State private var settingsViewIsPresented = false
 
+    @StateObject private var pingClient = PingClient()
+    @State private var pingResultShown = false
+
     @EnvironmentObject var settings: GlobalSettings
 
     let bgColor = GlobalSettings.shared.bgColor // background colour
@@ -74,6 +77,18 @@ struct CompletedWorkoutsView: View {
             .navigationBarTitle(Text("History"))
             .navigationBarTitleTextColor(settings.fgColor)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task {
+                            await pingClient.ping()
+                            pingResultShown = true
+                        }
+                    } label: {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundColor(settings.fgColor)
+                    }
+                    .disabled(pingClient.isPinging)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         settingsViewIsPresented = true
@@ -115,6 +130,11 @@ struct CompletedWorkoutsView: View {
         }
         .onOpenURL { url in
             importIncomingPlan(from: url)
+        }
+        .alert("Server Ping", isPresented: $pingResultShown) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(pingClient.lastResult ?? "No result")
         }
     }
 
@@ -181,6 +201,40 @@ private func updateNavigationBars(in view: UIView, color: UIColor) {
     }
 }
 
+
+@MainActor
+final class PingClient: ObservableObject {
+    static let serverURL = URL(string: "wss://expensive-installations-douglas-recording.trycloudflare.com/ping")!
+
+    @Published var lastResult: String?
+    @Published var isPinging = false
+
+    func ping() async {
+        isPinging = true
+        defer { isPinging = false }
+
+        let task = URLSession.shared.webSocketTask(with: Self.serverURL)
+        task.resume()
+        defer { task.cancel(with: .goingAway, reason: nil) }
+
+        do {
+            let start = Date()
+            try await task.send(.string("ping"))
+            let message = try await task.receive()
+            let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
+            switch message {
+            case .string(let s):
+                lastResult = "\(s) (\(elapsedMs) ms)"
+            case .data(let d):
+                lastResult = "received \(d.count) bytes (\(elapsedMs) ms)"
+            @unknown default:
+                lastResult = "unknown message type"
+            }
+        } catch {
+            lastResult = "error: \(error.localizedDescription)"
+        }
+    }
+}
 
 struct CompletedWorkoutsView_Previews: PreviewProvider {
     static var previews: some View {
