@@ -10,8 +10,9 @@ struct CompletedWorkoutsView: View {
     @State private var historyViewIsPresented = false
     @State private var settingsViewIsPresented = false
 
-    @StateObject private var pingClient = PingClient()
-    @State private var pingResultShown = false
+    @StateObject private var sessionClient = SessionClient()
+    @State private var workoutWithFriendActive = false
+    @State private var joinerConnectingActive = false
 
     @EnvironmentObject var settings: GlobalSettings
 
@@ -79,15 +80,11 @@ struct CompletedWorkoutsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        Task {
-                            await pingClient.ping()
-                            pingResultShown = true
-                        }
+                        workoutWithFriendActive = true
                     } label: {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
+                        Image(systemName: "person.2.fill")
                             .foregroundColor(settings.fgColor)
                     }
-                    .disabled(pingClient.isPinging)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -122,6 +119,16 @@ struct CompletedWorkoutsView: View {
             .navigationDestination(isPresented: $settingsViewIsPresented) {
                 SettingsView()
             }
+            .navigationDestination(isPresented: $workoutWithFriendActive) {
+                WorkoutWithFriendView()
+                    .environmentObject(sessionClient)
+                    .environmentObject(settings)
+            }
+            .navigationDestination(isPresented: $joinerConnectingActive) {
+                ConnectingView()
+                    .environmentObject(sessionClient)
+                    .environmentObject(settings)
+            }
         }
         .background(.black)
         .accentColor(settings.fgColor)
@@ -129,12 +136,22 @@ struct CompletedWorkoutsView: View {
             completedWorkoutsViewModel.isSelectPlanViewActive = false
         }
         .onOpenURL { url in
-            importIncomingPlan(from: url)
+            handleIncomingURL(url)
         }
-        .alert("Server Ping", isPresented: $pingResultShown) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(pingClient.lastResult ?? "No result")
+    }
+
+    private func handleIncomingURL(_ url: URL) {
+        if url.pathExtension.lowercased() == "forgeplan" {
+            importIncomingPlan(from: url)
+            return
+        }
+        if url.scheme?.lowercased() == "forge",
+           url.host?.lowercased() == "session" {
+            let idString = url.pathComponents.last(where: { $0 != "/" }) ?? ""
+            if let id = UUID(uuidString: idString) {
+                sessionClient.joinSession(id: id)
+                joinerConnectingActive = true
+            }
         }
     }
 
@@ -201,40 +218,6 @@ private func updateNavigationBars(in view: UIView, color: UIColor) {
     }
 }
 
-
-@MainActor
-final class PingClient: ObservableObject {
-    static let serverURL = URL(string: "wss://expensive-installations-douglas-recording.trycloudflare.com/ping")!
-
-    @Published var lastResult: String?
-    @Published var isPinging = false
-
-    func ping() async {
-        isPinging = true
-        defer { isPinging = false }
-
-        let task = URLSession.shared.webSocketTask(with: Self.serverURL)
-        task.resume()
-        defer { task.cancel(with: .goingAway, reason: nil) }
-
-        do {
-            let start = Date()
-            try await task.send(.string("ping"))
-            let message = try await task.receive()
-            let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
-            switch message {
-            case .string(let s):
-                lastResult = "\(s) (\(elapsedMs) ms)"
-            case .data(let d):
-                lastResult = "received \(d.count) bytes (\(elapsedMs) ms)"
-            @unknown default:
-                lastResult = "unknown message type"
-            }
-        } catch {
-            lastResult = "error: \(error.localizedDescription)"
-        }
-    }
-}
 
 struct CompletedWorkoutsView_Previews: PreviewProvider {
     static var previews: some View {

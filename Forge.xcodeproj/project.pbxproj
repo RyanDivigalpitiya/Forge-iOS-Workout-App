@@ -48,6 +48,8 @@
 		F1F850962A4956CA0093EE01 /* PlanEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850952A4956CA0093EE01 /* PlanEditorView.swift */; };
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
 		F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F00012F8579A300FAE979 /* PlanTransferType.swift */; };
+		FC000000000000000000AA02 /* SessionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA01 /* SessionClient.swift */; };
+		FC000000000000000000BB02 /* CollabViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000BB01 /* CollabViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,6 +149,8 @@
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 		F10F00012F8579A300FAE979 /* PlanTransferType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTransferType.swift; sourceTree = "<group>"; };
 		F10F00032F8579A300FAE979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FC000000000000000000AA01 /* SessionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionClient.swift; sourceTree = "<group>"; };
+		FC000000000000000000BB01 /* CollabViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollabViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -275,6 +279,7 @@
 				C100000A2B0000000000AA06 /* HeterogeneousSetEditor.swift */,
 				D10000012D0000000000DD01 /* SettingsView.swift */,
 				E10000012E0000000000EE01 /* ConfettiView.swift */,
+				FC000000000000000000BB01 /* CollabViews.swift */,
 				F14E94772A4BEC29008155FA /* testingViews.playground */,
 			);
 			path = Views;
@@ -291,6 +296,7 @@
 				C100000C2B0000000000AA07 /* Validation.swift */,
 				C10000102B0000000000AA0B /* WorkoutHealthManager.swift */,
 				C10000122B0000000000AA0C /* PhoneSessionManager.swift */,
+				FC000000000000000000AA01 /* SessionClient.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -550,6 +556,8 @@
 				D10000022D0000000000DD01 /* SettingsView.swift in Sources */,
 				E10000022E0000000000EE01 /* ConfettiView.swift in Sources */,
 				F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */,
+				FC000000000000000000AA02 /* SessionClient.swift in Sources */,
+				FC000000000000000000BB02 /* CollabViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
