@@ -77,6 +77,8 @@ The two largest views were decomposed into focused child components. Parent view
 | `BreakTimerWatchView` | ~110 | watchOS break timer — countdown ring + haptic on expiry (ForgeWatch target) |
 | `WorkoutWithFriendView` | ~80 | Collab feature — Copy Link / Share Link buttons that generate a `forge://session/<id>` URL (lives in `CollabViews.swift`) |
 | `ConnectingView` | ~75 | Collab feature — state-driven "Connecting… / Waiting for friend… / Connected." screen (lives in `CollabViews.swift`) |
+| `JoinSessionView` | ~170 | Collab feature — name field + photo picker, peer-profile banner, "Join Session →" button that broadcasts profile; auto-advances both phones to Plan Suggestion once both profiles arrive (lives in `CollabViews.swift`) |
+| `PlanSuggestionView` | ~TBD | Collab feature — horizontal plan carousel with Suggest/Preview buttons, suggested-workout pane, peer avatars; no chat yet (Stage 4), no ready/countdown yet (Stage 5). Replaces the Stage 2 `PlanSuggestionPlaceholderView`. |
 
 ## Live Activity & Widget Extension (`ForgeWidgets/`)
 
@@ -159,23 +161,25 @@ Two friends each running Forge can join a shared, real-time workout session. Per
 |---|------|--------|
 | 0 | Plumbing spike — iOS → Cloudflare Tunnel → Hummingbird echo | done (replaced by Stage 1) |
 | 1 | Session pairing — Add Friend → link → Connecting → Connected. Includes scenePhase-driven auto-reconnect and server-side lazy-create so backgrounded phones can revive sessions. | **DONE** |
-| 2 | Profile + Join Session view — name (required) + optional photo, persisted to UserDefaults, exchanged over the socket | **current focus** |
-| 3 | Plan Suggestion view (static) — horizontal plan carousel with Suggest/Preview, suggested-workout pane, no chat yet | pending |
+| 2 | Profile + Join Session view — name (required) + optional photo, persisted to UserDefaults, exchanged over the socket | **DONE** |
+| 3 | Plan Suggestion view (static) — horizontal plan carousel with Suggest/Preview, suggested-workout pane, no chat yet | **current focus** |
 | 4 | Chat over the same WebSocket | pending |
 | 5 | Ready flag + shared 3-second countdown → both phones navigate to joint `WorkoutInProgressView` | pending |
 | 6 | Joint workout UI — avatar column with set-position arrows, dual per-row checkboxes, set-completion + break-timer sync. Sub-stage 6a (sets), 6b (timer), 6c (polish). | pending |
 | 7 | Full resilience polish — heartbeat, graceful peer-disconnected banner, mid-workout Add Friend re-invite, Named Tunnel on `forge-ws.ryan-div.com`, launchd auto-start plist | partially done (reconnect + lazy-create landed in Stage 1); remaining: named tunnel, launchd, re-invite UI, heartbeat |
 
-### Current focus — Stage 2
+### Current focus — Stage 3
 
-Build the "Join Session" screen: after both phones show "Connected.", tapping **Continue** brings up a screen with a name field (required; pre-filled if the user has saved one before) and an optional profile-photo picker. Photo stored locally as base64 and included in the profile-update message on the socket. Both clients broadcast their `Profile { name, photoData? }` to each other over the same WebSocket, then advance together to a placeholder "Plan Suggestion" screen (Stage 3 territory).
+Replace the Stage 2 `PlanSuggestionPlaceholderView` with a real `PlanSuggestionView`. Both users see a horizontal carousel of their own workout plans; each card has **SUGGEST** and **PREVIEW** buttons. SUGGEST sends a stripped-down `PlanSnapshot` (no completion flags, no `lastCompleted`) over the WebSocket; the server stores it per-session and broadcasts to the other peer. The "Suggested Workout" pane at the top shows whatever the latest suggestion is — either phone can overwrite it. PREVIEW opens a modal listing the plan's exercises and sets. No chat yet (Stage 4); the middle area just holds peer avatars where the chat + Ready buttons will live.
 
 Implementation sketch:
-- New `Profile` struct (Codable) in `SessionClient.swift` or a new `Forge/Data Model/CollabProfile.swift`.
-- Extend `ClientMessage` (or introduce it — currently Stage 1 doesn't have one) with a `profileUpdate(Profile)` case. Server relays to peers without interpretation.
-- New `JoinSessionView` in `CollabViews.swift` (keep the file flat — it's ~170 lines, still manageable).
-- Persist profile to UserDefaults under key `"collabProfile"` (mirror the pattern used for `"colorTheme"`).
-- `ConnectingView`'s "End Session" button becomes "Continue →" when state is `.connected`, routing to `JoinSessionView`.
+- Add `PlanSnapshot` / `ExerciseSnapshot` / `SetSnapshot` (Codable, minimal — no completion state) to both `server/Sources/ForgeServer/Protocol.swift` and `Forge/View Model/SessionClient.swift`. Server is a dumb relay — it doesn't interpret plan contents, just stores and forwards.
+- Extend `ClientMessage` with `suggestPlan(PlanSnapshot)`.
+- Extend `ServerMessage` with `planSuggested(peerId:plan:)`; also add `suggestedPlan: PlanSnapshot?` to the `welcome` case so a reconnecting or newly-joining client sees the current suggestion immediately.
+- `SessionManager.Session` gains `var suggestedPlan: PlanSnapshot?`; `addParticipant`'s `AddResult.added` returns both existing peers and the current suggestion.
+- iOS `SessionClient`: `@Published var suggestedPlan: PlanSnapshot?`, plus `suggestPlan(from: WorkoutPlan)` that maps iOS's full `WorkoutPlan` → `PlanSnapshot` before sending.
+- New `PlanSuggestionView` in `CollabViews.swift` replaces `PlanSuggestionPlaceholderView`. Reads `@EnvironmentObject planViewModel` for the user's own plan list.
+- New `PlanPreviewModal` (or inline `.sheet`) for the PREVIEW button.
 
 ### File map
 
@@ -187,9 +191,9 @@ Implementation sketch:
 - `Sources/ForgeServer/SessionManager.swift` — actor holding `[UUID: Session]`; lazy-creates sessions on first `addParticipant`; deletes when empty. Capacity = 2.
 
 **iOS (Forge target):**
-- `Forge/View Model/SessionClient.swift` — `@MainActor` ObservableObject. `createSession()` (generates a local UUID, opens socket), `joinSession(id:)`, `reconnect()` (private split from `disconnect()` so sessionId survives socket errors), `disconnect()` (user-initiated, clears everything). Mirrors `ServerMessage` enum for JSON decoding. Owned by `CompletedWorkoutsView` as `@StateObject` — deliberately NOT on `ForgeApp`, per the existing gotcha about App-level StateObjects + navigation flags.
-- `Forge/Views/CollabViews.swift` — `WorkoutWithFriendView` (Copy/Share buttons) + `ConnectingView` (state-driven banner) + `ShareSheet` UIKit wrapper + `ShareableURL` Identifiable wrapper.
-- `Forge/Views/CompletedWorkoutsView.swift` — Add Friend toolbar button (`person.2.fill`, top-leading), `forge://session/<id>` routing in `.onOpenURL`, `.onChange(of: scenePhase)` → `sessionClient.reconnect()` when the app returns to `.active`.
+- `Forge/View Model/SessionClient.swift` — `@MainActor` ObservableObject. `createSession()` (generates a local UUID, opens socket), `joinSession(id:)`, `reconnect()` (private split from `disconnect()` so sessionId survives socket errors), `disconnect()` (user-initiated, clears everything), `submitProfile(_:)` (persists to UserDefaults + broadcasts over socket). Also holds the mirrored `ServerMessage` / `ClientMessage` / `Profile` / `PeerInfo` types and the `peerProfiles` / `myProfile` / `hasSubmittedProfile` / `bothProfilesSubmitted` state. Owned by `CompletedWorkoutsView` as `@StateObject` — deliberately NOT on `ForgeApp`, per the existing gotcha about App-level StateObjects + navigation flags. On `handle(.welcome)` auto-resends the current profile if `hasSubmittedProfile` is true — lets a reconnected phone restore its "submitted" state on the server under the new `myId`.
+- `Forge/Views/CollabViews.swift` — `WorkoutWithFriendView` (Copy/Share buttons) + `ConnectingView` (state-driven banner, auto-advances to `JoinSessionView` after ~1.2s when state flips to `.connected`) + `JoinSessionView` (name + `PhotosPicker` avatar + peer banner + Join Session button) + `PlanSuggestionPlaceholderView` (Stage 2 placeholder, replaced by `PlanSuggestionView` in Stage 3) + shared `avatar`/`initial`/`resizeImage` helpers + `ShareSheet` UIKit wrapper + `ShareableURL` Identifiable wrapper.
+- `Forge/Views/CompletedWorkoutsView.swift` — Add Friend toolbar button (`person.2.fill`, top-leading), `forge://session/<id>` routing in `.onOpenURL`, `.onChange(of: scenePhase)` → `sessionClient.reconnect()` when the app returns to `.active`, `.onChange(of: sessionClient.state)` → resets both collab `navigationDestination` flags when state becomes `.idle` (so End Session anywhere in the stack collapses back to History).
 - `Forge/Info.plist` — `CFBundleURLTypes` registers `forge://` scheme alongside existing `.forgeplan` document types.
 
 ### Running the server
@@ -214,6 +218,9 @@ The iOS client hardcodes the hostname in `SessionClient.serverHost`. **`cloudfla
 - **Reconnect gets a new `myId` from the server.** The server assigns a fresh UUID on each WebSocket connection, so the peer briefly sees `peerLeft → peerJoined` during a reconnect. Stage 2+ will need identity continuity: client sends its last-known `myId` (+ profile) on rejoin so the server can merge the slot.
 - **`main.swift` in Swift cannot contain `@main`.** The filename itself makes it the entry point, conflicting with the attribute. Use top-level async code (what `server/Sources/ForgeServer/main.swift` does) or rename the file.
 - **Cloudflare Quick Tunnel URL is ephemeral per `cloudflared` invocation.** Survives `ForgeServer` restarts but not `cloudflared` restarts. Treat as session-scoped during development.
+- **Hummingbird's default `maxFrameSize` is 16 KB.** Profile photos push messages well past that. `inbound.messages(maxSize:)`'s parameter is the reassembled-*message* cap, NOT the per-frame cap. The per-frame limit comes from `WebSocketServerConfiguration.maxFrameSize` and must be raised explicitly: `.init(maxFrameSize: 1 << 20, extensions: [.perMessageDeflate()])`. Without this, oversized frames cause Hummingbird to close the connection at the protocol layer *before* the onUpgrade handler sees anything, so the iOS client reports a successful send and then "Socket is not connected" a moment later with no server-side trace. Diagnosed in Stage 2 when 87 KB profile payloads silently vanished.
+- **`UIGraphicsImageRenderer` uses `UIScreen.main.scale` by default.** A "256 × 192 pt" request on a 3× Retina iPhone produces 768 × 576 backing pixels — 9× the intended pixel count, 3× the wire size. For wire-transport rendering (profile photos), force `format.scale = 1.0` on a `UIGraphicsImageRendererFormat` and pass it to the renderer. The Stage 2 `resizeImage` helper in `CollabViews.swift` does this.
+- **Collab navigation unwinds via state observer, not chained `dismiss()` calls.** `CompletedWorkoutsView` watches `sessionClient.state`; when it becomes `.idle`, it resets both `workoutWithFriendActive` and `joinerConnectingActive` to `false`, which collapses the entire collab stack in one step regardless of how deep the user was. Deep views like `PlanSuggestionPlaceholderView` only need to call `sessionClient.disconnect()` — no `dismiss()` chain, no shared navigation path binding.
 
 ## Timer & Notification System
 
