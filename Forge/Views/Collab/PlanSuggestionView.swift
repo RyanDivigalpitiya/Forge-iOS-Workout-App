@@ -91,17 +91,17 @@ struct PlanSuggestionView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .frame(height: 110)
+            .frame(height: 88)
             .background(Color(white: 0.1))
-            .cornerRadius(16)
+            .cornerRadius(8)
         } else {
             Text("No plan suggested yet")
                 .font(.subheadline)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .frame(height: 110)
+                .frame(height: 88)
                 .background(Color(white: 0.08))
-                .cornerRadius(16)
+                .cornerRadius(8)
         }
     }
 
@@ -145,6 +145,9 @@ struct PlanSuggestionView: View {
                 .foregroundColor(.gray)
                 .frame(width: 80)
                 .padding(.vertical, 8)
+
+            Spacer()
+                .frame(width: 0, height: 0)
 
             Button {
                 previewPlan = plan
@@ -198,13 +201,19 @@ struct PlanSuggestionView: View {
             Text("READY UP")
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(settings.fgColor)
                 .cornerRadius(5)
         }
         .buttonStyle(.plain)
+        .shadow(
+            color: settings.fgColor.opacity(0.4), // color + transparency
+            radius: 15,                  // blur
+            x: 0,                        // horizontal offset
+            y: 0                         // vertical offset
+        )
     }
 
     private var connector: some View {
@@ -302,22 +311,25 @@ struct PlanCarouselCard: View {
                 Image(systemName: "dumbbell.fill")
                     .resizable()
                     .frame(width: 18, height: 13)
-                    .opacity(0.4)
+//                    .opacity(0.4)
                 Text("\(plan.exercises.count) \(plan.exercises.count == 1 ? "Exercise" : "Exercises")")
             }
             .font(.caption)
             .fontWeight(.bold)
             .foregroundColor(.gray.opacity(0.5))
 
-//            HStack(spacing: 6) {
-//                Image(systemName: "clock.fill")
-//                    .resizable()
-//                    .frame(width: 13, height: 13)
-//                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
-//            }
-//            .font(.caption)
-//            .fontWeight(.bold)
-//            .foregroundColor(.gray.opacity(0.5))
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .resizable()
+                    .frame(width: 13, height: 13)
+//                    .padding(.leading, 2)
+//                    .opacity(0.4)
+                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
+//                    .padding(.leading, 3)
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
         }
     }
 
@@ -340,7 +352,16 @@ struct PlanCarouselCard: View {
             .foregroundColor(.black)
             .cornerRadius(5)
             .buttonStyle(.borderless)
-
+            .shadow(
+                color: settings.fgColor.opacity(0.5), // color + transparency
+                radius: 10,                  // blur
+                x: 0,                        // horizontal offset
+                y: 0                         // vertical offset
+            )
+            
+            Spacer()
+                .frame(width: 0, height: 0)
+            
             Button(action: onPreview) {
                 Text("PREVIEW")
                     .font(.caption2)
