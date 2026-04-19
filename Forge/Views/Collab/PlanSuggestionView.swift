@@ -6,6 +6,7 @@ struct PlanSuggestionView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
 
     @State private var previewPlan: PlanSnapshot?
+    @State private var showEndSessionConfirm = false
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -14,38 +15,14 @@ struct PlanSuggestionView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            suggestedWorkoutPane
+        VStack(spacing: 16) {
+            gradientPanel
+
+            carouselHeaderRow
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-            avatarRow
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-
-            Spacer(minLength: 16)
-
-            Text("Chat coming in Stage 4")
-                .font(.caption)
-                .foregroundColor(.gray.opacity(0.5))
-
-            Spacer(minLength: 16)
 
             planCarousel
-
-            Button {
-                sessionClient.disconnect()
-            } label: {
-                Text("End Session")
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 12)
-            }
-            .foregroundColor(.white)
-            .background(Color.gray.opacity(0.3))
-            .cornerRadius(12)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+                .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
@@ -53,108 +30,192 @@ struct PlanSuggestionView: View {
         .sheet(item: $previewPlan) { plan in
             PlanPreviewSheet(plan: plan)
         }
+        .alert("End Session?", isPresented: $showEndSessionConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("End", role: .destructive) { sessionClient.disconnect() }
+        }
     }
 
-    private var suggestedWorkoutPane: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("SUGGESTED WORKOUT")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.gray)
+    private var gradientPanel: some View {
+        VStack(spacing: 16) {
+            topRow
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
 
-            if let suggested = sessionClient.suggestedPlan {
-                Button {
-                    previewPlan = suggested
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(suggested.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(settings.fgColor)
-                            Text("\(suggested.exercises.count) exercise\(suggested.exercises.count == 1 ? "" : "s") · tap to preview")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
+            avatarRow
+                .padding(.horizontal, 12)
+
+            chatInterface
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: [
+                    .black,
+                    Color(red: 0x15 / 255.0, green: 0x15 / 255.0, blue: 0x15 / 255.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+    }
+
+    private var topRow: some View {
+        HStack(alignment: .center, spacing: 4) {
+            Button {
+                showEndSessionConfirm = true
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(settings.fgColor)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+
+            suggestedWorkoutPane
+        }
+    }
+
+    @ViewBuilder
+    private var suggestedWorkoutPane: some View {
+        if let suggested = sessionClient.suggestedPlan {
+            Button {
+                previewPlan = suggested
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(suggested.name)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(settings.fgColor)
+                        Text("\(suggested.exercises.count) exercise\(suggested.exercises.count == 1 ? "" : "s") · tap to preview")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
-                    .padding(16)
-                    .background(Color(white: 0.1))
-                    .cornerRadius(12)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
-                .buttonStyle(.plain)
-            } else {
-                Text("No plan suggested yet")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color(white: 0.08))
-                    .cornerRadius(12)
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(Color(white: 0.1))
+                .cornerRadius(12)
             }
+            .buttonStyle(.plain)
+        } else {
+            Text("No plan suggested yet")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color(white: 0.08))
+                .cornerRadius(12)
         }
     }
 
     private var avatarRow: some View {
-        HStack {
-            HStack(spacing: 10) {
-                avatar(
-                    data: sessionClient.myProfile?.photoData,
-                    fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                    diameter: 44
-                )
-                Text(sessionClient.myProfile?.name ?? "You")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-            }
+        HStack(spacing: 0) {
             Spacer()
-            HStack(spacing: 10) {
-                Text(peerProfile?.name ?? "Friend")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                avatar(
-                    data: peerProfile?.photoData,
-                    fallbackInitial: initial(from: peerProfile?.name ?? "?"),
-                    diameter: 44
-                )
-            }
+
+            readyUpButton
+                .padding(.trailing, 6)
+
+            avatar(
+                data: sessionClient.myProfile?.photoData,
+                fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                diameter: 44
+            )
+
+            connector
+                .padding(.horizontal, 8)
+
+            avatar(
+                data: peerProfile?.photoData,
+                fallbackInitial: initial(from: peerProfile?.name ?? "?"),
+                diameter: 44
+            )
+
+            readyUpButton
+                .padding(.leading, 6)
+
+            Spacer()
         }
     }
 
-    private var planCarousel: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var readyUpButton: some View {
+        Button {
+            // Stage 3: dummy — wired to the ready-flag protocol in Stage 5
+        } label: {
+            Text("READY UP")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(settings.fgColor)
+                .cornerRadius(16)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var connector: some View {
+        HStack(spacing: 0) {
+            Circle().frame(width: 6, height: 6)
+            Rectangle().frame(width: 28, height: 1)
+            Circle().frame(width: 6, height: 6)
+        }
+        .foregroundColor(GlobalSettings.shared.darkGray)
+    }
+
+    private var chatInterface: some View {
+        VStack {
+            Text("Chat coming in Stage 4")
+                .font(.caption)
+                .foregroundColor(.gray.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var carouselHeaderRow: some View {
+        HStack {
+            Text("Suggest Workout")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            Spacer()
             Text("YOUR PLANS")
                 .font(.caption)
                 .fontWeight(.bold)
                 .foregroundColor(.gray)
-                .padding(.horizontal, 20)
+        }
+    }
 
-            if planViewModel.workoutPlans.isEmpty {
-                Text("No plans. Create one in the Select Plan screen first.")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(planViewModel.workoutPlans) { plan in
-                            PlanCarouselCard(
-                                plan: plan,
-                                onSuggest: { sessionClient.suggestPlan(from: plan) },
-                                onPreview: { previewPlan = PlanSnapshot(from: plan) }
-                            )
-                        }
+    @ViewBuilder
+    private var planCarousel: some View {
+        if planViewModel.workoutPlans.isEmpty {
+            Text("No plans. Create one in the Select Plan screen first.")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(planViewModel.workoutPlans) { plan in
+                        PlanCarouselCard(
+                            plan: plan,
+                            onSuggest: { sessionClient.suggestPlan(from: plan) },
+                            onPreview: { previewPlan = PlanSnapshot(from: plan) }
+                        )
                     }
-                    .padding(.horizontal, 20)
                 }
+                .padding(.horizontal, 20)
             }
         }
     }
@@ -167,56 +228,82 @@ struct PlanCarouselCard: View {
 
     @EnvironmentObject var settings: GlobalSettings
     @EnvironmentObject var sessionClient: SessionClient
+    @EnvironmentObject var planViewModel: PlanViewModel
 
     private var isCurrentlySuggested: Bool {
         sessionClient.suggestedPlan?.id == plan.id
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
+            planInfo
+            Spacer(minLength: 0)
+            buttonStack
+        }
+        .padding(12)
+        .frame(width: 280, height: 110)
+        .background(Color(white: 0.1))
+        .cornerRadius(16)
+    }
+
+    private var planInfo: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(plan.name)
                 .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
                 .lineLimit(2)
-                .frame(height: 44, alignment: .topLeading)
+                .multilineTextAlignment(.leading)
 
-            Text("\(plan.exercises.count) exercise\(plan.exercises.count == 1 ? "" : "s")")
-                .font(.caption)
-                .foregroundColor(.gray)
-
-            Spacer()
-
-            VStack(spacing: 8) {
-                Button(action: onSuggest) {
-                    Text(isCurrentlySuggested ? "SUGGESTED" : "SUGGEST")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .background(isCurrentlySuggested ? Color(white: 0.25) : settings.fgColor)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-                .buttonStyle(.borderless)
-
-                Button(action: onPreview) {
-                    Text("PREVIEW")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .background(Color(white: 0.2))
-                .foregroundColor(.white)
-                .cornerRadius(8)
-                .buttonStyle(.borderless)
+            HStack(spacing: 6) {
+                Image(systemName: "dumbbell.fill")
+                    .resizable()
+                    .frame(width: 18, height: 13)
+                    .opacity(0.4)
+                Text("\(plan.exercises.count) \(plan.exercises.count == 1 ? "Exercise" : "Exercises")")
             }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .resizable()
+                    .frame(width: 13, height: 13)
+                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
         }
-        .padding(14)
-        .frame(width: 180, height: 200)
-        .background(Color(white: 0.1))
-        .cornerRadius(16)
+    }
+
+    private var buttonStack: some View {
+        VStack(spacing: 6) {
+            Button(action: onSuggest) {
+                Text(isCurrentlySuggested ? "SUGGESTED" : "SUGGEST")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .frame(width: 80)
+                    .padding(.vertical, 8)
+            }
+            .background(isCurrentlySuggested ? Color(white: 0.25) : settings.fgColor)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .buttonStyle(.borderless)
+
+            Button(action: onPreview) {
+                Text("PREVIEW")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .frame(width: 80)
+                    .padding(.vertical, 8)
+            }
+            .background(Color(white: 0.2))
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .buttonStyle(.borderless)
+        }
     }
 }
 
