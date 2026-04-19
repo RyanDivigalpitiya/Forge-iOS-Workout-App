@@ -483,7 +483,9 @@ func resizeImage(_ image: UIImage, maxSide: CGFloat) -> UIImage {
     guard longestSide > maxSide else { return image }
     let scale = maxSide / longestSide
     let newSize = CGSize(width: size.width * scale, height: size.height * scale)
-    let renderer = UIGraphicsImageRenderer(size: newSize)
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1.0
+    let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
     return renderer.image { _ in
         image.draw(in: CGRect(origin: .zero, size: newSize))
     }

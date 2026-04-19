@@ -120,7 +120,10 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
         router: router,
         server: .http1WebSocketUpgrade(
             webSocketRouter: wsRouter,
-            configuration: .init(extensions: [.perMessageDeflate()])
+            configuration: .init(
+                maxFrameSize: 1 << 20,
+                extensions: [.perMessageDeflate()]
+            )
         ),
         configuration: .init(address: .hostname(hostname, port: port)),
         logger: logger
