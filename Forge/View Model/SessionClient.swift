@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 struct Profile: Codable, Equatable {
     var name: String
@@ -115,6 +116,7 @@ enum ServerMessage: Codable {
     case startWorkout
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
     case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
+    case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
     case sessionFull
 }
 
@@ -125,6 +127,7 @@ enum ClientMessage: Codable {
     case setReady(isReady: Bool)
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
+    case breakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int)
 }
 
 /// Identifies a specific set in the joint workout. Used as a Hashable key
@@ -143,6 +146,15 @@ struct UserPosition: Hashable, Codable {
     let exerciseIndex: Int
     let setIndex: Int
     let isResting: Bool
+}
+
+/// A peer's currently-running break timer. Stored in SessionClient's
+/// peerBreakTimer dict only while the peer is actively resting; removed
+/// when they dismiss or the break expires server-side.
+struct PeerBreakTimer: Equatable {
+    let endDate: Date
+    let exerciseIndex: Int
+    let setIndex: Int
 }
 
 // Local-only — not sent on the wire. Stores an `isMine` flag captured at
@@ -187,6 +199,7 @@ final class SessionClient: ObservableObject {
     @Published var startWorkoutSignal: UUID?
     @Published var peerCompletedSets: Swift.Set<PeerSetKey> = []
     @Published var peerPositions: [UUID: UserPosition] = [:]
+    @Published var peerBreakTimer: [UUID: PeerBreakTimer] = [:]
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -252,6 +265,7 @@ final class SessionClient: ObservableObject {
         startWorkoutSignal = nil
         peerCompletedSets = []
         peerPositions = [:]
+        peerBreakTimer = [:]
         state = .idle
     }
 
@@ -301,6 +315,21 @@ final class SessionClient: ObservableObject {
                 exerciseIndex: position.exerciseIndex,
                 setIndex: position.setIndex,
                 isResting: position.isResting
+            )
+        )
+    }
+
+    /// Broadcasts this phone's break-timer state. `endDate: nil` signals the
+    /// timer just ended (dismiss or natural expiry); a non-nil endDate
+    /// signals a fresh break starting. `exerciseIndex` / `setIndex` identify
+    /// which set the peer was resting after, so the other phone can render
+    /// the indicator next to the right row.
+    func sendBreakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int) {
+        sendClientMessage(
+            .breakTimerUpdate(
+                endDate: endDate,
+                exerciseIndex: exerciseIndex,
+                setIndex: setIndex
             )
         )
     }
@@ -399,11 +428,24 @@ final class SessionClient: ObservableObject {
             }
 
         case .peerPositionUpdated(let peerId, let exerciseIndex, let setIndex, let isResting):
-            peerPositions[peerId] = UserPosition(
-                exerciseIndex: exerciseIndex,
-                setIndex: setIndex,
-                isResting: isResting
-            )
+            withAnimation(.easeInOut(duration: 0.25)) {
+                peerPositions[peerId] = UserPosition(
+                    exerciseIndex: exerciseIndex,
+                    setIndex: setIndex,
+                    isResting: isResting
+                )
+            }
+
+        case .peerBreakTimerChanged(let peerId, let endDate, let exerciseIndex, let setIndex):
+            if let endDate {
+                peerBreakTimer[peerId] = PeerBreakTimer(
+                    endDate: endDate,
+                    exerciseIndex: exerciseIndex,
+                    setIndex: setIndex
+                )
+            } else {
+                peerBreakTimer.removeValue(forKey: peerId)
+            }
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

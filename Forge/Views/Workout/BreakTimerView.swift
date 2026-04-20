@@ -26,6 +26,7 @@ struct BreakTimerView: View {
     @State private var hasExpired = false
 
     @EnvironmentObject var settings: GlobalSettings
+    @EnvironmentObject var sessionClient: SessionClient
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -35,6 +36,27 @@ struct BreakTimerView: View {
 
             VStack(spacing: 0) {
                 Spacer().frame(maxHeight: 10)
+
+                // Peer's parallel countdown — renders only when the peer is
+                // also on a break. Small muted strip so it doesn't compete
+                // with the primary timer for attention.
+                if let peerId = sessionClient.peerIds.first,
+                   let peerTimer = sessionClient.peerBreakTimer[peerId] {
+                    let peerRemaining = max(0, Int(peerTimer.endDate.timeIntervalSince(context.date)))
+                    let peerProfile = sessionClient.peerProfiles[peerId]
+                    HStack(spacing: 8) {
+                        avatar(
+                            data: peerProfile?.photoData,
+                            fallbackInitial: initial(from: peerProfile?.name ?? "?"),
+                            diameter: 22
+                        )
+                        Text("Also resting · \(peerRemaining)s")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(.systemGray))
+                            .monospacedDigit()
+                    }
+                    .padding(.bottom, 10)
+                }
 
                 ZStack {
                     Circle()

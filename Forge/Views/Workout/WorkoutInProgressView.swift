@@ -199,6 +199,13 @@ struct WorkoutInProgressView: View {
                                                                             exerciseName: nextSetForWatch?.exerciseName,
                                                                             setDescription: nextSetForWatch?.setDescription
                                                                         )
+                                                                        if sessionClient.state == .connected {
+                                                                            sessionClient.sendBreakTimerUpdate(
+                                                                                endDate: breakTimerEndDate,
+                                                                                exerciseIndex: exerciseIndex,
+                                                                                setIndex: setIndex
+                                                                            )
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -603,6 +610,15 @@ extension WorkoutInProgressView {
             }
             updateLiveActivity()
             PhoneSessionManager.shared.sendTimerDismissed()
+            if sessionClient.state == .connected {
+                // Indices are ignored by the receiver when endDate is nil —
+                // they just clear the peer's entry from peerBreakTimer.
+                sessionClient.sendBreakTimerUpdate(
+                    endDate: nil,
+                    exerciseIndex: 0,
+                    setIndex: 0
+                )
+            }
         }
     }
 
