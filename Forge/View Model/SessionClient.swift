@@ -102,12 +102,24 @@ enum ServerMessage: Codable {
     case peerLeft(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
+    case peerChat(peerId: UUID, text: String, timestamp: Date)
     case sessionFull
 }
 
 enum ClientMessage: Codable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
+    case sendChat(text: String)
+}
+
+// Local-only — not sent on the wire. Stores an `isMine` flag captured at
+// insertion time so renders survive myId changes across reconnects
+// (my messages stay "mine" even after the server assigns a fresh UUID).
+struct ChatEntry: Identifiable, Equatable {
+    let id: UUID
+    let text: String
+    let timestamp: Date
+    let isMine: Bool
 }
 
 @MainActor
@@ -133,6 +145,7 @@ final class SessionClient: ObservableObject {
     @Published var myProfile: Profile?
     @Published var hasSubmittedProfile: Bool = false
     @Published var suggestedPlan: PlanSnapshot?
+    @Published var chatEntries: [ChatEntry] = []
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -180,6 +193,7 @@ final class SessionClient: ObservableObject {
         peerProfiles = [:]
         hasSubmittedProfile = false
         suggestedPlan = nil
+        chatEntries = []
         state = .idle
     }
 
@@ -196,6 +210,15 @@ final class SessionClient: ObservableObject {
         let snapshot = PlanSnapshot(from: plan)
         suggestedPlan = snapshot
         sendClientMessage(.suggestPlan(snapshot))
+    }
+
+    func sendChat(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        chatEntries.append(
+            ChatEntry(id: UUID(), text: trimmed, timestamp: Date(), isMine: true)
+        )
+        sendClientMessage(.sendChat(text: trimmed))
     }
 
     func shareLinkURL() -> URL? {
@@ -271,6 +294,11 @@ final class SessionClient: ObservableObject {
 
         case .planSuggested(_, let plan):
             suggestedPlan = plan
+
+        case .peerChat(_, let text, let timestamp):
+            chatEntries.append(
+                ChatEntry(id: UUID(), text: text, timestamp: timestamp, isMine: false)
+            )
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

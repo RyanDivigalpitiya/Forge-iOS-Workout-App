@@ -9,6 +9,8 @@ struct PlanSuggestionView: View {
     @State private var showEndSessionConfirm = false
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
+    @State private var chatDraft: String = ""
+    @FocusState private var chatDraftFocused: Bool
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -258,12 +260,93 @@ struct PlanSuggestionView: View {
     }
 
     private var chatInterface: some View {
-        VStack {
-            Text("Chat coming in Stage 4")
-                .font(.caption)
-                .foregroundColor(.gray.opacity(0.5))
+        VStack(spacing: 4) {
+            chatMessagesScroll
+            chatInputBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var chatMessagesScroll: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                if sessionClient.chatEntries.isEmpty {
+                    Text("Say hi 👋")
+                        .font(.caption)
+                        .foregroundColor(.gray.opacity(0.4))
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 12)
+                } else {
+                    LazyVStack(spacing: 6) {
+                        ForEach(sessionClient.chatEntries) { entry in
+                            chatBubble(entry: entry)
+                                .id(entry.id)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            .onChange(of: sessionClient.chatEntries.count) { _, _ in
+                scrollToLatest(using: proxy)
+            }
+            .onAppear {
+                scrollToLatest(using: proxy)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func chatBubble(entry: ChatEntry) -> some View {
+        HStack(spacing: 0) {
+            if entry.isMine { Spacer(minLength: 48) }
+            Text(entry.text)
+                .font(.subheadline)
+                .foregroundColor(entry.isMine ? .black : .white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
+                .cornerRadius(14)
+            if !entry.isMine { Spacer(minLength: 48) }
+        }
+    }
+
+    private var chatInputBar: some View {
+        HStack(spacing: 8) {
+            TextField("", text: $chatDraft, prompt: Text("Message").foregroundColor(.gray.opacity(0.6)))
+                .foregroundColor(.white)
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(white: 0.15))
+                .cornerRadius(16)
+                .submitLabel(.send)
+                .focused($chatDraftFocused)
+                .onSubmit(sendCurrentDraft)
+
+            Button(action: sendCurrentDraft) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(canSendDraft ? settings.fgColor : .gray.opacity(0.35))
+            }
+            .disabled(!canSendDraft)
+        }
+    }
+
+    private var canSendDraft: Bool {
+        !chatDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func sendCurrentDraft() {
+        sessionClient.sendChat(text: chatDraft)
+        chatDraft = ""
+    }
+
+    private func scrollToLatest(using proxy: ScrollViewProxy) {
+        guard let lastId = sessionClient.chatEntries.last?.id else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            proxy.scrollTo(lastId, anchor: .bottom)
+        }
     }
 
     private var carouselHeaderRow: some View {

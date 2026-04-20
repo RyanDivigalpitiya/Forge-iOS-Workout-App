@@ -34,10 +34,12 @@ enum ServerMessage: Codable, Sendable {
     case peerLeft(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
+    case peerChat(peerId: UUID, text: String, timestamp: Date)
     case sessionFull
 }
 
 enum ClientMessage: Codable, Sendable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
+    case sendChat(text: String)
 }

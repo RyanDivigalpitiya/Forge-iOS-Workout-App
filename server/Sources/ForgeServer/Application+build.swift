@@ -102,6 +102,14 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .sendChat(let text):
+                                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                guard !trimmed.isEmpty else { continue }
+                                await manager.broadcast(
+                                    .peerChat(peerId: myId, text: trimmed, timestamp: Date()),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {
