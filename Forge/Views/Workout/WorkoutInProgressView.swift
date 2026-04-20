@@ -59,6 +59,14 @@ struct WorkoutInProgressView: View {
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
 
+    // Joint-mode avatar-gutter alignment constants. Applied symmetrically to
+    // the inner set/rest rows and the outer avatar column so avatars line up
+    // with the rows they represent. Tuned empirically — if SetView or the
+    // rest connector grow, bump these.
+    let setRowHeight: CGFloat = 38
+    let restRowHeight: CGFloat = 62
+    let exerciseNameRowOffset: CGFloat = 73
+
     @State private var isWorkoutDone: Bool = false
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
@@ -81,9 +89,21 @@ struct WorkoutInProgressView: View {
                                 
                                 // EXERCISE LIST
                                 ForEach(planViewModel.activePlan.exercises.indices, id: \.self) { exerciseIndex in
-                                    
+
+                                    HStack(alignment: .top, spacing: 0) {
+
+                                        // AVATAR GUTTER (joint mode only) — parallel VStack that
+                                        // mirrors the card's internal set/rest sequence so avatars
+                                        // line up with the rows they represent. Lives OUTSIDE the
+                                        // card's grey background. Solo-mode layout is unchanged:
+                                        // the HStack has a single child (the card) in that path.
+                                        if sessionClient.state == .connected {
+                                            exerciseAvatarColumn(for: exerciseIndex)
+                                                .padding(.top, exerciseNameRowOffset)
+                                        }
+
                                     VStack {
-                                        
+
                                         // EXERCISE NAME + LOG CHANGE BUTTON
                                         HStack {
                                             Text(planViewModel.activePlan.exercises[exerciseIndex].name)
@@ -121,19 +141,6 @@ struct WorkoutInProgressView: View {
                                         VStack(spacing: 0){
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
                                                 HStack(spacing: 0) {
-                                                    // AVATAR COLUMN (joint mode only) — profile
-                                                    // photos with right-arrows for anyone whose
-                                                    // current position matches this set row.
-                                                    if sessionClient.state == .connected {
-                                                        avatarColumn(
-                                                            for: UserPosition(
-                                                                exerciseIndex: exerciseIndex,
-                                                                setIndex: setIndex,
-                                                                isResting: false
-                                                            )
-                                                        )
-                                                    }
-
                                                     // PEER CHECKBOX (joint mode only) — grey circle
                                                     // filled with a grey checkmark when the peer
                                                     // has completed this set. Non-interactive —
@@ -239,22 +246,10 @@ struct WorkoutInProgressView: View {
                                                         )
                                                     )
                                                 }
-                                                
+                                                .frame(height: setRowHeight)
+
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
                                                     HStack(spacing: 0) {
-                                                        // AVATAR COLUMN for the rest row — shows any
-                                                        // participant resting between this set and
-                                                        // the next.
-                                                        if sessionClient.state == .connected {
-                                                            avatarColumn(
-                                                                for: UserPosition(
-                                                                    exerciseIndex: exerciseIndex,
-                                                                    setIndex: setIndex,
-                                                                    isResting: true
-                                                                )
-                                                            )
-                                                        }
-
                                                         // Peer column's rest indicator (joint mode only) — mirrors
                                                         // the trailing-padding on peerCompletionCircle above so it
                                                         // stays aligned with the grey circle column.
@@ -274,6 +269,7 @@ struct WorkoutInProgressView: View {
                                                             .padding(.leading, 10)
                                                         Spacer()
                                                     }
+                                                    .frame(height: restRowHeight)
                                                 }
                                             }
                                         }
@@ -282,6 +278,7 @@ struct WorkoutInProgressView: View {
                                     .padding(17) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
                                     .background(bgColor)
                                     .cornerRadius(16)
+                                    }
                                 }
                                 .padding(.horizontal, 15)
                                 .padding(.vertical, 8)
@@ -748,31 +745,83 @@ extension WorkoutInProgressView {
         let peerIdsHere = sessionClient.peerPositions
             .filter { $0.value == position }
             .map { $0.key }
-        let anyoneHere = showMe || !peerIdsHere.isEmpty
+        let totalHere = (showMe ? 1 : 0) + peerIdsHere.count
+        let anyoneHere = totalHere > 0
+        // Single avatar sits a bit larger; when two stack, shrink them back
+        // to the compact size so the overlap still reads cleanly.
+        let avatarDiameter: CGFloat = totalHere >= 2 ? 22 : 28
 
-        HStack(spacing: 2) {
-            if showMe {
-                avatar(
-                    data: sessionClient.myProfile?.photoData,
-                    fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                    diameter: 22
-                )
+        HStack(spacing: 0) {
+            // Peers rendered first (leftmost, behind); user rendered last (on
+            // top, to the right). Negative inner spacing overlaps them so the
+            // peer peeks out on the user's left. Black border separates the
+            // silhouettes when they stack.
+            HStack(spacing: -10) {
+                ForEach(peerIdsHere, id: \.self) { peerId in
+                    let profile = sessionClient.peerProfiles[peerId]
+                    avatar(
+                        data: profile?.photoData,
+                        fallbackInitial: initial(from: profile?.name ?? "?"),
+                        diameter: avatarDiameter,
+                        borderColor: .black,
+                        borderWidth: 2
+                    )
+                }
+                if showMe {
+                    avatar(
+                        data: sessionClient.myProfile?.photoData,
+                        fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                        diameter: avatarDiameter,
+                        borderColor: .black,
+                        borderWidth: 2
+                    )
+                }
             }
-            ForEach(peerIdsHere, id: \.self) { peerId in
-                let profile = sessionClient.peerProfiles[peerId]
-                avatar(
-                    data: profile?.photoData,
-                    fallbackInitial: initial(from: profile?.name ?? "?"),
-                    diameter: 22
-                )
-            }
+            // Spacer + trailing-pinned arrow keeps the triangle at a fixed
+            // horizontal slot against the card's edge regardless of how many
+            // avatars live here or how large they are.
+            Spacer(minLength: 0)
             if anyoneHere {
-                Image(systemName: "arrow.right")
-                    .font(.caption2.weight(.bold))
+                Image(systemName: "arrowtriangle.right.fill")
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.gray)
+                    .padding(.trailing, 4)
             }
         }
         .frame(width: 56, alignment: .leading)
+    }
+
+    /// Renders the external gutter column of avatars for one exercise card.
+    /// Mirrors the card's internal set/rest sequence one cell at a time,
+    /// with each cell sized to match the corresponding inner row (setRowHeight
+    /// or restRowHeight) so avatars stay aligned with the rows inside the
+    /// card. Reuses `avatarColumn(for:)` per cell.
+    @ViewBuilder
+    private func exerciseAvatarColumn(for exerciseIndex: Int) -> some View {
+        let sets = planViewModel.activePlan.exercises[exerciseIndex].sets
+        VStack(spacing: 0) {
+            ForEach(sets.indices, id: \.self) { setIndex in
+                avatarColumn(
+                    for: UserPosition(
+                        exerciseIndex: exerciseIndex,
+                        setIndex: setIndex,
+                        isResting: false
+                    )
+                )
+                .frame(height: setRowHeight)
+
+                if setIndex < sets.count - 1 {
+                    avatarColumn(
+                        for: UserPosition(
+                            exerciseIndex: exerciseIndex,
+                            setIndex: setIndex,
+                            isResting: true
+                        )
+                    )
+                    .frame(height: restRowHeight)
+                }
+            }
+        }
     }
 
     /// The line-dot-line connector rendered between successive set rows as a

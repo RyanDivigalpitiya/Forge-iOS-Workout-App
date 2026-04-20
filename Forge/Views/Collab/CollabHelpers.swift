@@ -1,24 +1,36 @@
 import SwiftUI
 import UIKit
 
-@ViewBuilder
-func avatar(data: Data?, fallbackInitial: String, diameter: CGFloat) -> some View {
-    if let data, let uiImage = UIImage(data: data) {
-        Image(uiImage: uiImage)
-            .resizable()
-            .scaledToFill()
-            .frame(width: diameter, height: diameter)
-            .clipShape(Circle())
-    } else {
-        ZStack {
-            Circle()
-                .fill(Color(white: 0.2))
-            Text(fallbackInitial)
-                .font(.system(size: diameter * 0.45, weight: .semibold))
-                .foregroundColor(.white)
+func avatar(
+    data: Data?,
+    fallbackInitial: String,
+    diameter: CGFloat,
+    borderColor: Color = .clear,
+    borderWidth: CGFloat = 0
+) -> some View {
+    let innerDiameter = max(0, diameter - borderWidth * 2)
+    return ZStack {
+        if borderWidth > 0 {
+            Circle().fill(borderColor)
         }
-        .frame(width: diameter, height: diameter)
+        if let data, let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: innerDiameter, height: innerDiameter)
+                .clipShape(Circle())
+        } else {
+            ZStack {
+                Circle()
+                    .fill(Color(white: 0.2))
+                Text(fallbackInitial)
+                    .font(.system(size: innerDiameter * 0.45, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+            .frame(width: innerDiameter, height: innerDiameter)
+        }
     }
+    .frame(width: diameter, height: diameter)
 }
 
 func initial(from name: String) -> String {
