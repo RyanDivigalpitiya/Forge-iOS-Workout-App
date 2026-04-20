@@ -10,7 +10,6 @@ struct PlanSuggestionView: View {
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
     @State private var chatDraft: String = ""
-    @FocusState private var chatDraftFocused: Bool
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -26,6 +25,9 @@ struct PlanSuggestionView: View {
                 .padding(.horizontal, 20)
 
             planCarousel
+
+            dotIndicators
+                .frame(maxWidth: .infinity)
                 .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,12 +86,9 @@ struct PlanSuggestionView: View {
 
     private var gradientPanel: some View {
         VStack(spacing: 16) {
-            topRow
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-
             avatarRow
                 .padding(.horizontal, 12)
+                .padding(.top, 12)
 
             chatInterface
                 .padding(.horizontal, 12)
@@ -111,23 +110,6 @@ struct PlanSuggestionView: View {
         .padding(.top, 16)
     }
 
-    private var topRow: some View {
-        HStack(alignment: .center, spacing: 4) {
-            Button {
-                showEndSessionConfirm = true
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(settings.fgColor)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-
-            suggestedWorkoutPane
-                .scaleEffect(suggestedPaneScale)
-        }
-    }
-
     private func bounceSuggestedPane() {
         withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
             suggestedPaneScale = 1.08
@@ -136,66 +118,6 @@ struct PlanSuggestionView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
                 suggestedPaneScale = 1.0
             }
-        }
-    }
-
-    @ViewBuilder
-    private var suggestedWorkoutPane: some View {
-        if let suggested = sessionClient.suggestedPlan {
-            HStack(alignment: .top, spacing: 12) {
-                suggestedPaneInfo(plan: suggested)
-                Spacer(minLength: 0)
-                suggestedPaneButtonStack(plan: suggested)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .frame(height: 88)
-            .background(Color(white: 0.1))
-            .cornerRadius(8)
-        } else {
-            Text("No plan suggested yet")
-                .font(.subheadline)
-                .foregroundColor(Color(white: 0.2))
-                .frame(maxWidth: .infinity, alignment: .center)
-                .frame(height: 88)
-                .background(Color(white: 0.05))
-                .cornerRadius(8)
-        }
-    }
-
-    private func suggestedPaneInfo(plan: PlanSnapshot) -> some View {
-        PlanInfoBlock(
-            name: plan.name,
-            exerciseCount: plan.exercises.count,
-            durationMinutes: plan.durationMinutes
-        )
-    }
-
-    private func suggestedPaneButtonStack(plan: PlanSnapshot) -> some View {
-        VStack(spacing: 6) {
-            Text("SUGGESTED")
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(.gray)
-                .frame(width: 80)
-                .padding(.vertical, 8)
-
-            Spacer()
-                .frame(width: 0, height: 0)
-
-            Button {
-                openPreview(snapshot: plan)
-            } label: {
-                Text("PREVIEW")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .frame(width: 80)
-                    .padding(.vertical, 8)
-            }
-            .background(Color(white: 0.2))
-            .foregroundColor(.white)
-            .cornerRadius(5)
-            .buttonStyle(.borderless)
         }
     }
 
@@ -286,10 +208,21 @@ struct PlanSuggestionView: View {
                     .padding(.vertical, 8)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: sessionClient.chatEntries.count) { _, _ in
                 scrollToLatest(using: proxy)
             }
             .onAppear {
+                scrollToLatest(using: proxy)
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)
+            ) { _ in
+                scrollToLatest(using: proxy)
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: UIResponder.keyboardDidChangeFrameNotification)
+            ) { _ in
                 scrollToLatest(using: proxy)
             }
         }
@@ -313,16 +246,16 @@ struct PlanSuggestionView: View {
 
     private var chatInputBar: some View {
         HStack(spacing: 8) {
-            TextField("", text: $chatDraft, prompt: Text("Message").foregroundColor(.gray.opacity(0.6)))
-                .foregroundColor(.white)
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(white: 0.15))
-                .cornerRadius(16)
-                .submitLabel(.send)
-                .focused($chatDraftFocused)
-                .onSubmit(sendCurrentDraft)
+            KeyboardPersistentTextField(
+                text: $chatDraft,
+                placeholder: "Message",
+                onSubmit: sendCurrentDraft
+            )
+            .frame(height: 22)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(white: 0.15))
+            .cornerRadius(16)
 
             Button(action: sendCurrentDraft) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -350,13 +283,61 @@ struct PlanSuggestionView: View {
     }
 
     private var carouselHeaderRow: some View {
-        HStack {
+        HStack(spacing: 10) {
+            suggestedHeaderCluster
+                .scaleEffect(suggestedPaneScale)
+            Spacer()
+            endSessionButton
+        }
+    }
+
+    @ViewBuilder
+    private var suggestedHeaderCluster: some View {
+        if let suggested = sessionClient.suggestedPlan {
+            HStack(spacing: 10) {
+                Text("Suggested: \(suggested.name)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Button {
+                    openPreview(snapshot: suggested)
+                } label: {
+                    Text("PREVIEW")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                }
+                .background(Color(white: 0.2))
+                .foregroundColor(.white)
+                .cornerRadius(5)
+                .buttonStyle(.borderless)
+            }
+        } else {
             Text("Suggest Workout")
                 .font(.title3)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            Spacer()
-            dotIndicators
+        }
+    }
+
+    private var endSessionButton: some View {
+        Button {
+            showEndSessionConfirm = true
+        } label: {
+            ZStack {
+                Circle()
+                    .frame(width: 24, height: 24)
+                    .foregroundColor(Color(.systemGray4))
+                Image(systemName: "xmark")
+                    .resizable()
+                    .frame(width: 10, height: 10)
+                    .fontWeight(.bold)
+                    .foregroundColor(settings.fgColor)
+            }
         }
     }
 
@@ -482,6 +463,74 @@ struct PlanCarouselCard: View {
             .foregroundColor(.white)
             .cornerRadius(5)
             .buttonStyle(.borderless)
+        }
+    }
+}
+
+/// UITextField wrapped for SwiftUI so Return-to-send doesn't dismiss the
+/// keyboard. SwiftUI's TextField + .submitLabel(.send) + .onSubmit always
+/// resigns first responder on submit — re-asserting @FocusState right
+/// after causes a visible flicker. Intercepting Return at the UIKit
+/// delegate level and returning false from textFieldShouldReturn keeps
+/// the field first-responder throughout.
+///
+/// Also sets autocorrectionType = .no + spellCheckingType = .no, which is
+/// the more reliable path than SwiftUI's .autocorrectionDisabled() for
+/// suppressing the iOS QuickType predictive text bar.
+struct KeyboardPersistentTextField: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let onSubmit: () -> Void
+
+    func makeUIView(context: Context) -> UITextField {
+        let tf = UITextField()
+        tf.delegate = context.coordinator
+        tf.returnKeyType = .send
+        tf.autocorrectionType = .no
+        tf.spellCheckingType = .no
+        tf.smartInsertDeleteType = .no
+        tf.textColor = .white
+        tf.backgroundColor = .clear
+        tf.font = .preferredFont(forTextStyle: .subheadline)
+        tf.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [.foregroundColor: UIColor.gray.withAlphaComponent(0.6)]
+        )
+        tf.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.editingChanged(_:)),
+            for: .editingChanged
+        )
+        return tf
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        context.coordinator.onSubmit = onSubmit
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var text: Binding<String>
+        var onSubmit: () -> Void
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            self.text = text
+            self.onSubmit = onSubmit
+        }
+
+        @objc func editingChanged(_ textField: UITextField) {
+            text.wrappedValue = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            onSubmit()
+            return false
         }
     }
 }
