@@ -8,6 +8,7 @@ struct PlanSuggestionView: View {
     @State private var planEditorIsPresented = false
     @State private var showEndSessionConfirm = false
     @State private var currentPlanId: UUID?
+    @State private var suggestedPaneScale: CGFloat = 1.0
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -47,6 +48,10 @@ struct PlanSuggestionView: View {
         .alert("End Session?", isPresented: $showEndSessionConfirm) {
             Button("Cancel", role: .cancel) { }
             Button("End", role: .destructive) { sessionClient.disconnect() }
+        }
+        .onChange(of: sessionClient.suggestedPlan?.id) { _, newId in
+            guard newId != nil else { return }   // no bounce when pane goes empty
+            bounceSuggestedPane()
         }
     }
 
@@ -117,6 +122,18 @@ struct PlanSuggestionView: View {
             }
 
             suggestedWorkoutPane
+                .scaleEffect(suggestedPaneScale)
+        }
+    }
+
+    private func bounceSuggestedPane() {
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+            suggestedPaneScale = 1.08
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+                suggestedPaneScale = 1.0
+            }
         }
     }
 
