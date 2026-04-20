@@ -113,6 +113,7 @@ enum ServerMessage: Codable {
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
+    case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case sessionFull
 }
 
@@ -122,6 +123,7 @@ enum ClientMessage: Codable {
     case sendChat(text: String)
     case setReady(isReady: Bool)
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
+    case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
 }
 
 /// Identifies a specific set in the joint workout. Used as a Hashable key
@@ -130,6 +132,16 @@ enum ClientMessage: Codable {
 struct PeerSetKey: Hashable, Codable {
     let exerciseId: UUID
     let setIndex: Int
+}
+
+/// Where a participant currently is in the joint workout.
+/// `isResting` is true when they're on a break timer right after completing
+/// the set at (exerciseIndex, setIndex). When false, they're about to do
+/// (or are doing) that set.
+struct UserPosition: Hashable, Codable {
+    let exerciseIndex: Int
+    let setIndex: Int
+    let isResting: Bool
 }
 
 // Local-only — not sent on the wire. Stores an `isMine` flag captured at
@@ -173,6 +185,7 @@ final class SessionClient: ObservableObject {
     /// needing to manually reset the flag between sessions.
     @Published var startWorkoutSignal: UUID?
     @Published var peerCompletedSets: Swift.Set<PeerSetKey> = []
+    @Published var peerPositions: [UUID: UserPosition] = [:]
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -225,6 +238,7 @@ final class SessionClient: ObservableObject {
         peerReady = [:]
         startWorkoutSignal = nil
         peerCompletedSets = []
+        peerPositions = [:]
         state = .idle
     }
 
@@ -265,6 +279,16 @@ final class SessionClient: ObservableObject {
     func sendSetCompletion(exerciseId: UUID, setIndex: Int, completed: Bool) {
         sendClientMessage(
             .setCompletion(exerciseId: exerciseId, setIndex: setIndex, completed: completed)
+        )
+    }
+
+    func sendPositionUpdate(_ position: UserPosition) {
+        sendClientMessage(
+            .positionUpdate(
+                exerciseIndex: position.exerciseIndex,
+                setIndex: position.setIndex,
+                isResting: position.isResting
+            )
         )
     }
 
@@ -360,6 +384,13 @@ final class SessionClient: ObservableObject {
             } else {
                 peerCompletedSets.remove(key)
             }
+
+        case .peerPositionUpdated(let peerId, let exerciseIndex, let setIndex, let isResting):
+            peerPositions[peerId] = UserPosition(
+                exerciseIndex: exerciseIndex,
+                setIndex: setIndex,
+                isResting: isResting
+            )
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

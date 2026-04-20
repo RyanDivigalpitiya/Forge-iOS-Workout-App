@@ -121,6 +121,19 @@ struct WorkoutInProgressView: View {
                                         VStack(spacing: 0){
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
                                                 HStack(spacing: 0) {
+                                                    // AVATAR COLUMN (joint mode only) — profile
+                                                    // photos with right-arrows for anyone whose
+                                                    // current position matches this set row.
+                                                    if sessionClient.state == .connected {
+                                                        avatarColumn(
+                                                            for: UserPosition(
+                                                                exerciseIndex: exerciseIndex,
+                                                                setIndex: setIndex,
+                                                                isResting: false
+                                                            )
+                                                        )
+                                                    }
+
                                                     // PEER CHECKBOX (joint mode only) — grey circle
                                                     // filled with a grey checkmark when the peer
                                                     // has completed this set. Non-interactive —
@@ -229,6 +242,19 @@ struct WorkoutInProgressView: View {
                                                 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
                                                     HStack(spacing: 0) {
+                                                        // AVATAR COLUMN for the rest row — shows any
+                                                        // participant resting between this set and
+                                                        // the next.
+                                                        if sessionClient.state == .connected {
+                                                            avatarColumn(
+                                                                for: UserPosition(
+                                                                    exerciseIndex: exerciseIndex,
+                                                                    setIndex: setIndex,
+                                                                    isResting: true
+                                                                )
+                                                            )
+                                                        }
+
                                                         // Peer column's rest indicator (joint mode only) — mirrors
                                                         // the trailing-padding on peerCompletionCircle above so it
                                                         // stays aligned with the grey circle column.
@@ -421,6 +447,18 @@ struct WorkoutInProgressView: View {
             .fixedSize(horizontal: false, vertical: true)
             .presentationDetents([.height(300)])
             .environment(\.colorScheme, .dark)
+        }
+        .onAppear {
+            // Broadcast my starting position so the peer's avatar column
+            // shows me at the first incomplete set right away.
+            if sessionClient.state == .connected {
+                sessionClient.sendPositionUpdate(myPosition)
+            }
+        }
+        .onChange(of: myPosition) { _, new in
+            if sessionClient.state == .connected {
+                sessionClient.sendPositionUpdate(new)
+            }
         }
     }
 }
@@ -667,7 +705,75 @@ extension WorkoutInProgressView {
         self.workoutActivity = nil
     }
 
-    // MARK: - Joint workout (Stage 6a)
+    // MARK: - Joint workout (Stage 6a + 6b)
+
+    /// Where I currently am in the workout. Derived from set-completion
+    /// state + the break timer flags, so the broadcast stays in sync with
+    /// UI without needing separate event plumbing. Ties via .onChange to
+    /// sessionClient.sendPositionUpdate(_:).
+    var myPosition: UserPosition {
+        let plan = planViewModel.activePlan
+        var firstIncomplete: (ex: Int, set: Int)? = nil
+        for (exIdx, ex) in plan.exercises.enumerated() {
+            if let sIdx = ex.sets.firstIndex(where: { !$0.completed }) {
+                firstIncomplete = (exIdx, sIdx)
+                break
+            }
+        }
+        guard let next = firstIncomplete else {
+            // All done — park at the last set.
+            let lastEx = max(0, plan.exercises.count - 1)
+            let lastSet = max(0, (plan.exercises.last?.sets.count ?? 1) - 1)
+            return UserPosition(exerciseIndex: lastEx, setIndex: lastSet, isResting: false)
+        }
+        let resting = timerEnabled && breakTimerEndDate != nil
+        if resting, next.set > 0 {
+            // Resting within the same exercise — sit on the rest-break row
+            // for the just-completed set.
+            return UserPosition(exerciseIndex: next.ex, setIndex: next.set - 1, isResting: true)
+        }
+        // Either not resting, or resting between exercises (there's no
+        // explicit between-exercise rest row in the layout, so we move the
+        // avatar forward to the incoming exercise's first set).
+        return UserPosition(exerciseIndex: next.ex, setIndex: next.set, isResting: false)
+    }
+
+    /// Renders the leftmost avatar column for a given row (either a set row
+    /// or a rest-break row). Shows any participants whose current position
+    /// matches, each with a right-arrow affordance. Fixed-width frame so
+    /// rows stay aligned whether or not an avatar lives here this frame.
+    @ViewBuilder
+    private func avatarColumn(for position: UserPosition) -> some View {
+        let showMe = myPosition == position
+        let peerIdsHere = sessionClient.peerPositions
+            .filter { $0.value == position }
+            .map { $0.key }
+        let anyoneHere = showMe || !peerIdsHere.isEmpty
+
+        HStack(spacing: 2) {
+            if showMe {
+                avatar(
+                    data: sessionClient.myProfile?.photoData,
+                    fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                    diameter: 22
+                )
+            }
+            ForEach(peerIdsHere, id: \.self) { peerId in
+                let profile = sessionClient.peerProfiles[peerId]
+                avatar(
+                    data: profile?.photoData,
+                    fallbackInitial: initial(from: profile?.name ?? "?"),
+                    diameter: 22
+                )
+            }
+            if anyoneHere {
+                Image(systemName: "arrow.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(.gray)
+            }
+        }
+        .frame(width: 56, alignment: .leading)
+    }
 
     /// The line-dot-line connector rendered between successive set rows as a
     /// visual marker for the rest break. Extracted into a helper because

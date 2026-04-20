@@ -139,6 +139,17 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .positionUpdate(let exerciseIndex, let setIndex, let isResting):
+                                await manager.broadcast(
+                                    .peerPositionUpdated(
+                                        peerId: myId,
+                                        exerciseIndex: exerciseIndex,
+                                        setIndex: setIndex,
+                                        isResting: isResting
+                                    ),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {
