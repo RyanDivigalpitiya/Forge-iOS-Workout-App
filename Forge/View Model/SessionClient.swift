@@ -104,8 +104,7 @@ enum ServerMessage: Codable {
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
-    case countdownStart(endDate: Date)
-    case countdownCancelled
+    case startWorkout
     case sessionFull
 }
 
@@ -152,7 +151,10 @@ final class SessionClient: ObservableObject {
     @Published var chatEntries: [ChatEntry] = []
     @Published var myIsReady: Bool = false
     @Published var peerReady: [UUID: Bool] = [:]
-    @Published var countdownEndDate: Date?
+    /// Changes to a fresh UUID each time the server broadcasts `.startWorkout`
+    /// so PlanSuggestionView can fire its navigation via `.onChange` without
+    /// needing to manually reset the flag between sessions.
+    @Published var startWorkoutSignal: UUID?
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -203,7 +205,7 @@ final class SessionClient: ObservableObject {
         chatEntries = []
         myIsReady = false
         peerReady = [:]
-        countdownEndDate = nil
+        startWorkoutSignal = nil
         state = .idle
     }
 
@@ -323,11 +325,8 @@ final class SessionClient: ObservableObject {
         case .peerReadyChanged(let peerId, let isReady):
             peerReady[peerId] = isReady
 
-        case .countdownStart(let endDate):
-            countdownEndDate = endDate
-
-        case .countdownCancelled:
-            countdownEndDate = nil
+        case .startWorkout:
+            startWorkoutSignal = UUID()
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

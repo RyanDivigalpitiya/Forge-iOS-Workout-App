@@ -14,7 +14,6 @@ actor SessionManager {
         }
         var participants: [UUID: ParticipantInfo] = [:]
         var suggestedPlan: PlanSnapshot?
-        var countdownEndDate: Date?
         init(id: UUID) { self.id = id }
     }
 
@@ -65,55 +64,21 @@ actor SessionManager {
         sessions[sessionId]?.suggestedPlan = plan
     }
 
-    struct ReadyUpdate {
-        /// Non-nil if the server just started a countdown. All participants
-        /// should be sent `countdownStart(endDate:)` with this date.
-        let newCountdownEndDate: Date?
-        /// True if the server just cancelled an in-flight countdown (because
-        /// a participant un-readied). All participants should be sent
-        /// `countdownCancelled`.
-        let countdownCancelled: Bool
-    }
-
-    func setReady(sessionId: UUID, participantId: UUID, isReady: Bool) -> ReadyUpdate {
-        guard let session = sessions[sessionId] else {
-            return ReadyUpdate(newCountdownEndDate: nil, countdownCancelled: false)
-        }
-        guard var info = session.participants[participantId] else {
-            return ReadyUpdate(newCountdownEndDate: nil, countdownCancelled: false)
-        }
+    /// Updates the participant's ready flag. Returns true if this update
+    /// just made everyone in the session ready — the caller should
+    /// broadcast `.startWorkout` to all participants. Workout entry is
+    /// immediate; the WorkoutInProgressView already has its own 3-second
+    /// starting countdown, so the collab layer doesn't add one.
+    func setReady(sessionId: UUID, participantId: UUID, isReady: Bool) -> Bool {
+        guard let session = sessions[sessionId] else { return false }
+        guard var info = session.participants[participantId] else { return false }
+        let wasAllReady = session.participants.count >= Self.capacity
+            && session.participants.values.allSatisfy(\.isReady)
         info.isReady = isReady
         session.participants[participantId] = info
-
-        let allReady = session.participants.count >= Self.capacity
+        let nowAllReady = session.participants.count >= Self.capacity
             && session.participants.values.allSatisfy(\.isReady)
-        let countdownActive = session.countdownEndDate != nil
-
-        if allReady && !countdownActive {
-            let endDate = Date().addingTimeInterval(3)
-            session.countdownEndDate = endDate
-            return ReadyUpdate(newCountdownEndDate: endDate, countdownCancelled: false)
-        }
-        if !allReady && countdownActive {
-            session.countdownEndDate = nil
-            return ReadyUpdate(newCountdownEndDate: nil, countdownCancelled: true)
-        }
-        return ReadyUpdate(newCountdownEndDate: nil, countdownCancelled: false)
-    }
-
-    /// Called when a participant disconnects — cancels any in-flight
-    /// countdown since we no longer have both participants.
-    func clearReadyState(sessionId: UUID, participantId: UUID) -> Bool {
-        guard let session = sessions[sessionId] else { return false }
-        if var info = session.participants[participantId] {
-            info.isReady = false
-            session.participants[participantId] = info
-        }
-        if session.countdownEndDate != nil {
-            session.countdownEndDate = nil
-            return true  // caller should broadcast countdownCancelled
-        }
-        return false
+        return nowAllReady && !wasAllReady
     }
 
     func broadcast(_ message: ServerMessage, in sessionId: UUID, except exceptId: UUID? = nil) {

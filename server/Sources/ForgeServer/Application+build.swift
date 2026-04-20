@@ -111,7 +111,7 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     except: myId
                                 )
                             case .setReady(let isReady):
-                                let update = await manager.setReady(
+                                let shouldStart = await manager.setReady(
                                     sessionId: sessionId,
                                     participantId: myId,
                                     isReady: isReady
@@ -121,16 +121,9 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
-                                if let endDate = update.newCountdownEndDate {
+                                if shouldStart {
                                     await manager.broadcast(
-                                        .countdownStart(endDate: endDate),
-                                        in: sessionId,
-                                        except: nil
-                                    )
-                                }
-                                if update.countdownCancelled {
-                                    await manager.broadcast(
-                                        .countdownCancelled,
+                                        .startWorkout,
                                         in: sessionId,
                                         except: nil
                                     )
@@ -144,15 +137,8 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 }
             }
 
-            let countdownWasActive = await manager.clearReadyState(
-                sessionId: sessionId,
-                participantId: myId
-            )
             await manager.removeParticipant(sessionId: sessionId, participantId: myId)
             await manager.broadcast(.peerLeft(peerId: myId), in: sessionId)
-            if countdownWasActive {
-                await manager.broadcast(.countdownCancelled, in: sessionId)
-            }
         }
     }
 

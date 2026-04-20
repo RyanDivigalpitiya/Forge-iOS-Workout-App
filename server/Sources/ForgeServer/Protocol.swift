@@ -36,8 +36,7 @@ enum ServerMessage: Codable, Sendable {
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
-    case countdownStart(endDate: Date)
-    case countdownCancelled
+    case startWorkout
     case sessionFull
 }
 
