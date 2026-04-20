@@ -35,6 +35,9 @@ enum ServerMessage: Codable, Sendable {
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
+    case peerReadyChanged(peerId: UUID, isReady: Bool)
+    case countdownStart(endDate: Date)
+    case countdownCancelled
     case sessionFull
 }
 
@@ -42,4 +45,5 @@ enum ClientMessage: Codable, Sendable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
     case sendChat(text: String)
+    case setReady(isReady: Bool)
 }

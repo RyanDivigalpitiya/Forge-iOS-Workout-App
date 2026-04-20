@@ -103,6 +103,9 @@ enum ServerMessage: Codable {
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
+    case peerReadyChanged(peerId: UUID, isReady: Bool)
+    case countdownStart(endDate: Date)
+    case countdownCancelled
     case sessionFull
 }
 
@@ -110,6 +113,7 @@ enum ClientMessage: Codable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
     case sendChat(text: String)
+    case setReady(isReady: Bool)
 }
 
 // Local-only — not sent on the wire. Stores an `isMine` flag captured at
@@ -146,6 +150,9 @@ final class SessionClient: ObservableObject {
     @Published var hasSubmittedProfile: Bool = false
     @Published var suggestedPlan: PlanSnapshot?
     @Published var chatEntries: [ChatEntry] = []
+    @Published var myIsReady: Bool = false
+    @Published var peerReady: [UUID: Bool] = [:]
+    @Published var countdownEndDate: Date?
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -194,6 +201,9 @@ final class SessionClient: ObservableObject {
         hasSubmittedProfile = false
         suggestedPlan = nil
         chatEntries = []
+        myIsReady = false
+        peerReady = [:]
+        countdownEndDate = nil
         state = .idle
     }
 
@@ -219,6 +229,16 @@ final class SessionClient: ObservableObject {
             ChatEntry(id: UUID(), text: trimmed, timestamp: Date(), isMine: true)
         )
         sendClientMessage(.sendChat(text: trimmed))
+    }
+
+    func toggleReady() {
+        setReady(!myIsReady)
+    }
+
+    func setReady(_ isReady: Bool) {
+        guard myIsReady != isReady else { return }
+        myIsReady = isReady
+        sendClientMessage(.setReady(isReady: isReady))
     }
 
     func shareLinkURL() -> URL? {
@@ -299,6 +319,15 @@ final class SessionClient: ObservableObject {
             chatEntries.append(
                 ChatEntry(id: UUID(), text: text, timestamp: timestamp, isMine: false)
             )
+
+        case .peerReadyChanged(let peerId, let isReady):
+            peerReady[peerId] = isReady
+
+        case .countdownStart(let endDate):
+            countdownEndDate = endDate
+
+        case .countdownCancelled:
+            countdownEndDate = nil
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

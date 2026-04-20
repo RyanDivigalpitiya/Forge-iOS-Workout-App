@@ -10,6 +10,8 @@ struct PlanSuggestionView: View {
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
     @State private var chatDraft: String = ""
+    @State private var workoutInProgressPresented = false
+    @State private var countdownCompletionTask: Task<Void, Never>?
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -57,6 +59,36 @@ struct PlanSuggestionView: View {
             guard newId != nil else { return }   // no bounce when pane goes empty
             bounceSuggestedPane()
         }
+        .onChange(of: sessionClient.countdownEndDate) { _, newValue in
+            handleCountdownChange(endDate: newValue)
+        }
+        .fullScreenCover(isPresented: $workoutInProgressPresented) {
+            WorkoutInProgressView()
+                .environment(\.colorScheme, .dark)
+        }
+    }
+
+    private func handleCountdownChange(endDate: Date?) {
+        countdownCompletionTask?.cancel()
+        guard let endDate else { return }
+        countdownCompletionTask = Task { @MainActor in
+            let delay = max(0, endDate.timeIntervalSinceNow)
+            try? await Task.sleep(for: .seconds(delay))
+            if Task.isCancelled { return }
+            // Only fire if the endDate hasn't changed (cancelled or replaced) since scheduling.
+            guard sessionClient.countdownEndDate == endDate else { return }
+            startWorkoutFromSuggestion()
+        }
+    }
+
+    private func startWorkoutFromSuggestion() {
+        guard let suggested = sessionClient.suggestedPlan else { return }
+        let plan = suggested.toWorkoutPlan()
+        planViewModel.activePlan = plan
+        // activePlanIndex is only used for save-edit flows; leave it at
+        // whatever it was — WorkoutInProgressView reads activePlan, not the
+        // index.
+        workoutInProgressPresented = true
     }
 
     private func openPreview(ownPlan: WorkoutPlan) {
@@ -121,55 +153,85 @@ struct PlanSuggestionView: View {
         }
     }
 
+    @ViewBuilder
     private var avatarRow: some View {
-        HStack(spacing: 0) {
-            Spacer()
+        if let endDate = sessionClient.countdownEndDate {
+            countdownView(endDate: endDate)
+        } else {
+            HStack(spacing: 0) {
+                Spacer()
 
-            readyUpButton
-                .padding(.trailing, 7)
+                readyUpButton(isSelf: true)
+                    .padding(.trailing, 7)
 
-            avatar(
-                data: sessionClient.myProfile?.photoData,
-                fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                diameter: 44
-            )
+                avatar(
+                    data: sessionClient.myProfile?.photoData,
+                    fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                    diameter: 44
+                )
 
-            connector
-                .padding(.horizontal, 8)
+                connector
+                    .padding(.horizontal, 8)
 
-            avatar(
-                data: peerProfile?.photoData,
-                fallbackInitial: initial(from: peerProfile?.name ?? "?"),
-                diameter: 44
-            )
+                avatar(
+                    data: peerProfile?.photoData,
+                    fallbackInitial: initial(from: peerProfile?.name ?? "?"),
+                    diameter: 44
+                )
 
-            readyUpButton
-                .padding(.leading, 7)
+                readyUpButton(isSelf: false)
+                    .padding(.leading, 7)
 
-            Spacer()
+                Spacer()
+            }
         }
     }
 
-    private var readyUpButton: some View {
-        Button {
-            // Stage 3: dummy — wired to the ready-flag protocol in Stage 5
+    private func readyUpButton(isSelf: Bool) -> some View {
+        let peerIsReady = peerId.flatMap { sessionClient.peerReady[$0] } ?? false
+        let isReady = isSelf ? sessionClient.myIsReady : peerIsReady
+        let canInteract = isSelf
+            && sessionClient.suggestedPlan != nil
+            && sessionClient.countdownEndDate == nil
+
+        return Button {
+            if isSelf { sessionClient.toggleReady() }
         } label: {
-            Text("READY UP")
+            Text(isReady ? "READY" : "READY UP")
                 .font(.caption2)
                 .fontWeight(.bold)
-                .foregroundColor(settings.fgColor)
+                .foregroundColor(isReady ? .black : settings.fgColor)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-//                .background(settings.fgColor)
+                .background(isReady ? settings.fgColor : Color.clear)
                 .cornerRadius(5)
         }
         .buttonStyle(.plain)
+        .disabled(!canInteract)
+        .opacity(isReady || canInteract ? 1.0 : 0.35)
         .shadow(
-            color: settings.fgColor.opacity(0.4), // color + transparency
-            radius: 15,                  // blur
-            x: 0,                        // horizontal offset
-            y: 0                         // vertical offset
+            color: settings.fgColor.opacity(isReady ? 0.5 : 0.4),
+            radius: 15,
+            x: 0,
+            y: 0
         )
+    }
+
+    private func countdownView(endDate: Date) -> some View {
+        TimelineView(.periodic(from: .now, by: 0.1)) { context in
+            let secondsLeft = max(0, endDate.timeIntervalSince(context.date))
+            let displayed = max(1, Int(ceil(secondsLeft)))
+            HStack {
+                Spacer()
+                Text("\(displayed)")
+                    .font(.system(size: 64, weight: .heavy, design: .rounded))
+                    .foregroundColor(settings.fgColor)
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(.easeInOut(duration: 0.25), value: displayed)
+                Spacer()
+            }
+            .frame(height: 44)  // match avatarRow height so the panel doesn't jump
+        }
     }
 
     private var connector: some View {

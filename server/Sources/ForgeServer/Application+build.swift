@@ -110,6 +110,31 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .setReady(let isReady):
+                                let update = await manager.setReady(
+                                    sessionId: sessionId,
+                                    participantId: myId,
+                                    isReady: isReady
+                                )
+                                await manager.broadcast(
+                                    .peerReadyChanged(peerId: myId, isReady: isReady),
+                                    in: sessionId,
+                                    except: myId
+                                )
+                                if let endDate = update.newCountdownEndDate {
+                                    await manager.broadcast(
+                                        .countdownStart(endDate: endDate),
+                                        in: sessionId,
+                                        except: nil
+                                    )
+                                }
+                                if update.countdownCancelled {
+                                    await manager.broadcast(
+                                        .countdownCancelled,
+                                        in: sessionId,
+                                        except: nil
+                                    )
+                                }
                             }
                         }
                     } catch {
@@ -119,8 +144,15 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 }
             }
 
+            let countdownWasActive = await manager.clearReadyState(
+                sessionId: sessionId,
+                participantId: myId
+            )
             await manager.removeParticipant(sessionId: sessionId, participantId: myId)
             await manager.broadcast(.peerLeft(peerId: myId), in: sessionId)
+            if countdownWasActive {
+                await manager.broadcast(.countdownCancelled, in: sessionId)
+            }
         }
     }
 
