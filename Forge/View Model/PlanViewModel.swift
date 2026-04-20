@@ -18,6 +18,7 @@ class PlanViewModel: ObservableObject {
         self.activePlanIndex = 0
         self.activePlanMode = .add
         self.workoutPlans = loadPlans()
+        dedupePlanIdsIfNeeded()
     }
 
     init(mockPlans: [WorkoutPlan], userDefaults: UserDefaults = .standard) {
@@ -79,13 +80,18 @@ extension PlanViewModel {
     }
 
     // Imports a plan received from another user. Strips completion state so the
-    // plan arrives as a clean template, and auto-suffixes the name on collision.
+    // plan arrives as a clean template, regenerates every UUID (plan / exercise
+    // / set) so repeated imports of the same source never collide in the local
+    // list, and auto-suffixes the name on collision.
     func importPlan(_ plan: WorkoutPlan) {
         var sanitized = plan
+        sanitized.id = UUID()
         sanitized.lastCompleted = nil
         for exerciseIndex in sanitized.exercises.indices {
+            sanitized.exercises[exerciseIndex].id = UUID()
             var clearedSets = sanitized.exercises[exerciseIndex].sets
             for setIndex in clearedSets.indices {
+                clearedSets[setIndex].id = UUID()
                 clearedSets[setIndex].completed = false
             }
             sanitized.exercises[exerciseIndex].sets = clearedSets
@@ -93,6 +99,23 @@ extension PlanViewModel {
         sanitized.name = uniqueName(for: sanitized.name)
         workoutPlans.append(sanitized)
         savePlans()
+    }
+
+    // Retroactive cleanup for users who already have duplicate plan UUIDs in
+    // local storage (from the old importPlan path that preserved the source
+    // UUID). Reassigns fresh UUIDs to every occurrence after the first so the
+    // carousel's ForEach and scroll-position bindings can key uniquely.
+    private func dedupePlanIdsIfNeeded() {
+        var seen: Swift.Set<UUID> = []
+        var changed = false
+        for index in workoutPlans.indices {
+            if seen.contains(workoutPlans[index].id) {
+                workoutPlans[index].id = UUID()
+                changed = true
+            }
+            seen.insert(workoutPlans[index].id)
+        }
+        if changed { savePlans() }
     }
 
     private func uniqueName(for proposed: String) -> String {
