@@ -7,6 +7,7 @@ class PlanViewModel: ObservableObject {
     @Published var activePlan: WorkoutPlan
     @Published var activePlanIndex: Int
     @Published var activePlanMode: PlanEditorMode
+    @Published var activePlanIsReadOnly: Bool = false
 
     private let userDefaults: UserDefaults
 

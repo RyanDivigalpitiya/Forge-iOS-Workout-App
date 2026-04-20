@@ -22,6 +22,14 @@ struct PlanEditorView: View {
         Validation.trimmedName(planViewModel.activePlan.name) == nil || planViewModel.activePlan.exercises.isEmpty
     }
 
+    private var titleText: String {
+        switch planViewModel.activePlanMode {
+        case .add: return "Create New Plan"
+        case .edit: return "Edit Plan"
+        case .preview: return "Preview Plan"
+        }
+    }
+
     @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let darkGray = GlobalSettings.shared.editorDarkGray
@@ -38,7 +46,7 @@ struct PlanEditorView: View {
             VStack {
                 HStack{
                     Spacer()
-                    Text(planViewModel.activePlanMode == .add ? "Create New Plan" : "Edit Plan")
+                    Text(titleText)
                         .font(.system(size: 40))
                         .fontWeight(.bold)
                         .foregroundColor(settings.fgColor)
@@ -55,6 +63,7 @@ struct PlanEditorView: View {
                     .multilineTextAlignment(.center)
                     .font(.system(size: 30))
                     .submitLabel(.done)
+                    .disabled(planViewModel.activePlanIsReadOnly)
                     .onChange(of: planViewModel.activePlan.name) { _, newValue in
                         if newValue.count > Validation.maxNameLength {
                             planViewModel.activePlan.name = String(newValue.prefix(Validation.maxNameLength))
@@ -81,11 +90,13 @@ struct PlanEditorView: View {
                                         .font(.system(size: 30))
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     Spacer()
-                                    Image(systemName: "pencil.circle.fill")
-                                        .resizable()
-                                        .frame(width: 19, height: 19)
-                                        .foregroundColor(.gray)
-                                        .opacity(0.6)
+                                    if !planViewModel.activePlanIsReadOnly {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .resizable()
+                                            .frame(width: 19, height: 19)
+                                            .foregroundColor(.gray)
+                                            .opacity(0.6)
+                                    }
                                 }
                                 if exercise.areSetsUnique { // heterogenous set: display each unqiue set
                                     VStack(spacing: 25) {
@@ -109,24 +120,29 @@ struct PlanEditorView: View {
                                 }
                             }
                         }
+                        .disabled(planViewModel.activePlanIsReadOnly)
                         .padding(15)
                         .background(bgColor)
                         .cornerRadius(16)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                planViewModel.deleteExercise(at: IndexSet(integer: exerciseIndex))
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            if !planViewModel.activePlanIsReadOnly {
+                                Button(role: .destructive) {
+                                    planViewModel.deleteExercise(at: IndexSet(integer: exerciseIndex))
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                            Button {
-                                exerciseToTransferIndex = exerciseIndex
-                                showTransferSheet = true
-                            } label: {
-                                Label("Transfer", systemImage: "arrow.right.doc.on.clipboard")
+                            if !planViewModel.activePlanIsReadOnly {
+                                Button {
+                                    exerciseToTransferIndex = exerciseIndex
+                                    showTransferSheet = true
+                                } label: {
+                                    Label("Transfer", systemImage: "arrow.right.doc.on.clipboard")
+                                }
+                                .tint(.blue)
                             }
-                            .tint(.blue)
                         }
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
@@ -200,8 +216,9 @@ struct PlanEditorView: View {
                             .padding(.top)
                             .padding(.bottom, 8)
                             .padding(.trailing, 10)
-                            .foregroundColor(settings.fgColor)
+                            .foregroundColor(planViewModel.activePlanIsReadOnly ? .gray : settings.fgColor)
                         }
+                        .disabled(planViewModel.activePlanIsReadOnly)
 
                     }
 
@@ -234,7 +251,8 @@ struct PlanEditorView: View {
                             if planViewModel.activePlanMode == .add {
                                 planViewModel.workoutPlans.append(planViewModel.activePlan)
                                 planViewModel.savePlans()
-                            } else if planViewModel.activePlanMode == .edit {
+                            } else if planViewModel.activePlanMode == .edit
+                                   || (planViewModel.activePlanMode == .preview && !planViewModel.activePlanIsReadOnly) {
                                 if planViewModel.workoutPlans.indices.contains(planViewModel.activePlanIndex) {
                                     planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
                                     planViewModel.savePlans()
@@ -255,12 +273,12 @@ struct PlanEditorView: View {
                         }) {
                             ZStack{
                                 HStack {
-                                    Text("Save")
+                                    Text(planViewModel.activePlanIsReadOnly ? "View Only" : "Save")
                                         .font(.system(size: 20))
                                         .bold()
                                 }
-                                .frame(width: 75, height: 35)
-                                .background(settings.fgColor)
+                                .frame(width: planViewModel.activePlanIsReadOnly ? 110 : 75, height: 35)
+                                .background(planViewModel.activePlanIsReadOnly ? Color.gray : settings.fgColor)
                                 .foregroundColor(.black)
                                 .cornerRadius(500)
                                 .opacity(isDoneCheckMarkVisible ? 0 : 1)
@@ -277,7 +295,7 @@ struct PlanEditorView: View {
                                 .opacity(isDoneCheckMarkVisible ? 1 : 0)
                             }
                         }
-                        .disabled(isSaveDisabled)
+                        .disabled(planViewModel.activePlanIsReadOnly || isSaveDisabled)
 
                         Spacer()
 
@@ -292,7 +310,8 @@ struct PlanEditorView: View {
                                 .font(.headline)
                                 .frame(width: 55)
                         }
-                        .foregroundColor(settings.fgColor)
+                        .foregroundColor(planViewModel.activePlanIsReadOnly ? .gray : settings.fgColor)
+                        .disabled(planViewModel.activePlanIsReadOnly)
 
                         Spacer()
                     }
@@ -307,7 +326,7 @@ struct PlanEditorView: View {
             }
             .edgesIgnoringSafeArea(.bottom)
 
-            if planViewModel.activePlan.exercises.count == 0 {
+            if planViewModel.activePlan.exercises.count == 0 && !planViewModel.activePlanIsReadOnly {
                 VStack {
                     HStack {
                         Text("Tap")

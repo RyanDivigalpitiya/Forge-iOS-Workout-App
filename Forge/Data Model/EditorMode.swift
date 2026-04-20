@@ -1,7 +1,7 @@
 import Foundation
 
 enum PlanEditorMode {
-    case add, edit
+    case add, edit, preview
 }
 
 enum ExerciseEditorMode {

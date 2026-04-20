@@ -72,6 +72,30 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
     }
 }
 
+extension PlanSnapshot {
+    // Materialises the wire snapshot into a live WorkoutPlan value type for
+    // feeding into PlanEditorView in read-only preview mode. UUIDs are
+    // freshly generated — this temporary plan is never inserted into
+    // planViewModel.workoutPlans, so identity doesn't need to match the
+    // snapshot's ids.
+    func toWorkoutPlan() -> WorkoutPlan {
+        let exercises = exercises.map { ex in
+            Exercise(
+                name: ex.name,
+                sets: ex.sets.map { s in
+                    Set(
+                        weight: s.weight,
+                        reps: s.reps,
+                        tillFailure: s.tillFailure,
+                        completed: false
+                    )
+                }
+            )
+        }
+        return WorkoutPlan(name: name, exercises: exercises)
+    }
+}
+
 enum ServerMessage: Codable {
     case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?)
     case peerJoined(peerId: UUID)

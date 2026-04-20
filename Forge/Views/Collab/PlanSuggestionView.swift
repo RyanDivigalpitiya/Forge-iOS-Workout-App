@@ -5,7 +5,7 @@ struct PlanSuggestionView: View {
     @EnvironmentObject var settings: GlobalSettings
     @EnvironmentObject var planViewModel: PlanViewModel
 
-    @State private var previewPlan: PlanSnapshot?
+    @State private var planEditorIsPresented = false
     @State private var showEndSessionConfirm = false
     @State private var currentPlanId: UUID?
 
@@ -28,13 +28,51 @@ struct PlanSuggestionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
         .navigationBarBackButtonHidden(true)
-        .sheet(item: $previewPlan) { plan in
-            PlanPreviewSheet(plan: plan)
+        .fullScreenCover(isPresented: $planEditorIsPresented) {
+            PlanEditorView()
+                .environment(\.colorScheme, .dark)
+        }
+        .onChange(of: planEditorIsPresented) { _, isPresented in
+            guard !isPresented else { return }
+            // Editor just dismissed — reset read-only flag and re-broadcast
+            // the current suggestion if it matches a plan that may have been
+            // edited. Idempotent: if nothing changed, the peer just re-receives
+            // the same PlanSnapshot.
+            planViewModel.activePlanIsReadOnly = false
+            if let suggested = sessionClient.suggestedPlan,
+               let latest = planViewModel.workoutPlans.first(where: { $0.id == suggested.id }) {
+                sessionClient.suggestPlan(from: latest)
+            }
         }
         .alert("End Session?", isPresented: $showEndSessionConfirm) {
             Button("Cancel", role: .cancel) { }
             Button("End", role: .destructive) { sessionClient.disconnect() }
         }
+    }
+
+    private func openPreview(ownPlan: WorkoutPlan) {
+        guard let idx = planViewModel.workoutPlans.firstIndex(where: { $0.id == ownPlan.id }) else { return }
+        planViewModel.activePlan = ownPlan
+        planViewModel.activePlanIndex = idx
+        planViewModel.activePlanMode = .preview
+        planViewModel.activePlanIsReadOnly = false
+        planEditorIsPresented = true
+    }
+
+    private func openPreview(snapshot: PlanSnapshot) {
+        // Always open read-only from the Suggested pane. The pane renders a
+        // frozen moment-in-time PlanSnapshot from the wire; matching it to
+        // a local plan by id (or even id+name) isn't reliable — two phones
+        // can share a plan-id via an earlier AirDrop of a .forgeplan, or
+        // the local copy may have diverged from what's actually suggested.
+        // If the user wants to edit their own plan, they tap PREVIEW on
+        // the carousel card instead, which goes through openPreview(ownPlan:)
+        // and opens editable mode unconditionally.
+        planViewModel.activePlan = snapshot.toWorkoutPlan()
+        planViewModel.activePlanIndex = -1      // sentinel: not in workoutPlans
+        planViewModel.activePlanMode = .preview
+        planViewModel.activePlanIsReadOnly = true
+        planEditorIsPresented = true
     }
 
     private var gradientPanel: some View {
@@ -107,35 +145,11 @@ struct PlanSuggestionView: View {
     }
 
     private func suggestedPaneInfo(plan: PlanSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(plan.name)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(settings.fgColor)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            HStack(spacing: 6) {
-                Image(systemName: "dumbbell.fill")
-                    .resizable()
-                    .frame(width: 18, height: 13)
-                    .opacity(0.4)
-                Text("\(plan.exercises.count) \(plan.exercises.count == 1 ? "Exercise" : "Exercises")")
-            }
-            .font(.caption)
-            .fontWeight(.bold)
-            .foregroundColor(.gray.opacity(0.5))
-
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .resizable()
-                    .frame(width: 13, height: 13)
-                Text("\(plan.durationMinutes) min")
-            }
-            .font(.caption)
-            .fontWeight(.bold)
-            .foregroundColor(.gray.opacity(0.5))
-        }
+        PlanInfoBlock(
+            name: plan.name,
+            exerciseCount: plan.exercises.count,
+            durationMinutes: plan.durationMinutes
+        )
     }
 
     private func suggestedPaneButtonStack(plan: PlanSnapshot) -> some View {
@@ -151,7 +165,7 @@ struct PlanSuggestionView: View {
                 .frame(width: 0, height: 0)
 
             Button {
-                previewPlan = plan
+                openPreview(snapshot: plan)
             } label: {
                 Text("PREVIEW")
                     .font(.caption2)
@@ -171,7 +185,7 @@ struct PlanSuggestionView: View {
             Spacer()
 
             readyUpButton
-                .padding(.trailing, 14)
+                .padding(.trailing, 7)
 
             avatar(
                 data: sessionClient.myProfile?.photoData,
@@ -189,7 +203,7 @@ struct PlanSuggestionView: View {
             )
 
             readyUpButton
-                .padding(.leading, 14)
+                .padding(.leading, 7)
 
             Spacer()
         }
@@ -202,10 +216,10 @@ struct PlanSuggestionView: View {
             Text("READY UP")
                 .font(.caption2)
                 .fontWeight(.bold)
-                .foregroundColor(.black)
+                .foregroundColor(settings.fgColor)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(settings.fgColor)
+//                .background(settings.fgColor)
                 .cornerRadius(5)
         }
         .buttonStyle(.plain)
@@ -261,7 +275,7 @@ struct PlanSuggestionView: View {
                         PlanCarouselCard(
                             plan: plan,
                             onSuggest: { sessionClient.suggestPlan(from: plan) },
-                            onPreview: { previewPlan = PlanSnapshot(from: plan) }
+                            onPreview: { openPreview(ownPlan: plan) }
                         )
                         .id(plan.id)
                     }
@@ -322,38 +336,11 @@ struct PlanCarouselCard: View {
     }
 
     private var planInfo: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(plan.name)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(settings.fgColor)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            HStack(spacing: 6) {
-                Image(systemName: "dumbbell.fill")
-                    .resizable()
-                    .frame(width: 18, height: 13)
-//                    .opacity(0.4)
-                Text("\(plan.exercises.count) \(plan.exercises.count == 1 ? "Exercise" : "Exercises")")
-            }
-            .font(.caption)
-            .fontWeight(.bold)
-            .foregroundColor(.gray.opacity(0.5))
-
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .resizable()
-                    .frame(width: 13, height: 13)
-//                    .padding(.leading, 2)
-//                    .opacity(0.4)
-                Text("\(planViewModel.calculateWorkoutDuration(for: plan)) min")
-//                    .padding(.leading, 3)
-            }
-            .font(.caption)
-            .fontWeight(.bold)
-            .foregroundColor(.gray.opacity(0.5))
-        }
+        PlanInfoBlock(
+            name: plan.name,
+            exerciseCount: plan.exercises.count,
+            durationMinutes: planViewModel.calculateWorkoutDuration(for: plan)
+        )
     }
 
     private var buttonStack: some View {
@@ -399,48 +386,41 @@ struct PlanCarouselCard: View {
     }
 }
 
-struct PlanPreviewSheet: View {
-    let plan: PlanSnapshot
-    @Environment(\.dismiss) var dismiss
+struct PlanInfoBlock: View {
+    let name: String
+    let exerciseCount: Int
+    let durationMinutes: Int
+
+    @EnvironmentObject var settings: GlobalSettings
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(plan.exercises) { exercise in
-                    Section(exercise.name) {
-                        ForEach(Array(exercise.sets.enumerated()), id: \.offset) { idx, set in
-                            HStack {
-                                Text("Set \(idx + 1)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text(setDescription(set))
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle(plan.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .environment(\.colorScheme, .dark)
-    }
+        VStack(alignment: .leading, spacing: 8) {
+            Text(name)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(settings.fgColor)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
-    private func setDescription(_ set: SetSnapshot) -> String {
-        let weight: String = set.weight == floor(set.weight)
-            ? String(Int(set.weight))
-            : String(format: "%.1f", set.weight)
-        if set.tillFailure {
-            return "\(weight) lb × fail"
-        } else {
-            return "\(weight) lb × \(set.reps) reps"
+            HStack(spacing: 6) {
+                Image(systemName: "dumbbell.fill")
+                    .resizable()
+                    .frame(width: 18, height: 13)
+                Text("\(exerciseCount) \(exerciseCount == 1 ? "Exercise" : "Exercises")")
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .resizable()
+                    .frame(width: 13, height: 13)
+                Text("\(durationMinutes) min")
+            }
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.gray.opacity(0.5))
         }
     }
 }
