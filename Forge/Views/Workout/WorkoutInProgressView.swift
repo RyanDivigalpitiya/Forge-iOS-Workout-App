@@ -478,6 +478,11 @@ extension WorkoutInProgressView {
         healthManager.endWorkoutSession()
         isWorkoutDone = true
 
+        // Reset ready flag so the next workout-start round-trip works with a
+        // single tap per phone. Without this, server-side isReady stays true,
+        // one tap toggles to false, and re-entering requires two taps each.
+        sessionClient.setReady(false)
+
         // Reset set completions (same as finishWorkout)
         for exerciseIndex in planViewModel.activePlan.exercises.indices {
             for setIndex in planViewModel.activePlan.exercises[exerciseIndex].sets.indices {
@@ -504,6 +509,9 @@ extension WorkoutInProgressView {
         endLiveActivity()
         PhoneSessionManager.shared.sendWorkoutEnded()
         isWorkoutDone = true
+
+        // Reset ready flag (see cancelWorkout for rationale).
+        sessionClient.setReady(false)
 
         // save completed workout to persistant storage
         let completedWorkout = CompletedWorkout(
@@ -752,43 +760,48 @@ extension WorkoutInProgressView {
         let avatarDiameter: CGFloat = totalHere >= 2 ? 22 : 28
 
         HStack(spacing: 0) {
-            // Peers rendered first (leftmost, behind); user rendered last (on
-            // top, to the right). Negative inner spacing overlaps them so the
-            // peer peeks out on the user's left. Black border separates the
-            // silhouettes when they stack.
-            HStack(spacing: -10) {
-                ForEach(peerIdsHere, id: \.self) { peerId in
-                    let profile = sessionClient.peerProfiles[peerId]
-                    avatar(
-                        data: profile?.photoData,
-                        fallbackInitial: initial(from: profile?.name ?? "?"),
-                        diameter: avatarDiameter,
-                        borderColor: .black,
-                        borderWidth: 2
-                    )
-                }
-                if showMe {
-                    avatar(
-                        data: sessionClient.myProfile?.photoData,
-                        fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                        diameter: avatarDiameter,
-                        borderColor: .black,
-                        borderWidth: 2
-                    )
+            // Cluster zone — fixed width matching the widest possible cluster
+            // (two overlapped 22pt avatars = 34pt). Cluster is right-aligned
+            // inside the zone so its right edge stays at a constant x position
+            // regardless of how many avatars are present. Peers render first
+            // (leftmost, behind); user renders last (on top, to the right).
+            HStack {
+                Spacer(minLength: 0)
+                HStack(spacing: -10) {
+                    ForEach(peerIdsHere, id: \.self) { peerId in
+                        let profile = sessionClient.peerProfiles[peerId]
+                        avatar(
+                            data: profile?.photoData,
+                            fallbackInitial: initial(from: profile?.name ?? "?"),
+                            diameter: avatarDiameter,
+                            borderColor: .black,
+                            borderWidth: 2
+                        )
+                    }
+                    if showMe {
+                        avatar(
+                            data: sessionClient.myProfile?.photoData,
+                            fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                            diameter: avatarDiameter,
+                            borderColor: .black,
+                            borderWidth: 2
+                        )
+                    }
                 }
             }
-            // Spacer + trailing-pinned arrow keeps the triangle at a fixed
-            // horizontal slot against the card's edge regardless of how many
-            // avatars live here or how large they are.
-            Spacer(minLength: 0)
-            if anyoneHere {
-                Image(systemName: "arrowtriangle.right.fill")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.gray)
-                    .padding(.trailing, 4)
-            }
+            .frame(width: 34)
+
+            // Triangle — always rendered (opacity 0 when nobody's here) so the
+            // gutter's intrinsic width stays constant across every row. The
+            // symmetric 4pt horizontal paddings make the avatar↔triangle gap
+            // and the triangle↔card gap identical.
+            Image(systemName: "arrowtriangle.right.fill")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.gray)
+                .opacity(anyoneHere ? 1 : 0)
+                .padding(.leading, 4)
+                .padding(.trailing, 4)
         }
-        .frame(width: 56, alignment: .leading)
     }
 
     /// Renders the external gutter column of avatars for one exercise card.

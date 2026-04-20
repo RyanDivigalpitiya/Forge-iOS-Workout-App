@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct Profile: Codable, Equatable {
     var name: String
@@ -189,12 +190,24 @@ final class SessionClient: ObservableObject {
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
+    private var cancellables: Swift.Set<AnyCancellable> = []
 
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.profileKey),
            let saved = try? JSONDecoder().decode(Profile.self, from: data) {
             myProfile = saved
         }
+
+        // Diagnostic: log every state transition so intermittent joint-mode
+        // UI disappearance leaves a trail. didSet on @Published breaks
+        // objectWillChange (see CLAUDE.md), so we pair (previous, current)
+        // via Combine's zip + dropFirst.
+        $state
+            .zip($state.dropFirst())
+            .sink { old, new in
+                print("[SessionClient] state: \(old) → \(new) @ \(Date())")
+            }
+            .store(in: &cancellables)
     }
 
     var bothProfilesSubmitted: Bool {
