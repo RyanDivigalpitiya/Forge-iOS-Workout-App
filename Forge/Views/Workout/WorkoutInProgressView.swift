@@ -241,9 +241,13 @@ struct WorkoutInProgressView: View {
                                                             set: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex],
                                                             index: setIndex
                                                         ),
-                                                        appearance: .workoutActive(
-                                                            isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                        )
+                                                        appearance: sessionClient.state == .connected
+                                                            ? .workoutActiveCollab(
+                                                                isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                            )
+                                                            : .workoutActive(
+                                                                isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                            )
                                                     )
                                                 }
                                                 .frame(height: setRowHeight)

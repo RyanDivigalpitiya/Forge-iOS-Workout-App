@@ -10,9 +10,10 @@ struct SetView: View {
     }
 
     enum Appearance {
-        case standard                           // PlanEditor: solid accent-color label, dark text
-        case muted                              // History: buttonCircleBgColor label, white text
-        case workoutActive(isCompleted: Bool)   // Workout: animated strikethrough + dimmed when completed
+        case standard                               // PlanEditor: solid accent-color label, dark text
+        case muted                                  // History: buttonCircleBgColor label, white text
+        case workoutActive(isCompleted: Bool)       // Workout: animated strikethrough + dimmed when completed
+        case workoutActiveCollab(isCompleted: Bool) // Joint workout: weight/reps rendered as grey label chips so the compressed horizontal budget still fits
     }
 
     let content: Content
@@ -46,30 +47,52 @@ struct SetView: View {
         }
 
         let isCompleted: Bool = {
-            if case .workoutActive(let completed) = appearance { return completed }
+            switch appearance {
+            case .workoutActive(let c), .workoutActiveCollab(let c): return c
+            default: return false
+            }
+        }()
+
+        let isCollabActive: Bool = {
+            if case .workoutActiveCollab = appearance { return true }
             return false
         }()
 
-        let labelWidth: CGFloat = labelCount > 9 ? 67 : 58
+        let isWorkoutActiveMode: Bool = {
+            switch appearance {
+            case .workoutActive, .workoutActiveCollab: return true
+            default: return false
+            }
+        }()
+
+        let labelWidth: CGFloat = {
+            if isCollabActive {
+                return labelCount > 9 ? 54 : 46
+            } else {
+                return labelCount > 9 ? 67 : 58
+            }
+        }()
 
         let labelBg: Color = {
             switch appearance {
-            case .standard, .workoutActive: return settings.fgColor
+            case .standard, .workoutActive, .workoutActiveCollab: return settings.fgColor
             case .muted: return GlobalSettings.shared.buttonCircleBgColor
             }
         }()
 
         let labelTextColor: Color = {
             switch appearance {
-            case .standard, .workoutActive: return bgColor
+            case .standard, .workoutActive, .workoutActiveCollab: return bgColor
             case .muted: return .white
             }
         }()
 
+        let setLabelFontSize: CGFloat = isCollabActive ? 13 : 16
+
         return ZStack {
             HStack {
                 Text(labelText)
-                    .font(.system(size: 16))
+                    .font(.system(size: setLabelFontSize))
                     .foregroundColor(labelTextColor)
                     .frame(width: labelWidth, height: 28)
                     .background(labelBg)
@@ -78,21 +101,28 @@ struct SetView: View {
                     .opacity(isCompleted ? 0.5 : 1)
 
                 if let weight, let reps {
-                    Text("\(Int(weight)) lb")
-                        .foregroundColor(.white)
-                        .padding(.trailing, setsSpacing)
-                    Image(systemName: "xmark")
-                        .resizable()
-                        .frame(width: 10, height: 10)
-                        .padding(.top, 3)
-                        .foregroundColor(.gray)
-                        .opacity(0.6)
-                        .padding(.trailing, setsSpacing)
-
-                    if tillFailure {
-                        Text("Until Failure").foregroundColor(.gray).opacity(0.6)
+                    if isCollabActive {
+                        let detail: String = tillFailure
+                            ? "\(Int(weight)) lb x Until Failure"
+                            : "\(Int(weight)) lb x \(reps) rep\(reps == 1 ? "" : "s")"
+                        collabChip(detail, isCompleted: isCompleted)
                     } else {
-                        Text("\(reps) rep\(reps == 1 ? "" : "s")").foregroundColor(.gray).opacity(0.6)
+                        Text("\(Int(weight)) lb")
+                            .foregroundColor(.white)
+                            .padding(.trailing, setsSpacing)
+                        Image(systemName: "xmark")
+                            .resizable()
+                            .frame(width: 10, height: 10)
+                            .padding(.top, 3)
+                            .foregroundColor(.gray)
+                            .opacity(0.6)
+                            .padding(.trailing, setsSpacing)
+
+                        if tillFailure {
+                            Text("Until Failure").foregroundColor(.gray).opacity(0.6)
+                        } else {
+                            Text("\(reps) rep\(reps == 1 ? "" : "s")").foregroundColor(.gray).opacity(0.6)
+                        }
                     }
                 } else {
                     Text("No sets")
@@ -105,11 +135,11 @@ struct SetView: View {
             .font(.system(size: setsFontSize))
             .opacity(isCompleted ? 0.3 : 1)
 
-            // Strikethrough overlay — only emitted for workoutActive.
+            // Strikethrough overlay — emitted for both workoutActive variants.
             // Conditional values preserve the original animation: width 0→∞,
             // opacity 0→1, offset -20→-10 all interpolate together when the
             // parent's withAnimation block toggles `isCompleted`.
-            if case .workoutActive = appearance {
+            if isWorkoutActiveMode {
                 HStack {
                     Rectangle()
                         .frame(width: isCompleted ? .infinity : 0, height: 2)
@@ -119,6 +149,22 @@ struct SetView: View {
                 .offset(x: isCompleted ? -10 : -20, y: 0)
             }
         }
+    }
+
+    /// Collab-mode weight / reps chip — same shape as the "Set N" label but
+    /// smaller font and grey background so two narrow chips fit in the
+    /// compressed horizontal budget of a joint-mode set row.
+    private func collabChip(_ text: String, isCompleted: Bool) -> some View {
+        Text(text)
+            .font(.system(size: 13))
+            .foregroundColor(.white)
+            .lineLimit(1)
+            .frame(height: 28)
+            .padding(.horizontal, 8)
+            .background(GlobalSettings.shared.buttonCircleBgColor)
+            .cornerRadius(5)
+            .padding(.trailing, setsSpacing)
+            .opacity(isCompleted ? 0.5 : 1)
     }
 }
 
