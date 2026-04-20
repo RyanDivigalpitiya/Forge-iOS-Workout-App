@@ -150,6 +150,17 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .breakTimerUpdate(let endDate, let exerciseIndex, let setIndex):
+                                await manager.broadcast(
+                                    .peerBreakTimerChanged(
+                                        peerId: myId,
+                                        endDate: endDate,
+                                        exerciseIndex: exerciseIndex,
+                                        setIndex: setIndex
+                                    ),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {
