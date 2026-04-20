@@ -79,8 +79,8 @@ extension PlanSnapshot {
     // planViewModel.workoutPlans, so identity doesn't need to match the
     // snapshot's ids.
     func toWorkoutPlan() -> WorkoutPlan {
-        let exercises = exercises.map { ex in
-            Exercise(
+        let mappedExercises: [Exercise] = exercises.map { ex in
+            var exercise = Exercise(
                 name: ex.name,
                 sets: ex.sets.map { s in
                     Set(
@@ -91,8 +91,15 @@ extension PlanSnapshot {
                     )
                 }
             )
+            // Preserve the wire snapshot's UUID so both phones address the
+            // same exercise by the same id during the joint workout (set
+            // completion sync in Stage 6a keys off this).
+            exercise.id = ex.id
+            return exercise
         }
-        return WorkoutPlan(name: name, exercises: exercises)
+        var plan = WorkoutPlan(name: name, exercises: mappedExercises)
+        plan.id = id
+        return plan
     }
 }
 
@@ -105,6 +112,7 @@ enum ServerMessage: Codable {
     case peerChat(peerId: UUID, text: String, timestamp: Date)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
+    case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
     case sessionFull
 }
 
@@ -113,6 +121,15 @@ enum ClientMessage: Codable {
     case suggestPlan(PlanSnapshot)
     case sendChat(text: String)
     case setReady(isReady: Bool)
+    case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
+}
+
+/// Identifies a specific set in the joint workout. Used as a Hashable key
+/// so SessionClient.peerCompletedSets can be a Swift.Set and SwiftUI views
+/// can query membership in O(1) while rendering set rows.
+struct PeerSetKey: Hashable, Codable {
+    let exerciseId: UUID
+    let setIndex: Int
 }
 
 // Local-only — not sent on the wire. Stores an `isMine` flag captured at
@@ -155,6 +172,7 @@ final class SessionClient: ObservableObject {
     /// so PlanSuggestionView can fire its navigation via `.onChange` without
     /// needing to manually reset the flag between sessions.
     @Published var startWorkoutSignal: UUID?
+    @Published var peerCompletedSets: Swift.Set<PeerSetKey> = []
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -206,6 +224,7 @@ final class SessionClient: ObservableObject {
         myIsReady = false
         peerReady = [:]
         startWorkoutSignal = nil
+        peerCompletedSets = []
         state = .idle
     }
 
@@ -241,6 +260,12 @@ final class SessionClient: ObservableObject {
         guard myIsReady != isReady else { return }
         myIsReady = isReady
         sendClientMessage(.setReady(isReady: isReady))
+    }
+
+    func sendSetCompletion(exerciseId: UUID, setIndex: Int, completed: Bool) {
+        sendClientMessage(
+            .setCompletion(exerciseId: exerciseId, setIndex: setIndex, completed: completed)
+        )
     }
 
     func shareLinkURL() -> URL? {
@@ -327,6 +352,14 @@ final class SessionClient: ObservableObject {
 
         case .startWorkout:
             startWorkoutSignal = UUID()
+
+        case .peerSetCompletion(_, let exerciseId, let setIndex, let completed):
+            let key = PeerSetKey(exerciseId: exerciseId, setIndex: setIndex)
+            if completed {
+                peerCompletedSets.insert(key)
+            } else {
+                peerCompletedSets.remove(key)
+            }
 
         case .sessionFull:
             state = .error("Session is full (2 participants max)")

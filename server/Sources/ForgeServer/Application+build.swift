@@ -128,6 +128,17 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                         except: nil
                                     )
                                 }
+                            case .setCompletion(let exerciseId, let setIndex, let completed):
+                                await manager.broadcast(
+                                    .peerSetCompletion(
+                                        peerId: myId,
+                                        exerciseId: exerciseId,
+                                        setIndex: setIndex,
+                                        completed: completed
+                                    ),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {

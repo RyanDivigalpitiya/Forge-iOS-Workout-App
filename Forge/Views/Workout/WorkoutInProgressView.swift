@@ -13,8 +13,10 @@ struct WorkoutInProgressView: View {
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var healthManager: WorkoutHealthManager
-    
-    
+    //-////////////////////////////////////////////////////////
+    @EnvironmentObject var sessionClient: SessionClient
+
+
     @Environment(\.dismiss) private var dismiss
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
@@ -119,12 +121,31 @@ struct WorkoutInProgressView: View {
                                         VStack(spacing: 0){
                                             ForEach(planViewModel.activePlan.exercises[exerciseIndex].sets.indices, id: \.self) { setIndex in
                                                 HStack(spacing: 0) {
+                                                    // PEER CHECKBOX (joint mode only) — grey circle
+                                                    // filled with a grey checkmark when the peer
+                                                    // has completed this set. Non-interactive —
+                                                    // just a status mirror.
+                                                    if sessionClient.state == .connected {
+                                                        peerCompletionCircle(
+                                                            exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
+                                                            setIndex: setIndex
+                                                        )
+                                                    }
+
                                                     // SET BUTTON
                                                     // marks set.completed to TRUE OR FALSE
                                                     Button(action: {
-                                                        
+
                                                         withAnimation(.easeOut(duration: 0.2)) {
                                                             planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
+                                                            let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                            if sessionClient.state == .connected {
+                                                                sessionClient.sendSetCompletion(
+                                                                    exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
+                                                                    setIndex: setIndex,
+                                                                    completed: isNowCompleted
+                                                                )
+                                                            }
                                                             if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                                 popUp()
                                                             } else {
@@ -640,6 +661,38 @@ extension WorkoutInProgressView {
             await workoutActivity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
         }
         self.workoutActivity = nil
+    }
+
+    // MARK: - Joint workout (Stage 6a)
+
+    @ViewBuilder
+    private func peerCompletionCircle(exerciseId: UUID, setIndex: Int) -> some View {
+        let completed = sessionClient.peerCompletedSets.contains(
+            PeerSetKey(exerciseId: exerciseId, setIndex: setIndex)
+        )
+        if completed {
+            ZStack {
+                Image(systemName: "checkmark")
+                    .resizable()
+                    .frame(width: 13, height: 11)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color.gray)
+                    .padding(.top, 1)
+                    .padding(.trailing, 8)
+                Circle()
+                    .stroke(lineWidth: 2)
+                    .frame(width: setButtonSize, height: setButtonSize)
+                    .foregroundColor(Color.gray)
+                    .padding(.trailing, 8)
+            }
+            .opacity(0.5)
+        } else {
+            Circle()
+                .stroke(lineWidth: 2)
+                .frame(width: setButtonSize, height: setButtonSize)
+                .foregroundColor(Color.gray)
+                .padding(.trailing, 8)
+        }
     }
 
 }

@@ -5,12 +5,21 @@ struct PlanSuggestionView: View {
     @EnvironmentObject var settings: GlobalSettings
     @EnvironmentObject var planViewModel: PlanViewModel
 
-    @State private var planEditorIsPresented = false
+    @State private var activeCover: ActiveCover?
     @State private var showEndSessionConfirm = false
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
     @State private var chatDraft: String = ""
-    @State private var workoutInProgressPresented = false
+
+    // Drives the single .fullScreenCover. SwiftUI silently ignores the
+    // second of two .fullScreenCover(isPresented:) modifiers attached to
+    // the same view, so we funnel both the plan-editor preview and the
+    // workout-in-progress hand-off through one item-based cover.
+    private enum ActiveCover: Identifiable {
+        case planEditor
+        case workoutInProgress
+        var id: Self { self }
+    }
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -34,20 +43,27 @@ struct PlanSuggestionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
         .navigationBarBackButtonHidden(true)
-        .fullScreenCover(isPresented: $planEditorIsPresented) {
-            PlanEditorView()
-                .environment(\.colorScheme, .dark)
+        .fullScreenCover(item: $activeCover) { cover in
+            switch cover {
+            case .planEditor:
+                PlanEditorView()
+                    .environment(\.colorScheme, .dark)
+            case .workoutInProgress:
+                WorkoutInProgressView()
+                    .environment(\.colorScheme, .dark)
+            }
         }
-        .onChange(of: planEditorIsPresented) { _, isPresented in
-            guard !isPresented else { return }
-            // Editor just dismissed — reset read-only flag and re-broadcast
+        .onChange(of: activeCover) { old, new in
+            // Detect editor dismissal — reset read-only flag and re-broadcast
             // the current suggestion if it matches a plan that may have been
             // edited. Idempotent: if nothing changed, the peer just re-receives
             // the same PlanSnapshot.
-            planViewModel.activePlanIsReadOnly = false
-            if let suggested = sessionClient.suggestedPlan,
-               let latest = planViewModel.workoutPlans.first(where: { $0.id == suggested.id }) {
-                sessionClient.suggestPlan(from: latest)
+            if old == .planEditor && new == nil {
+                planViewModel.activePlanIsReadOnly = false
+                if let suggested = sessionClient.suggestedPlan,
+                   let latest = planViewModel.workoutPlans.first(where: { $0.id == suggested.id }) {
+                    sessionClient.suggestPlan(from: latest)
+                }
             }
         }
         .alert("End Session?", isPresented: $showEndSessionConfirm) {
@@ -62,10 +78,6 @@ struct PlanSuggestionView: View {
             guard newSignal != nil else { return }
             startWorkoutFromSuggestion()
         }
-        .fullScreenCover(isPresented: $workoutInProgressPresented) {
-            WorkoutInProgressView()
-                .environment(\.colorScheme, .dark)
-        }
     }
 
     private func startWorkoutFromSuggestion() {
@@ -75,7 +87,7 @@ struct PlanSuggestionView: View {
         // activePlanIndex is only used for save-edit flows; leave it at
         // whatever it was — WorkoutInProgressView reads activePlan, not the
         // index.
-        workoutInProgressPresented = true
+        activeCover = .workoutInProgress
     }
 
     private func openPreview(ownPlan: WorkoutPlan) {
@@ -84,7 +96,7 @@ struct PlanSuggestionView: View {
         planViewModel.activePlanIndex = idx
         planViewModel.activePlanMode = .preview
         planViewModel.activePlanIsReadOnly = false
-        planEditorIsPresented = true
+        activeCover = .planEditor
     }
 
     private func openPreview(snapshot: PlanSnapshot) {
@@ -100,7 +112,7 @@ struct PlanSuggestionView: View {
         planViewModel.activePlanIndex = -1      // sentinel: not in workoutPlans
         planViewModel.activePlanMode = .preview
         planViewModel.activePlanIsReadOnly = true
-        planEditorIsPresented = true
+        activeCover = .planEditor
     }
 
     private var gradientPanel: some View {
