@@ -71,6 +71,17 @@ struct WorkoutInProgressView: View {
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     @State private var breakTimerEndDate: Date? = nil
+    // Avatar position in joint mode. First-class state — written explicitly
+    // at four discrete events (workout start, set-tap complete, set-tap
+    // un-complete, break-timer dismiss). NOT derived. Keeping it as @State
+    // rather than a computed property eliminates the multi-source race that
+    // used to cause the avatar to flash through intermediate positions when
+    // SwiftUI re-evaluated body between consecutive state mutations.
+    @State private var myPosition: UserPosition = UserPosition(
+        exerciseIndex: 0,
+        setIndex: 0,
+        isResting: false
+    )
     @State private var showTimerSettings = false
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
@@ -155,6 +166,25 @@ struct WorkoutInProgressView: View {
                                                     // SET BUTTON
                                                     // marks set.completed to TRUE OR FALSE
                                                     Button(action: {
+                                                        // Compute the next avatar position FIRST, before the
+                                                        // plan mutation, so SwiftUI never observes an in-
+                                                        // between state. Single explicit assignment per tap.
+                                                        let willComplete = !planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                        let lastSetIndex = planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1
+                                                        let isLastSet = setIndex == lastSetIndex
+                                                        let isLastExercise = exerciseIndex == planViewModel.activePlan.exercises.count - 1
+                                                        if willComplete {
+                                                            if isLastSet {
+                                                                myPosition = isLastExercise
+                                                                    ? UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: false)
+                                                                    : UserPosition(exerciseIndex: exerciseIndex + 1, setIndex: 0, isResting: false)
+                                                            } else {
+                                                                myPosition = UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: true)
+                                                            }
+                                                        } else {
+                                                            // Un-completing — sit at the un-completed set itself.
+                                                            myPosition = UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: false)
+                                                        }
 
                                                         withAnimation(.easeOut(duration: 0.2)) {
                                                             planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
@@ -260,27 +290,7 @@ struct WorkoutInProgressView: View {
                                                 .frame(height: setRowHeight)
 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
-                                                    HStack(spacing: 0) {
-                                                        // Peer column's rest indicator (joint mode only) — mirrors
-                                                        // the trailing-padding on peerCompletionCircle above so it
-                                                        // stays aligned with the grey circle column.
-                                                        if sessionClient.state == .connected {
-                                                            restConnectorColumn()
-                                                                .padding(.trailing, 8)
-                                                        }
-                                                        // User column's rest indicator — matches the trailing-padding
-                                                        // on the user's red set button (.padding(.trailing, 16)).
-                                                        restConnectorColumn()
-                                                            .padding(.trailing, 16)
-                                                        Text("Rest ( \(selectedBreakDuration)s )")
-                                                            .font(.system(size: 14))
-                                                            .fontWeight(.bold)
-                                                            .foregroundColor(darkGray)
-                                                            .padding(.vertical, 15)
-                                                            .padding(.leading, 10)
-                                                        Spacer()
-                                                    }
-                                                    .frame(height: restRowHeight)
+                                                    restBreakRow()
                                                 }
                                             }
                                         }
@@ -429,6 +439,7 @@ struct WorkoutInProgressView: View {
                     startLiveActivity()
                     healthManager.startWorkoutSession()
                     PhoneSessionManager.shared.sendWorkoutStarted()
+                    myPosition = UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)
                 }
             }
 
@@ -607,6 +618,16 @@ extension WorkoutInProgressView {
                 breakTimerEndDate = nil
                 topToolBarHeight = 163
                 topToolBarCornerRadius = 0
+                // Advance the avatar from the rest row to the next set. The
+                // rest-row position is only ever set on a non-last set, so
+                // setIndex + 1 is always a valid set in the same exercise.
+                if myPosition.isResting {
+                    myPosition = UserPosition(
+                        exerciseIndex: myPosition.exerciseIndex,
+                        setIndex: myPosition.setIndex + 1,
+                        isResting: false
+                    )
+                }
             }
             updateLiveActivity()
             PhoneSessionManager.shared.sendTimerDismissed()
@@ -732,36 +753,9 @@ extension WorkoutInProgressView {
 
     // MARK: - Joint workout (Stage 6a + 6b)
 
-    /// Where I currently am in the workout. Derived from set-completion
-    /// state + the break timer flags, so the broadcast stays in sync with
-    /// UI without needing separate event plumbing. Ties via .onChange to
-    /// sessionClient.sendPositionUpdate(_:).
-    var myPosition: UserPosition {
-        let plan = planViewModel.activePlan
-        var firstIncomplete: (ex: Int, set: Int)? = nil
-        for (exIdx, ex) in plan.exercises.enumerated() {
-            if let sIdx = ex.sets.firstIndex(where: { !$0.completed }) {
-                firstIncomplete = (exIdx, sIdx)
-                break
-            }
-        }
-        guard let next = firstIncomplete else {
-            // All done — park at the last set.
-            let lastEx = max(0, plan.exercises.count - 1)
-            let lastSet = max(0, (plan.exercises.last?.sets.count ?? 1) - 1)
-            return UserPosition(exerciseIndex: lastEx, setIndex: lastSet, isResting: false)
-        }
-        let resting = timerEnabled && breakTimerEndDate != nil
-        if resting, next.set > 0 {
-            // Resting within the same exercise — sit on the rest-break row
-            // for the just-completed set.
-            return UserPosition(exerciseIndex: next.ex, setIndex: next.set - 1, isResting: true)
-        }
-        // Either not resting, or resting between exercises (there's no
-        // explicit between-exercise rest row in the layout, so we move the
-        // avatar forward to the incoming exercise's first set).
-        return UserPosition(exerciseIndex: next.ex, setIndex: next.set, isResting: false)
-    }
+    // myPosition is now an @State property declared at the top of the
+    // struct. It's written explicitly at four discrete events; see the
+    // /// docstring on the @State declaration for the contract.
 
     /// Renders the leftmost avatar column for a given row (either a set row
     /// or a rest-break row). Shows any participants whose current position
@@ -855,6 +849,31 @@ extension WorkoutInProgressView {
                 }
             }
         }
+    }
+
+    /// The horizontal rest-break row that sits between set rows (within an
+    /// exercise) and at the bottom of every exercise card except the last
+    /// (between exercises). Peer / user connector columns + "Rest (Xs)"
+    /// label. Extracted so the between-exercise case can reuse the exact
+    /// same rendering.
+    @ViewBuilder
+    private func restBreakRow() -> some View {
+        HStack(spacing: 0) {
+            if sessionClient.state == .connected {
+                restConnectorColumn()
+                    .padding(.trailing, 8)
+            }
+            restConnectorColumn()
+                .padding(.trailing, 16)
+            Text("Rest ( \(selectedBreakDuration)s )")
+                .font(.system(size: 14))
+                .fontWeight(.bold)
+                .foregroundColor(darkGray)
+                .padding(.vertical, 15)
+                .padding(.leading, 10)
+            Spacer()
+        }
+        .frame(height: restRowHeight)
     }
 
     /// The line-dot-line connector rendered between successive set rows as a

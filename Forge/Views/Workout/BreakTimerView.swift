@@ -55,7 +55,7 @@ struct BreakTimerView: View {
                             .foregroundColor(Color(.systemGray))
                             .monospacedDigit()
                     }
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 30)
                 }
 
                 ZStack {
