@@ -228,14 +228,18 @@ struct WorkoutInProgressView: View {
                                                 }
                                                 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
-                                                    HStack{
-                                                        VStack(spacing: 0) {
-                                                            Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
-                                                            Circle().frame(width: 6, height: 6).foregroundColor(darkGray).padding(.vertical, 8)
-                                                            Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
+                                                    HStack(spacing: 0) {
+                                                        // Peer column's rest indicator (joint mode only) — mirrors
+                                                        // the trailing-padding on peerCompletionCircle above so it
+                                                        // stays aligned with the grey circle column.
+                                                        if sessionClient.state == .connected {
+                                                            restConnectorColumn()
+                                                                .padding(.trailing, 8)
                                                         }
-                                                        .frame(width: setButtonSize)
-                                                        .padding(.vertical,8)
+                                                        // User column's rest indicator — matches the trailing-padding
+                                                        // on the user's red set button (.padding(.trailing, 16)).
+                                                        restConnectorColumn()
+                                                            .padding(.trailing, 16)
                                                         Text("Rest ( \(selectedBreakDuration)s )")
                                                             .font(.system(size: 14))
                                                             .fontWeight(.bold)
@@ -664,6 +668,21 @@ extension WorkoutInProgressView {
     }
 
     // MARK: - Joint workout (Stage 6a)
+
+    /// The line-dot-line connector rendered between successive set rows as a
+    /// visual marker for the rest break. Extracted into a helper because
+    /// joint mode needs one under the peer column and one under the user
+    /// column (before Stage 6a there was only one, aligned to the single
+    /// set-button column).
+    private func restConnectorColumn() -> some View {
+        VStack(spacing: 0) {
+            Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
+            Circle().frame(width: 6, height: 6).foregroundColor(darkGray).padding(.vertical, 8)
+            Rectangle().frame(width: 1, height: 12).foregroundColor(darkGray)
+        }
+        .frame(width: setButtonSize)
+        .padding(.vertical, 8)
+    }
 
     @ViewBuilder
     private func peerCompletionCircle(exerciseId: UUID, setIndex: Int) -> some View {
