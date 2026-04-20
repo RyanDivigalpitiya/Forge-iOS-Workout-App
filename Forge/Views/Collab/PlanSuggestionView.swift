@@ -7,6 +7,7 @@ struct PlanSuggestionView: View {
 
     @State private var previewPlan: PlanSnapshot?
     @State private var showEndSessionConfirm = false
+    @State private var currentPlanId: UUID?
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -97,10 +98,10 @@ struct PlanSuggestionView: View {
         } else {
             Text("No plan suggested yet")
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(Color(white: 0.2))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .frame(height: 88)
-                .background(Color(white: 0.08))
+                .background(Color(white: 0.05))
                 .cornerRadius(8)
         }
     }
@@ -241,10 +242,7 @@ struct PlanSuggestionView: View {
                 .fontWeight(.bold)
                 .foregroundColor(.white)
             Spacer()
-            Text("YOUR PLANS")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.gray)
+            dotIndicators
         }
     }
 
@@ -258,18 +256,43 @@ struct PlanSuggestionView: View {
                 .padding(.vertical, 40)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                LazyHStack(spacing: 14) {
                     ForEach(planViewModel.workoutPlans) { plan in
                         PlanCarouselCard(
                             plan: plan,
                             onSuggest: { sessionClient.suggestPlan(from: plan) },
                             onPreview: { previewPlan = PlanSnapshot(from: plan) }
                         )
+                        .id(plan.id)
                     }
                 }
+                .scrollTargetLayout()
                 .padding(.horizontal, 20)
             }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $currentPlanId, anchor: .leading)
+            .frame(height: 88)
         }
+    }
+
+    @ViewBuilder
+    private var dotIndicators: some View {
+        if planViewModel.workoutPlans.count > 1 {
+            HStack(spacing: 5) {
+                ForEach(planViewModel.workoutPlans) { plan in
+                    Capsule()
+                        .fill(isActivePlan(plan) ? settings.fgColor : Color(white: 0.25))
+                        .frame(width: 14, height: 3)
+                }
+            }
+        }
+    }
+
+    private func isActivePlan(_ plan: WorkoutPlan) -> Bool {
+        if let current = currentPlanId {
+            return current == plan.id
+        }
+        return plan.id == planViewModel.workoutPlans.first?.id
     }
 }
 
