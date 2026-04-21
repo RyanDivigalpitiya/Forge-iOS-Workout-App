@@ -11,6 +11,29 @@ fileprivate struct RestingSet: Equatable {
     let set: Int
 }
 
+/// Identifies a row within a single exercise card. Scoped per-exercise:
+/// each exercise's overlayPreferenceValue resolves its own dict of these,
+/// so exerciseIndex isn't part of the case.
+fileprivate enum RowID: Hashable {
+    case setRow(Int)   // setIndex
+    case restRow(Int)  // setIndex (the rest row sits BELOW the set with this index)
+}
+
+/// PreferenceKey carrying anchors for each row in an exercise card. The
+/// card publishes one anchor per set / rest row; the overlay reads them
+/// via a GeometryReader and absolutely positions an avatar at each row's
+/// midY. This makes avatar alignment immune to row-height variation
+/// (e.g. when an exercise name wraps to two lines).
+fileprivate struct RowAnchorKey: PreferenceKey {
+    static let defaultValue: [RowID: Anchor<CGRect>] = [:]
+    static func reduce(
+        value: inout [RowID: Anchor<CGRect>],
+        nextValue: () -> [RowID: Anchor<CGRect>]
+    ) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 struct WorkoutInProgressView: View {
     
     //-/////////////////////////////////////////////////
@@ -67,13 +90,15 @@ struct WorkoutInProgressView: View {
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
 
-    // Joint-mode avatar-gutter alignment constants. Applied symmetrically to
-    // the inner set/rest rows and the outer avatar column so avatars line up
-    // with the rows they represent. Tuned empirically — if SetView or the
-    // rest connector grow, bump these.
+    // Joint-mode set / rest row heights. Soft floors so rows stay visually
+    // consistent across exercises — actual avatar alignment is now driven
+    // by anchor preferences in the per-exercise overlay (no longer requires
+    // these to match a parallel gutter VStack).
     let setRowHeight: CGFloat = 38
     let restRowHeight: CGFloat = 62
-    let exerciseNameRowOffset: CGFloat = 73
+    // Width reserved on the leading edge of every exercise card's outer
+    // HStack for the avatar gutter overlay.
+    let gutterWidth: CGFloat = 52
 
     @State private var isWorkoutDone: Bool = false
     @State private var showCancelConfirmation: Bool = false
@@ -117,14 +142,14 @@ struct WorkoutInProgressView: View {
 
                                     HStack(alignment: .top, spacing: 0) {
 
-                                        // AVATAR GUTTER (joint mode only) — parallel VStack that
-                                        // mirrors the card's internal set/rest sequence so avatars
-                                        // line up with the rows they represent. Lives OUTSIDE the
-                                        // card's grey background. Solo-mode layout is unchanged:
-                                        // the HStack has a single child (the card) in that path.
+                                        // AVATAR GUTTER (joint mode only) — empty placeholder that
+                                        // reserves leading space for the overlay below to position
+                                        // avatars into. Avatars themselves are drawn by the
+                                        // overlayPreferenceValue(RowAnchorKey.self) attached to
+                                        // this HStack, anchored to the actual rendered Y of each
+                                        // row inside the card. No hardcoded offsets.
                                         if sessionClient.state == .connected {
-                                            exerciseAvatarColumn(for: exerciseIndex)
-                                                .padding(.top, exerciseNameRowOffset)
+                                            Color.clear.frame(width: gutterWidth)
                                         }
 
                                     VStack {
@@ -298,9 +323,17 @@ struct WorkoutInProgressView: View {
                                                     )
                                                 }
                                                 .frame(height: setRowHeight)
+                                                .anchorPreference(
+                                                    key: RowAnchorKey.self,
+                                                    value: .bounds
+                                                ) { [.setRow(setIndex): $0] }
 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
                                                     restBreakRow()
+                                                        .anchorPreference(
+                                                            key: RowAnchorKey.self,
+                                                            value: .bounds
+                                                        ) { [.restRow(setIndex): $0] }
                                                 }
                                             }
                                         }
@@ -309,6 +342,39 @@ struct WorkoutInProgressView: View {
                                     .padding(17) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
                                     .background(bgColor)
                                     .cornerRadius(16)
+                                    }
+                                    .overlayPreferenceValue(RowAnchorKey.self) { anchors in
+                                        if sessionClient.state == .connected {
+                                            GeometryReader { proxy in
+                                                let sets = planViewModel.activePlan.exercises[exerciseIndex].sets
+                                                ForEach(sets.indices, id: \.self) { setIndex in
+                                                    if let setAnchor = anchors[.setRow(setIndex)] {
+                                                        let bounds = proxy[setAnchor]
+                                                        avatarColumn(
+                                                            for: UserPosition(
+                                                                exerciseIndex: exerciseIndex,
+                                                                setIndex: setIndex,
+                                                                isResting: false
+                                                            )
+                                                        )
+                                                        .position(x: gutterWidth / 2, y: bounds.midY)
+                                                    }
+                                                    if setIndex < sets.count - 1,
+                                                       let restAnchor = anchors[.restRow(setIndex)] {
+                                                        let bounds = proxy[restAnchor]
+                                                        avatarColumn(
+                                                            for: UserPosition(
+                                                                exerciseIndex: exerciseIndex,
+                                                                setIndex: setIndex,
+                                                                isResting: true
+                                                            )
+                                                        )
+                                                        .position(x: gutterWidth / 2, y: bounds.midY)
+                                                    }
+                                                }
+                                            }
+                                            .allowsHitTesting(false)
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 15)
@@ -868,38 +934,11 @@ extension WorkoutInProgressView {
         }
     }
 
-    /// Renders the external gutter column of avatars for one exercise card.
-    /// Mirrors the card's internal set/rest sequence one cell at a time,
-    /// with each cell sized to match the corresponding inner row (setRowHeight
-    /// or restRowHeight) so avatars stay aligned with the rows inside the
-    /// card. Reuses `avatarColumn(for:)` per cell.
-    @ViewBuilder
-    private func exerciseAvatarColumn(for exerciseIndex: Int) -> some View {
-        let sets = planViewModel.activePlan.exercises[exerciseIndex].sets
-        VStack(spacing: 0) {
-            ForEach(sets.indices, id: \.self) { setIndex in
-                avatarColumn(
-                    for: UserPosition(
-                        exerciseIndex: exerciseIndex,
-                        setIndex: setIndex,
-                        isResting: false
-                    )
-                )
-                .frame(height: setRowHeight)
-
-                if setIndex < sets.count - 1 {
-                    avatarColumn(
-                        for: UserPosition(
-                            exerciseIndex: exerciseIndex,
-                            setIndex: setIndex,
-                            isResting: true
-                        )
-                    )
-                    .frame(height: restRowHeight)
-                }
-            }
-        }
-    }
+    // exerciseAvatarColumn(for:) was deleted — its parallel-VStack pattern
+    // required hardcoded row heights and a hardcoded header offset, which
+    // broke when an exercise name wrapped to two lines. Replaced by an
+    // overlayPreferenceValue on the per-exercise HStack that reads each
+    // row's actual rendered bounds via anchor preferences.
 
     /// The horizontal rest-break row that sits between set rows (within an
     /// exercise) and at the bottom of every exercise card except the last
