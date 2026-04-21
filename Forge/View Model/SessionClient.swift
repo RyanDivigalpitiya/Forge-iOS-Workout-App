@@ -539,13 +539,36 @@ final class SessionClient: ObservableObject {
         sendClientMessage(.profileUpdate(profile))
     }
 
+    /// Fail-loud outbound send. Encode failures log and drop (shouldn't happen
+    /// — every ClientMessage case is Codable — but surfacing catches future
+    /// protocol-change regressions). A nil task logs the drop so the developer
+    /// sees messages going into the void during local races. A send error
+    /// cancels the task with .abnormalClosure, which trips readLoop's catch
+    /// path → state becomes .disconnected → auto-reconnect fires. Without
+    /// this, a silently-broken socket stays "connected" on our side forever.
     private func sendClientMessage(_ message: ClientMessage) {
-        guard let data = try? JSONEncoder().encode(message),
-              let text = String(data: data, encoding: .utf8),
-              let task = task
-        else { return }
+        let data: Data
+        do {
+            data = try JSONEncoder().encode(message)
+        } catch {
+            print("[SessionClient] failed to encode outgoing message: \(error)")
+            return
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            print("[SessionClient] failed to convert encoded message to utf8")
+            return
+        }
+        guard let task else {
+            print("[SessionClient] dropped outgoing message — no active task")
+            return
+        }
         Task {
-            try? await task.send(.string(text))
+            do {
+                try await task.send(.string(text))
+            } catch {
+                print("[SessionClient] send failed: \(error.localizedDescription) — cancelling task")
+                task.cancel(with: .abnormalClosure, reason: nil)
+            }
         }
     }
 }

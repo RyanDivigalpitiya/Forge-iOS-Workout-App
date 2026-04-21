@@ -41,6 +41,16 @@ extension PlanViewModel {
     }
 
     func savePlans() {
+        // Defense-in-depth: the editor enforces a non-empty set list on every
+        // exercise, but protocol-level imports or future code paths could still
+        // introduce one. Refuse to persist rather than silently writing data
+        // that breaks rendering / position logic downstream.
+        for plan in workoutPlans {
+            for exercise in plan.exercises where exercise.sets.isEmpty {
+                print("[PlanViewModel] REJECTED save — plan \"\(plan.name)\" contains zero-set exercise \"\(exercise.name)\"")
+                return
+            }
+        }
         if let encodedData = try? JSONEncoder().encode(workoutPlans) {
             userDefaults.set(encodedData, forKey: "workoutPlans")
         }

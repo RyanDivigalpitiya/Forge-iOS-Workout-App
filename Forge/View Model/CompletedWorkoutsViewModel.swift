@@ -22,7 +22,7 @@ class CompletedWorkoutsViewModel: ObservableObject {
         self.userDefaults = userDefaults
         self.completedWorkouts = workouts
         self.isSelectPlanViewActive = false
-        self.activePlan = completedWorkout2
+        self.activePlan = CompletedWorkout()
     }
 }
 

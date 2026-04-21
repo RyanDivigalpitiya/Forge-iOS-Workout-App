@@ -256,19 +256,21 @@ struct WorkoutInProgressView: View {
                                                                             }
                                                                         }
                                                                         updateLiveActivity()
-                                                                        let nextSetForWatch = findNextIncompleteSet()
-                                                                        PhoneSessionManager.shared.sendTimerStarted(
-                                                                            endDate: breakTimerEndDate!,
-                                                                            duration: selectedBreakDuration,
-                                                                            exerciseName: nextSetForWatch?.exerciseName,
-                                                                            setDescription: nextSetForWatch?.setDescription
-                                                                        )
-                                                                        if sessionClient.state == .connected {
-                                                                            sessionClient.sendBreakTimerUpdate(
-                                                                                endDate: breakTimerEndDate,
-                                                                                exerciseIndex: exerciseIndex,
-                                                                                setIndex: setIndex
+                                                                        if let endDate = breakTimerEndDate {
+                                                                            let nextSetForWatch = findNextIncompleteSet()
+                                                                            PhoneSessionManager.shared.sendTimerStarted(
+                                                                                endDate: endDate,
+                                                                                duration: selectedBreakDuration,
+                                                                                exerciseName: nextSetForWatch?.exerciseName,
+                                                                                setDescription: nextSetForWatch?.setDescription
                                                                             )
+                                                                            if sessionClient.state == .connected {
+                                                                                sessionClient.sendBreakTimerUpdate(
+                                                                                    endDate: endDate,
+                                                                                    exerciseIndex: exerciseIndex,
+                                                                                    setIndex: setIndex
+                                                                                )
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
@@ -532,7 +534,10 @@ struct WorkoutInProgressView: View {
                 .padding(.top, 60)
         }
         .disabled(isWorkoutDone)
-        .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
+        .alert(
+            sessionClient.sessionId != nil ? "Leave Session?" : "Cancel Workout?",
+            isPresented: $showCancelConfirmation
+        ) {
             Button("No", role: .cancel) { }
             Button("Yes", role: .destructive) {
                 cancelWorkout()
@@ -647,9 +652,18 @@ extension WorkoutInProgressView {
         }
         planViewModel.savePlans()
 
-        // Dismiss back to history
+        // In joint mode, fully end the collab session rather than dropping
+        // the user back onto PlanSuggestionView — otherwise they could
+        // suggest a new plan and re-trigger startWorkout, stomping a state
+        // the partner is no longer expecting. The state observer on
+        // CompletedWorkoutsView unwinds the NavigationStack to History
+        // when state becomes .idle.
+        let wasInSession = sessionClient.sessionId != nil
         dismiss()
         completedWorkoutsViewModel.isSelectPlanViewActive = false
+        if wasInSession {
+            sessionClient.disconnect()
+        }
     }
 
     func finishWorkout() {
@@ -889,7 +903,10 @@ extension WorkoutInProgressView {
             return
         }
 
-        // Find the first incomplete set across all exercises.
+        // Find the first incomplete set across all exercises. Zero-set
+        // exercises naturally skip because firstIndex on an empty array
+        // returns nil — so a corrupt plan can't jam the avatar on a row
+        // that doesn't exist.
         var firstIncomplete: (ex: Int, set: Int)? = nil
         for (exIdx, ex) in plan.exercises.enumerated() {
             if let sIdx = ex.sets.firstIndex(where: { !$0.completed }) {
@@ -899,10 +916,17 @@ extension WorkoutInProgressView {
         }
 
         guard let next = firstIncomplete else {
-            // Workout fully complete — park at the final set.
-            let lastEx = plan.exercises.count - 1
-            let lastSet = max(0, plan.exercises[lastEx].sets.count - 1)
-            myPosition = UserPosition(exerciseIndex: lastEx, setIndex: lastSet, isResting: false)
+            // Workout fully complete — park at the final set of the last
+            // non-empty exercise. A zero-set trailing exercise would otherwise
+            // produce an invalid position (setIndex = 0 with no set there).
+            if let lastEx = plan.exercises.indices.reversed().first(where: {
+                !plan.exercises[$0].sets.isEmpty
+            }) {
+                let lastSet = plan.exercises[lastEx].sets.count - 1
+                myPosition = UserPosition(exerciseIndex: lastEx, setIndex: lastSet, isResting: false)
+            } else {
+                myPosition = UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)
+            }
             return
         }
 

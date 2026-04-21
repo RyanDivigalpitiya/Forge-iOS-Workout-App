@@ -84,18 +84,14 @@ struct PlanSuggestionView: View {
         }
         .onChange(of: sessionClient.startWorkoutSignal) { _, newSignal in
             guard newSignal != nil else { return }
-            startWorkoutFromSuggestion()
+            resolveCoverState()
         }
         .onAppear {
-            // Mid-workout rejoin: if the server already told us a workout
-            // is in progress on this session, drop straight into it
-            // instead of letting the user re-suggest a plan and stomp the
-            // partner's active workout with a fresh startWorkout.
-            routeIntoActiveWorkoutIfNeeded()
+            resolveCoverState()
         }
         .onChange(of: sessionClient.workoutInProgress?.id) { _, _ in
             // Welcome may arrive after this view is on screen.
-            routeIntoActiveWorkoutIfNeeded()
+            resolveCoverState()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             keyboardVisible = true
@@ -105,21 +101,22 @@ struct PlanSuggestionView: View {
         }
     }
 
-    private func startWorkoutFromSuggestion() {
-        guard let suggested = sessionClient.suggestedPlan else { return }
-        let plan = suggested.toWorkoutPlan()
-        planViewModel.activePlan = plan
-        // activePlanIndex is only used for save-edit flows; leave it at
-        // whatever it was — WorkoutInProgressView reads activePlan, not the
-        // index.
-        activeCover = .workoutInProgress
-    }
-
-    private func routeIntoActiveWorkoutIfNeeded() {
-        guard let inProgress = sessionClient.workoutInProgress else { return }
+    /// Single source of truth for presenting the workout cover. Called from
+    /// three triggers (view appear, workoutInProgress change, startWorkout
+    /// signal). `workoutInProgress` takes precedence so a mid-workout rejoin
+    /// routes into the partner's active plan rather than whatever the user
+    /// last suggested — fixes the race where both setters could fire in the
+    /// same frame with different PlanSnapshot sources.
+    private func resolveCoverState() {
         guard activeCover != .workoutInProgress else { return }
-        planViewModel.activePlan = inProgress.toWorkoutPlan()
-        activeCover = .workoutInProgress
+        if let inProgress = sessionClient.workoutInProgress {
+            planViewModel.activePlan = inProgress.toWorkoutPlan()
+            activeCover = .workoutInProgress
+        } else if sessionClient.startWorkoutSignal != nil,
+                  let suggested = sessionClient.suggestedPlan {
+            planViewModel.activePlan = suggested.toWorkoutPlan()
+            activeCover = .workoutInProgress
+        }
     }
 
     private func openPreview(ownPlan: WorkoutPlan) {

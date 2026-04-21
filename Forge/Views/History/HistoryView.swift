@@ -201,12 +201,13 @@ struct HistoryView: View {
 
 struct HistoryView_Previews: PreviewProvider {
     static var previews: some View {
-        HistoryView()
-            .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+        let completedWorkoutsVM = CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts)
+        completedWorkoutsVM.activePlan = completedWorkout2
+        return HistoryView()
+            .environmentObject(completedWorkoutsVM)
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(ExerciseViewModel())
             .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
-
     }
 }
