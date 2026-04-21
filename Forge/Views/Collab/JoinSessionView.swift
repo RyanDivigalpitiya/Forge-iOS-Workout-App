@@ -114,6 +114,13 @@ struct JoinSessionView: View {
             if photoData == nil {
                 photoData = sessionClient.myProfile?.photoData
             }
+            autoSubmitIfRejoiningActiveWorkout()
+        }
+        .onChange(of: sessionClient.workoutInProgress?.id) { _, _ in
+            // Welcome may arrive after JoinSessionView appears (still in
+            // .connecting when this view first renders). Re-check on
+            // change so the auto-submit fires once workoutInProgress shows up.
+            autoSubmitIfRejoiningActiveWorkout()
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             Task {
@@ -169,5 +176,19 @@ struct JoinSessionView: View {
     private func submit() {
         let profile = Profile(name: trimmedName, photoData: photoData)
         sessionClient.submitProfile(profile)
+    }
+
+    /// When the server reports an active workout is in progress for this
+    /// session (mid-workout rejoin), and we have a cached profile to
+    /// submit, do so automatically so the user doesn't have to tap "Join
+    /// Session →" — they tapped a share link with the intent to rejoin
+    /// an in-flight workout, the profile form is just a speed bump.
+    private func autoSubmitIfRejoiningActiveWorkout() {
+        guard sessionClient.workoutInProgress != nil else { return }
+        guard !sessionClient.hasSubmittedProfile else { return }
+        guard let cached = sessionClient.myProfile else { return }
+        let trimmedCachedName = cached.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCachedName.isEmpty else { return }
+        sessionClient.submitProfile(cached)
     }
 }

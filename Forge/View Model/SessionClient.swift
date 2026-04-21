@@ -106,7 +106,7 @@ extension PlanSnapshot {
 }
 
 enum ServerMessage: Codable {
-    case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?)
+    case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?, workoutInProgress: PlanSnapshot?)
     case peerJoined(peerId: UUID)
     case peerLeft(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
@@ -200,6 +200,11 @@ final class SessionClient: ObservableObject {
     @Published var peerCompletedSets: Swift.Set<PeerSetKey> = []
     @Published var peerPositions: [UUID: UserPosition] = [:]
     @Published var peerBreakTimer: [UUID: PeerBreakTimer] = [:]
+    /// Set in the welcome handler when the server reports an active workout
+    /// for this session. Drives the auto-route into WorkoutInProgressView
+    /// for re-joiners. Cleared on disconnect; the server clears its copy
+    /// only when the session itself is deleted (last participant leaves).
+    @Published var workoutInProgress: PlanSnapshot? = nil
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -287,6 +292,7 @@ final class SessionClient: ObservableObject {
         peerCompletedSets = []
         peerPositions = [:]
         peerBreakTimer = [:]
+        workoutInProgress = nil
         state = .idle
     }
 
@@ -444,13 +450,14 @@ final class SessionClient: ObservableObject {
         else { return }
 
         switch message {
-        case .welcome(let yourId, let peers, let suggested):
+        case .welcome(let yourId, let peers, let suggested, let inProgress):
             myId = yourId
             peerIds = peers.map(\.peerId)
             peerProfiles = Dictionary(uniqueKeysWithValues: peers.compactMap { peer in
                 peer.profile.map { (peer.peerId, $0) }
             })
             suggestedPlan = suggested
+            workoutInProgress = inProgress
             state = peerIds.isEmpty ? .waitingForPeer : .connected
             // Successful welcome — reset the backoff counter so any future
             // disconnect starts the next cycle from a 2s delay, not picking

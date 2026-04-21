@@ -82,6 +82,17 @@ struct PlanSuggestionView: View {
             guard newSignal != nil else { return }
             startWorkoutFromSuggestion()
         }
+        .onAppear {
+            // Mid-workout rejoin: if the server already told us a workout
+            // is in progress on this session, drop straight into it
+            // instead of letting the user re-suggest a plan and stomp the
+            // partner's active workout with a fresh startWorkout.
+            routeIntoActiveWorkoutIfNeeded()
+        }
+        .onChange(of: sessionClient.workoutInProgress?.id) { _, _ in
+            // Welcome may arrive after this view is on screen.
+            routeIntoActiveWorkoutIfNeeded()
+        }
     }
 
     private func startWorkoutFromSuggestion() {
@@ -91,6 +102,13 @@ struct PlanSuggestionView: View {
         // activePlanIndex is only used for save-edit flows; leave it at
         // whatever it was — WorkoutInProgressView reads activePlan, not the
         // index.
+        activeCover = .workoutInProgress
+    }
+
+    private func routeIntoActiveWorkoutIfNeeded() {
+        guard let inProgress = sessionClient.workoutInProgress else { return }
+        guard activeCover != .workoutInProgress else { return }
+        planViewModel.activePlan = inProgress.toWorkoutPlan()
         activeCover = .workoutInProgress
     }
 
