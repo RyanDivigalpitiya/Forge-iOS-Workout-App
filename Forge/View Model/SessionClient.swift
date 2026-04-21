@@ -203,6 +203,9 @@ final class SessionClient: ObservableObject {
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
+    private var pingTask: Task<Void, Never>?
+    private var reconnectScheduler: Task<Void, Never>?
+    private var reconnectAttempt: Int = 0
     private var cancellables: Swift.Set<AnyCancellable> = []
 
     init() {
@@ -211,14 +214,19 @@ final class SessionClient: ObservableObject {
             myProfile = saved
         }
 
-        // Diagnostic: log every state transition so intermittent joint-mode
-        // UI disappearance leaves a trail. didSet on @Published breaks
-        // objectWillChange (see CLAUDE.md), so we pair (previous, current)
-        // via Combine's zip + dropFirst.
+        // Diagnostic + auto-reconnect: log every state transition (intermittent
+        // joint-mode UI disappearance needs a trail), and when state lands on
+        // .disconnected with an active session, schedule a reconnect with
+        // exponential backoff. didSet on @Published breaks objectWillChange
+        // (see CLAUDE.md), so we pair (previous, current) via Combine.
         $state
             .zip($state.dropFirst())
-            .sink { old, new in
+            .sink { [weak self] old, new in
                 print("[SessionClient] state: \(old) → \(new) @ \(Date())")
+                guard let self else { return }
+                if case .disconnected = new, self.sessionId != nil {
+                    self.scheduleReconnect()
+                }
             }
             .store(in: &cancellables)
     }
@@ -252,6 +260,9 @@ final class SessionClient: ObservableObject {
     }
 
     func disconnect() {
+        reconnectScheduler?.cancel()
+        reconnectScheduler = nil
+        reconnectAttempt = 0
         cleanupSocket()
         sessionId = nil
         myId = nil
@@ -342,6 +353,8 @@ final class SessionClient: ObservableObject {
     private func cleanupSocket() {
         receiveLoop?.cancel()
         receiveLoop = nil
+        pingTask?.cancel()
+        pingTask = nil
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
     }
@@ -354,6 +367,9 @@ final class SessionClient: ObservableObject {
         newTask.resume()
         receiveLoop = Task { [weak self] in
             await self?.readLoop(task: newTask)
+        }
+        pingTask = Task { [weak self] in
+            await self?.pingLoop(task: newTask)
         }
     }
 
@@ -373,6 +389,45 @@ final class SessionClient: ObservableObject {
         }
     }
 
+    /// Sends an application-level WebSocket ping every 30s to keep the
+    /// connection alive across NAT/Cloudflare idle timeouts and to surface
+    /// dead sockets quickly. A failed pong cancels the underlying task,
+    /// which causes readLoop's `task.receive()` to throw → state goes to
+    /// .disconnected → the Combine state sink schedules an auto-reconnect.
+    private func pingLoop(task: URLSessionWebSocketTask) async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            guard !Task.isCancelled else { return }
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                task.sendPing { error in
+                    if let error {
+                        print("[SessionClient] ping failed: \(error.localizedDescription)")
+                        task.cancel(with: .abnormalClosure, reason: nil)
+                    }
+                    cont.resume()
+                }
+            }
+        }
+    }
+
+    /// Exponential-backoff auto-reconnect. Runs after the state sink sees
+    /// a transition into .disconnected with an active session. Caps at 32s
+    /// so a long-down server doesn't get hammered. Resets on a successful
+    /// .welcome response.
+    private func scheduleReconnect() {
+        reconnectScheduler?.cancel()
+        reconnectAttempt += 1
+        let delaySeconds = min(pow(2.0, Double(reconnectAttempt)), 32.0)
+        print("[SessionClient] scheduling reconnect attempt \(reconnectAttempt) in \(delaySeconds)s")
+        reconnectScheduler = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+            guard let self else { return }
+            guard !Task.isCancelled else { return }
+            guard case .disconnected = self.state else { return }
+            self.reconnect()
+        }
+    }
+
     private func handle(incoming text: String) {
         guard let data = text.data(using: .utf8),
               let message = try? JSONDecoder().decode(ServerMessage.self, from: data)
@@ -387,6 +442,10 @@ final class SessionClient: ObservableObject {
             })
             suggestedPlan = suggested
             state = peerIds.isEmpty ? .waitingForPeer : .connected
+            // Successful welcome — reset the backoff counter so any future
+            // disconnect starts the next cycle from a 2s delay, not picking
+            // up where the last cycle left off.
+            reconnectAttempt = 0
             if hasSubmittedProfile, let profile = myProfile {
                 sendProfileOverSocket(profile)
             }
