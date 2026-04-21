@@ -526,6 +526,13 @@ struct WorkoutInProgressView: View {
                     .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .top) {
+            // Joint-mode connectivity banner. Sits above the main workout
+            // chrome (top toolbar + scroll view). Appears only when state
+            // is non-healthy; .padding(.top, 60) clears the status bar.
+            CollabStatusBanner()
+                .padding(.top, 60)
+        }
         .disabled(isWorkoutDone)
         .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
             Button("No", role: .cancel) { }

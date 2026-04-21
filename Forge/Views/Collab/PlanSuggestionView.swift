@@ -42,6 +42,10 @@ struct PlanSuggestionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+        .overlay(alignment: .top) {
+            CollabStatusBanner()
+                .padding(.top, 8)
+        }
         .navigationBarBackButtonHidden(true)
         .fullScreenCover(item: $activeCover) { cover in
             switch cover {
