@@ -132,6 +132,14 @@ struct CompletedWorkoutsView: View {
                     .environmentObject(settings)
             }
         }
+        // Inject sessionClient at the NavigationStack root so every nav
+        // destination AND every modal presented from within those
+        // destinations (e.g. SelectPlanView's .fullScreenCover into
+        // WorkoutInProgressView) inherits it. Without this, solo workouts
+        // crash because WorkoutInProgressView reads @EnvironmentObject
+        // sessionClient and SwiftUI doesn't auto-propagate @StateObject
+        // across .fullScreenCover boundaries.
+        .environmentObject(sessionClient)
         .background(.black)
         .accentColor(settings.fgColor)
         .onAppear{
