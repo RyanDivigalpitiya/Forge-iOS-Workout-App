@@ -12,7 +12,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     func activateSession() {
         guard WCSession.isSupported() else {
-            print("[Forge] WCSession not supported on this device")
+            Log.debug("[Forge] WCSession not supported on this device")
             return
         }
         WCSession.default.delegate = self
@@ -52,7 +52,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(payload, replyHandler: nil) { error in
-                print("[Forge] WC sendMessage error: \(error.localizedDescription)")
+                Log.debug("[Forge] WC sendMessage error: \(error.localizedDescription)")
             }
         }
 
@@ -60,7 +60,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         do {
             try WCSession.default.updateApplicationContext(payload)
         } catch {
-            print("[Forge] WC updateApplicationContext error: \(error.localizedDescription)")
+            Log.debug("[Forge] WC updateApplicationContext error: \(error.localizedDescription)")
         }
     }
 
@@ -70,9 +70,9 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         if let error {
-            print("[Forge] WCSession activation error: \(error.localizedDescription)")
+            Log.debug("[Forge] WCSession activation error: \(error.localizedDescription)")
         } else {
-            print("[Forge] WCSession activated (state: \(activationState.rawValue))")
+            Log.debug("[Forge] WCSession activated (state: \(activationState.rawValue))")
         }
     }
 

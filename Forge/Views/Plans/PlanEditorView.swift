@@ -342,9 +342,6 @@ struct PlanEditorView: View {
         }
         .background(.black)
         .disabled(isDoneCheckMarkVisible)
-        .onAppear {
-//            isPlanNameFocused = planViewModel.activePlan.name == ""
-        }
     }
 }
 

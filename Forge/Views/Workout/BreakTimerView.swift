@@ -148,7 +148,7 @@ struct BreakTimerView: View {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
-                print("[Forge] Notifications not authorized (status: \(settings.authorizationStatus.rawValue))")
+                Log.debug("[Forge] Notifications not authorized (status: \(settings.authorizationStatus.rawValue))")
                 return
             }
 
@@ -163,9 +163,9 @@ struct BreakTimerView: View {
 
             center.add(request) { error in
                 if let error = error {
-                    print("[Forge] Notification schedule error: \(error)")
+                    Log.debug("[Forge] Notification schedule error: \(error)")
                 } else {
-                    print("[Forge] Scheduled notification for \(self.durationSeconds)s from now")
+                    Log.debug("[Forge] Scheduled notification for \(self.durationSeconds)s from now")
                 }
             }
         }

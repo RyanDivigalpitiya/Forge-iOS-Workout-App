@@ -93,12 +93,12 @@ struct PlanSuggestionView: View {
             // Welcome may arrive after this view is on screen.
             resolveCoverState()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            keyboardVisible = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardVisible = false
-        }
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: UIResponder.keyboardWillShowNotification).map { _ in true }
+                .merge(with: NotificationCenter.default
+                    .publisher(for: UIResponder.keyboardWillHideNotification).map { _ in false })
+        ) { keyboardVisible = $0 }
     }
 
     /// Single source of truth for presenting the workout cover. Called from

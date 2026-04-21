@@ -172,8 +172,23 @@ final class SessionClientTests {
     @Test func peerProfileUpdatedStoresProfile() {
         let peerId = UUID()
         let profile = Profile(name: "Alex", photoData: Data([0x01, 0x02]))
+        // Handler requires the peerId to be in peerIds — simulate the prior
+        // peerJoined broadcast.
+        send(.peerJoined(peerId: peerId))
         send(.peerProfileUpdated(peerId: peerId, profile: profile))
         #expect(client.peerProfiles[peerId] == profile)
+    }
+
+    @Test func peerProfileUpdatedIgnoresUnknownPeerId() {
+        // Out-of-order delivery: profileUpdated arrives after peerLeft (or
+        // before peerJoined). Must not leave a phantom entry keyed by a UUID
+        // we don't recognise.
+        let unknown = UUID()
+        send(.peerProfileUpdated(
+            peerId: unknown,
+            profile: Profile(name: "Ghost", photoData: nil)
+        ))
+        #expect(client.peerProfiles[unknown] == nil)
     }
 
     // MARK: - peerSetCompletion

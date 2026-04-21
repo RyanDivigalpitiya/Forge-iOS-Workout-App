@@ -34,6 +34,7 @@
 		F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850932A494DFD0093EE01 /* PlanViewModel.swift */; };
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
 		FC000000000000000000AA02 /* SessionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA01 /* SessionClient.swift */; };
+		FC000000000000000000AA03 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA04 /* Log.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		F1F850932A494DFD0093EE01 /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 		FC000000000000000000AA01 /* SessionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionClient.swift; sourceTree = "<group>"; };
+		FC000000000000000000AA04 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -241,6 +243,7 @@
 				C10000102B0000000000AA0B /* WorkoutHealthManager.swift */,
 				C10000122B0000000000AA0C /* PhoneSessionManager.swift */,
 				FC000000000000000000AA01 /* SessionClient.swift */,
+				FC000000000000000000AA04 /* Log.swift */,
 				F1F8508F2A493E460093EE01 /* TestingViewModel.playground */,
 			);
 			path = "View Model";
@@ -489,6 +492,7 @@
 				F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */,
 				F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */,
 				FC000000000000000000AA02 /* SessionClient.swift in Sources */,
+				FC000000000000000000AA03 /* Log.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

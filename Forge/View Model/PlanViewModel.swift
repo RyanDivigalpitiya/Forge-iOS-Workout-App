@@ -47,7 +47,7 @@ extension PlanViewModel {
         // that breaks rendering / position logic downstream.
         for plan in workoutPlans {
             for exercise in plan.exercises where exercise.sets.isEmpty {
-                print("[PlanViewModel] REJECTED save — plan \"\(plan.name)\" contains zero-set exercise \"\(exercise.name)\"")
+                Log.debug("[PlanViewModel] REJECTED save — plan \"\(plan.name)\" contains zero-set exercise \"\(exercise.name)\"")
                 return
             }
         }

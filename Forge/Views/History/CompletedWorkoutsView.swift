@@ -188,7 +188,7 @@ struct CompletedWorkoutsView: View {
             let data = try? Data(contentsOf: url),
             let plan = try? JSONDecoder().decode(WorkoutPlan.self, from: data)
         else {
-            print("Failed to decode shared plan at \(url.lastPathComponent)")
+            Log.debug("Failed to decode shared plan at \(url.lastPathComponent)")
             return
         }
         planViewModel.importPlan(plan)

@@ -15,7 +15,7 @@ class WorkoutHealthManager: ObservableObject {
         ]
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if let error {
-                print("[Forge] HealthKit authorization error: \(error)")
+                Log.debug("[Forge] HealthKit authorization error: \(error)")
             }
         }
     }
@@ -44,13 +44,13 @@ class WorkoutHealthManager: ObservableObject {
                 // is marked `@available(iOS, unavailable)` and lives only on watchOS.
                 healthStore.startWatchApp(with: configuration) { success, error in
                     if let error {
-                        print("[Forge] startWatchApp error: \(error.localizedDescription)")
+                        Log.debug("[Forge] startWatchApp error: \(error.localizedDescription)")
                     } else {
-                        print("[Forge] startWatchApp success: \(success)")
+                        Log.debug("[Forge] startWatchApp success: \(success)")
                     }
                 }
             } catch {
-                print("[Forge] Failed to start workout session: \(error)")
+                Log.debug("[Forge] Failed to start workout session: \(error)")
             }
         }
     }
@@ -66,11 +66,11 @@ class WorkoutHealthManager: ObservableObject {
             builder.endCollection(withEnd: Date()) { [weak self] _, _ in
                 builder.finishWorkout { workout, error in
                     if let error {
-                        print("[Forge] HealthKit finish error: \(error)")
+                        Log.debug("[Forge] HealthKit finish error: \(error)")
                     }
                     let stats = workout?.statistics(for: HKQuantityType(.activeEnergyBurned))
                     let calories = stats?.sumQuantity()?.doubleValue(for: .kilocalorie())
-                    print("[Forge] HealthKit workout: \(workout != nil ? "present" : "nil"), stats: \(stats != nil ? "present" : "nil"), calories: \(calories as Any)")
+                    Log.debug("[Forge] HealthKit workout: \(workout != nil ? "present" : "nil"), stats: \(stats != nil ? "present" : "nil"), calories: \(calories as Any)")
                     DispatchQueue.main.async {
                         self?.workoutSession = nil
                         self?.workoutBuilder = nil
@@ -98,17 +98,17 @@ class WorkoutHealthManager: ObservableObject {
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         builder.beginCollection(withStart: startDate) { success, error in
             guard success else {
-                if let error { print("[Forge] HealthKit begin collection error: \(error)") }
+                if let error { Log.debug("[Forge] HealthKit begin collection error: \(error)") }
                 return
             }
             builder.endCollection(withEnd: endDate) { success, error in
                 guard success else {
-                    if let error { print("[Forge] HealthKit end collection error: \(error)") }
+                    if let error { Log.debug("[Forge] HealthKit end collection error: \(error)") }
                     return
                 }
                 builder.finishWorkout { workout, error in
                     if let error {
-                        print("[Forge] HealthKit save error: \(error)")
+                        Log.debug("[Forge] HealthKit save error: \(error)")
                     }
                 }
             }

@@ -691,7 +691,7 @@ extension WorkoutInProgressView {
         // When the live session finishes, patch calories into the just-saved workout.
         if healthManager.hasActiveSession {
             healthManager.endWorkoutSession { calories in
-                print("[Forge] endWorkoutSession callback — calories: \(calories as Any)")
+                Log.debug("[Forge] endWorkoutSession callback — calories: \(calories as Any)")
                 if let lastIndex = completedWorkoutsViewModel.completedWorkouts.indices.last {
                     completedWorkoutsViewModel.completedWorkouts[lastIndex].caloriesBurned = calories
                     completedWorkoutsViewModel.saveCompletedWorkouts()
@@ -733,7 +733,7 @@ extension WorkoutInProgressView {
     }
 
     func dismissBreakTimerView(cancelPendingNotification: Bool = true) {
-        print("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification))")
+        Log.debug("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification))")
 
         // Remove scheduled notification only when the user explicitly dismisses the
         // timer (X button or Done). On natural expiry, the notification has either
@@ -865,7 +865,7 @@ extension WorkoutInProgressView {
                 pushType: nil
             )
         } catch {
-            print("[Forge] Failed to start Live Activity: \(error)")
+            Log.debug("[Forge] Failed to start Live Activity: \(error)")
         }
     }
 
@@ -1007,12 +1007,6 @@ extension WorkoutInProgressView {
                 .padding(.trailing, 4)
         }
     }
-
-    // exerciseAvatarColumn(for:) was deleted — its parallel-VStack pattern
-    // required hardcoded row heights and a hardcoded header offset, which
-    // broke when an exercise name wrapped to two lines. Replaced by an
-    // overlayPreferenceValue on the per-exercise HStack that reads each
-    // row's actual rendered bounds via anchor preferences.
 
     /// The horizontal rest-break row that sits between set rows (within an
     /// exercise) and at the bottom of every exercise card except the last

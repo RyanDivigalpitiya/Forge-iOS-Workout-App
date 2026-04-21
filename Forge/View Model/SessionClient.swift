@@ -227,7 +227,7 @@ final class SessionClient: ObservableObject {
         $state
             .zip($state.dropFirst())
             .sink { [weak self] old, new in
-                print("[SessionClient] state: \(old) → \(new) @ \(Date())")
+                Log.debug("[SessionClient] state: \(old) → \(new) @ \(Date())")
                 guard let self else { return }
                 if case .disconnected = new, self.sessionId != nil {
                     self.scheduleReconnect()
@@ -417,7 +417,7 @@ final class SessionClient: ObservableObject {
             await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
                 task.sendPing { error in
                     if let error {
-                        print("[SessionClient] ping failed: \(error.localizedDescription)")
+                        Log.debug("[SessionClient] ping failed: \(error.localizedDescription)")
                         task.cancel(with: .abnormalClosure, reason: nil)
                     }
                     cont.resume()
@@ -434,7 +434,7 @@ final class SessionClient: ObservableObject {
         reconnectScheduler?.cancel()
         reconnectAttempt += 1
         let delaySeconds = min(pow(2.0, Double(reconnectAttempt)), 32.0)
-        print("[SessionClient] scheduling reconnect attempt \(reconnectAttempt) in \(delaySeconds)s")
+        Log.debug("[SessionClient] scheduling reconnect attempt \(reconnectAttempt) in \(delaySeconds)s")
         reconnectScheduler = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
             guard let self else { return }
@@ -488,6 +488,10 @@ final class SessionClient: ObservableObject {
             state = peerIds.isEmpty ? .waitingForPeer : .connected
 
         case .peerProfileUpdated(let peerId, let profile):
+            // Ignore profile updates for peerIds we don't recognise — guards
+            // against out-of-order delivery (profileUpdated after peerLeft)
+            // leaving orphaned entries in peerProfiles.
+            guard peerIds.contains(peerId) else { return }
             peerProfiles[peerId] = profile
 
         case .planSuggested(_, let plan):
@@ -554,22 +558,22 @@ final class SessionClient: ObservableObject {
         do {
             data = try JSONEncoder().encode(message)
         } catch {
-            print("[SessionClient] failed to encode outgoing message: \(error)")
+            Log.debug("[SessionClient] failed to encode outgoing message: \(error)")
             return
         }
         guard let text = String(data: data, encoding: .utf8) else {
-            print("[SessionClient] failed to convert encoded message to utf8")
+            Log.debug("[SessionClient] failed to convert encoded message to utf8")
             return
         }
         guard let task else {
-            print("[SessionClient] dropped outgoing message — no active task")
+            Log.debug("[SessionClient] dropped outgoing message — no active task")
             return
         }
         Task {
             do {
                 try await task.send(.string(text))
             } catch {
-                print("[SessionClient] send failed: \(error.localizedDescription) — cancelling task")
+                Log.debug("[SessionClient] send failed: \(error.localizedDescription) — cancelling task")
                 task.cancel(with: .abnormalClosure, reason: nil)
             }
         }
