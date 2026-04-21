@@ -469,6 +469,12 @@ final class SessionClient: ObservableObject {
         case .peerLeft(let peerId):
             peerIds.removeAll { $0 == peerId }
             peerProfiles.removeValue(forKey: peerId)
+            // Mirror the reconnect() cleanup — wipe per-peer side state
+            // keyed by the leaving UUID so it doesn't linger as a ghost
+            // when (or if) the peer rejoins with a fresh UUID.
+            peerPositions.removeValue(forKey: peerId)
+            peerBreakTimer.removeValue(forKey: peerId)
+            peerReady.removeValue(forKey: peerId)
             state = peerIds.isEmpty ? .waitingForPeer : .connected
 
         case .peerProfileUpdated(let peerId, let profile):
