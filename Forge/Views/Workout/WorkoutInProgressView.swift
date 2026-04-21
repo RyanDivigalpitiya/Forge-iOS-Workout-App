@@ -3,6 +3,14 @@ import Combine
 import UIKit
 import ActivityKit
 
+/// Identifies the (exerciseIndex, setIndex) of the set whose break timer
+/// is currently running. Used by recomputeMyPosition to decide whether to
+/// place the avatar on a rest row vs. on the next incomplete set.
+fileprivate struct RestingSet: Equatable {
+    let exercise: Int
+    let set: Int
+}
+
 struct WorkoutInProgressView: View {
     
     //-/////////////////////////////////////////////////
@@ -71,17 +79,23 @@ struct WorkoutInProgressView: View {
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     @State private var breakTimerEndDate: Date? = nil
-    // Avatar position in joint mode. First-class state — written explicitly
-    // at four discrete events (workout start, set-tap complete, set-tap
-    // un-complete, break-timer dismiss). NOT derived. Keeping it as @State
-    // rather than a computed property eliminates the multi-source race that
-    // used to cause the avatar to flash through intermediate positions when
-    // SwiftUI re-evaluated body between consecutive state mutations.
+    // Avatar position in joint mode. First-class state, recomputed via
+    // recomputeMyPosition() at four events (workout start, set-tap toggle,
+    // break-timer dismiss). The recompute uses a single rule — "first
+    // incomplete set, with a rest-row adjustment when a break timer is
+    // active for the immediately-preceding set" — which handles natural
+    // progression, out-of-order completion, and out-of-order un-completion
+    // uniformly.
     @State private var myPosition: UserPosition = UserPosition(
         exerciseIndex: 0,
         setIndex: 0,
         isResting: false
     )
+    // Tracks WHICH set started the currently-running break timer, so the
+    // recompute can place the avatar on that set's rest row instead of on
+    // the next incomplete set. Set synchronously on the tap that will start
+    // a timer (pre-empting the asyncAfter race), cleared on dismiss/start.
+    @State private var restingForSet: RestingSet? = nil
     @State private var showTimerSettings = false
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
@@ -166,24 +180,19 @@ struct WorkoutInProgressView: View {
                                                     // SET BUTTON
                                                     // marks set.completed to TRUE OR FALSE
                                                     Button(action: {
-                                                        // Compute the next avatar position FIRST, before the
-                                                        // plan mutation, so SwiftUI never observes an in-
-                                                        // between state. Single explicit assignment per tap.
+                                                        // Predict whether this tap will start a break timer
+                                                        // and pre-empt restingForSet BEFORE the plan mutation.
+                                                        // The recompute that runs immediately after the
+                                                        // toggle then resolves to the rest row in one step,
+                                                        // with no intermediate "next set" frame.
                                                         let willComplete = !planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                        let lastSetIndex = planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1
-                                                        let isLastSet = setIndex == lastSetIndex
-                                                        let isLastExercise = exerciseIndex == planViewModel.activePlan.exercises.count - 1
                                                         if willComplete {
-                                                            if isLastSet {
-                                                                myPosition = isLastExercise
-                                                                    ? UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: false)
-                                                                    : UserPosition(exerciseIndex: exerciseIndex + 1, setIndex: 0, isResting: false)
-                                                            } else {
-                                                                myPosition = UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: true)
+                                                            var simulated = planViewModel.activePlan.exercises[exerciseIndex].sets
+                                                            simulated[setIndex].completed = true
+                                                            let willStartTimer = !simulated.allSatisfy(\.completed)
+                                                            if willStartTimer {
+                                                                restingForSet = RestingSet(exercise: exerciseIndex, set: setIndex)
                                                             }
-                                                        } else {
-                                                            // Un-completing — sit at the un-completed set itself.
-                                                            myPosition = UserPosition(exerciseIndex: exerciseIndex, setIndex: setIndex, isResting: false)
                                                         }
 
                                                         withAnimation(.easeOut(duration: 0.2)) {
@@ -243,6 +252,7 @@ struct WorkoutInProgressView: View {
                                                             feedbackGenerator.impactOccurred()
                                                             calcPercentCompleted()
                                                             updateLiveActivity()
+                                                            recomputeMyPosition()
                                                         }
                                                     }) {
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
@@ -439,7 +449,8 @@ struct WorkoutInProgressView: View {
                     startLiveActivity()
                     healthManager.startWorkoutSession()
                     PhoneSessionManager.shared.sendWorkoutStarted()
-                    myPosition = UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)
+                    restingForSet = nil
+                    recomputeMyPosition()
                 }
             }
 
@@ -618,16 +629,10 @@ extension WorkoutInProgressView {
                 breakTimerEndDate = nil
                 topToolBarHeight = 163
                 topToolBarCornerRadius = 0
-                // Advance the avatar from the rest row to the next set. The
-                // rest-row position is only ever set on a non-last set, so
-                // setIndex + 1 is always a valid set in the same exercise.
-                if myPosition.isResting {
-                    myPosition = UserPosition(
-                        exerciseIndex: myPosition.exerciseIndex,
-                        setIndex: myPosition.setIndex + 1,
-                        isResting: false
-                    )
-                }
+                // Clear the rest-adjustment hint and let recompute resolve
+                // the avatar back to the first incomplete set.
+                restingForSet = nil
+                recomputeMyPosition()
             }
             updateLiveActivity()
             PhoneSessionManager.shared.sendTimerDismissed()
@@ -753,9 +758,54 @@ extension WorkoutInProgressView {
 
     // MARK: - Joint workout (Stage 6a + 6b)
 
-    // myPosition is now an @State property declared at the top of the
-    // struct. It's written explicitly at four discrete events; see the
-    // /// docstring on the @State declaration for the contract.
+    // myPosition is an @State property declared at the top of the struct
+    // and assigned by recomputeMyPosition() below.
+
+    /// Single source of truth for avatar position. Applies the unified rule:
+    /// position is the first incomplete set, with a rest-row adjustment if
+    /// a break timer is active for the set immediately preceding it. Out-
+    /// of-order completion / un-completion fall out naturally — there's no
+    /// special branching for "natural" vs "skipped" taps.
+    private func recomputeMyPosition() {
+        let plan = planViewModel.activePlan
+        guard !plan.exercises.isEmpty else {
+            myPosition = UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)
+            return
+        }
+
+        // Find the first incomplete set across all exercises.
+        var firstIncomplete: (ex: Int, set: Int)? = nil
+        for (exIdx, ex) in plan.exercises.enumerated() {
+            if let sIdx = ex.sets.firstIndex(where: { !$0.completed }) {
+                firstIncomplete = (exIdx, sIdx)
+                break
+            }
+        }
+
+        guard let next = firstIncomplete else {
+            // Workout fully complete — park at the final set.
+            let lastEx = plan.exercises.count - 1
+            let lastSet = max(0, plan.exercises[lastEx].sets.count - 1)
+            myPosition = UserPosition(exerciseIndex: lastEx, setIndex: lastSet, isResting: false)
+            return
+        }
+
+        // Rest adjustment: if the active break timer is for the set right
+        // before first-incomplete (in the same exercise), the avatar belongs
+        // on that rest row, not on the upcoming set.
+        if let resting = restingForSet,
+           resting.exercise == next.ex,
+           resting.set == next.set - 1 {
+            myPosition = UserPosition(
+                exerciseIndex: resting.exercise,
+                setIndex: resting.set,
+                isResting: true
+            )
+            return
+        }
+
+        myPosition = UserPosition(exerciseIndex: next.ex, setIndex: next.set, isResting: false)
+    }
 
     /// Renders the leftmost avatar column for a given row (either a set row
     /// or a rest-break row). Shows any participants whose current position
