@@ -52,11 +52,12 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                 try? await outbound.write(.text(text))
             }
             return
-        case .added(let existingPeers, let suggestedPlan):
+        case .added(let existingPeers, let suggestedPlan, let workoutInProgress):
             let welcome = ServerMessage.welcome(
                 yourId: myId,
                 peers: existingPeers,
-                suggestedPlan: suggestedPlan
+                suggestedPlan: suggestedPlan,
+                workoutInProgress: workoutInProgress
             )
             if let data = try? encoder.encode(welcome),
                let text = String(data: data, encoding: .utf8) {

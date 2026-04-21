@@ -29,7 +29,7 @@ struct PlanSnapshot: Codable, Sendable, Equatable {
 }
 
 enum ServerMessage: Codable, Sendable {
-    case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?)
+    case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?, workoutInProgress: PlanSnapshot?)
     case peerJoined(peerId: UUID)
     case peerLeft(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
