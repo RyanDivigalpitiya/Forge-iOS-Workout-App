@@ -14,6 +14,7 @@
 		C10000112B0000000000AA0A /* WorkoutHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000102B0000000000AA0B /* WorkoutHealthManager.swift */; };
 		C10000132B0000000000AA0D /* PhoneSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000122B0000000000AA0C /* PhoneSessionManager.swift */; };
 		C200000B2C0000000000BB0B /* ForgeWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C20000012C0000000000BB01 /* ForgeWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F00012F8579A300FAE979 /* PlanTransferType.swift */; };
 		F14E94762A4BD288008155FA /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14E94752A4BD288008155FA /* ExerciseViewModel.swift */; };
 		F17247672A4D156600937621 /* Set.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17247662A4D156600937621 /* Set.swift */; };
 		F1D4BC632F8C1424003835CB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1D4BC622F8C1424003835CB /* WidgetKit.framework */; };
@@ -32,7 +33,6 @@
 		F1F850902A49400C0093EE01 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F1F8507E2A4924D20093EE01 /* Launch Screen.storyboard */; };
 		F1F850942A494DFD0093EE01 /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F850932A494DFD0093EE01 /* PlanViewModel.swift */; };
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
-		F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10F00012F8579A300FAE979 /* PlanTransferType.swift */; };
 		FC000000000000000000AA02 /* SessionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA01 /* SessionClient.swift */; };
 /* End PBXBuildFile section */
 
@@ -93,6 +93,8 @@
 		C10000122B0000000000AA0C /* PhoneSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSessionManager.swift; sourceTree = "<group>"; };
 		C20000012C0000000000BB01 /* ForgeWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ForgeWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F10BA8A92F8579A200FAE979 /* ForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F10F00012F8579A300FAE979 /* PlanTransferType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTransferType.swift; sourceTree = "<group>"; };
+		F10F00032F8579A300FAE979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F14E94752A4BD288008155FA /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		F17247662A4D156600937621 /* Set.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Set.swift; sourceTree = "<group>"; };
 		F1D4BC602F8C1424003835CB /* ForgeWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ForgeWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -115,8 +117,6 @@
 		F1F8508F2A493E460093EE01 /* TestingViewModel.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = TestingViewModel.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		F1F850932A494DFD0093EE01 /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
-		F10F00012F8579A300FAE979 /* PlanTransferType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTransferType.swift; sourceTree = "<group>"; };
-		F10F00032F8579A300FAE979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FC000000000000000000AA01 /* SessionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -531,7 +531,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads heart rate and active energy during workouts.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Forge saves your completed workouts to Apple Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = workout-processing;
+				INFOPLIST_KEY_WKBackgroundModes = "workout-processing";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "Ryan-Div.Forge";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -570,7 +570,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forge reads heart rate and active energy during workouts.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Forge saves your completed workouts to Apple Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKBackgroundModes = workout-processing;
+				INFOPLIST_KEY_WKBackgroundModes = "workout-processing";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "Ryan-Div.Forge";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

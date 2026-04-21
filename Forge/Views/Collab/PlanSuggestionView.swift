@@ -10,6 +10,10 @@ struct PlanSuggestionView: View {
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
     @State private var chatDraft: String = ""
+    /// Tracks the iOS keyboard visibility (NotificationCenter-driven) so the
+    /// "DISMISS" label in the indicator row can grey out when there's nothing
+    /// to dismiss.
+    @State private var keyboardVisible: Bool = false
 
     // Drives the single .fullScreenCover. SwiftUI silently ignores the
     // second of two .fullScreenCover(isPresented:) modifiers attached to
@@ -36,7 +40,7 @@ struct PlanSuggestionView: View {
 
             planCarousel
 
-            dotIndicators
+            indicatorRow
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 24)
         }
@@ -92,6 +96,12 @@ struct PlanSuggestionView: View {
         .onChange(of: sessionClient.workoutInProgress?.id) { _, _ in
             // Welcome may arrive after this view is on screen.
             routeIntoActiveWorkoutIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardVisible = false
         }
     }
 
@@ -346,20 +356,25 @@ struct PlanSuggestionView: View {
             suggestedHeaderCluster
                 .scaleEffect(suggestedPaneScale)
             Spacer()
-            endSessionButton
         }
     }
 
     @ViewBuilder
     private var suggestedHeaderCluster: some View {
         if let suggested = sessionClient.suggestedPlan {
-            HStack(spacing: 10) {
-                Text(suggested.name)
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(settings.fgColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Suggested")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.gray)
+
+                    shimmeringSuggestedName(suggested.name)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                Spacer(minLength: 0)
 
                 Button {
                     openPreview(snapshot: suggested)
@@ -375,6 +390,10 @@ struct PlanSuggestionView: View {
                 .cornerRadius(5)
                 .buttonStyle(.borderless)
             }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(Color(white: 0.1))
+            .cornerRadius(8)
         } else {
             Text("Suggest Workout")
                 .font(.title3)
@@ -383,21 +402,89 @@ struct PlanSuggestionView: View {
         }
     }
 
-    private var endSessionButton: some View {
+    /// Plan name with a continuously-sweeping shimmer (fgColor → white →
+    /// fgColor). LinearGradient's startPoint/endPoint are NOT animatable
+    /// via withAnimation, so we drive the phase from a TimelineView that
+    /// re-renders every display frame and recomputes the gradient endpoints
+    /// from wall-clock time. 2.5s per sweep cycle.
+    private func shimmeringSuggestedName(_ name: String) -> some View {
+        TimelineView(.animation) { context in
+            let cycle: Double = 2.5
+            let progress = context.date.timeIntervalSinceReferenceDate
+                .truncatingRemainder(dividingBy: cycle) / cycle
+            // Map [0,1] → [-1.5, 1.5] so the bright midpoint sweeps from
+            // off-left, across the text, to off-right per cycle.
+            let phase = CGFloat(progress * 3.0 - 1.5)
+            Text(name)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundStyle(
+                    LinearGradient(
+                        stops: [
+                            .init(color: settings.fgColor, location: 0),
+                            .init(color: .white, location: 0.5),
+                            .init(color: settings.fgColor, location: 1),
+                        ],
+                        startPoint: UnitPoint(x: phase, y: 0.5),
+                        endPoint: UnitPoint(x: phase + 1, y: 0.5)
+                    )
+                )
+        }
+    }
+
+    /// END SESSION text label — replaces the old X-circle button. Same plain
+    /// fg-color text styling as the DISMISS label on the trailing edge.
+    private var endSessionLabel: some View {
+        Button { showEndSessionConfirm = true } label: {
+            Text("LEAVE")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(settings.fgColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// DISMISS label — only enabled while the keyboard is up. Sends
+    /// resignFirstResponder system-wide so KeyboardPersistentTextField (a
+    /// UITextField) drops focus and the keyboard slides away.
+    private var dismissKeyboardLabel: some View {
         Button {
-            showEndSessionConfirm = true
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
         } label: {
-            ZStack {
-                Circle()
-                    .frame(width: 24, height: 24)
-                    .foregroundColor(Color(.systemGray4))
-                Image(systemName: "xmark")
-                    .resizable()
-                    .frame(width: 10, height: 10)
-                    .fontWeight(.bold)
-                    .foregroundColor(settings.fgColor)
+            Text("DISMISS")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(keyboardVisible ? settings.fgColor : Color(white: 0.3))
+        }
+        .buttonStyle(.plain)
+        .disabled(!keyboardVisible)
+    }
+
+    /// Indicator row: END SESSION (leading) + dot indicators (true center
+    /// via ZStack overlay so label widths don't shift them) + DISMISS
+    /// (trailing).
+    @ViewBuilder
+    private var indicatorRow: some View {
+        ZStack {
+            HStack {
+                endSessionLabel
+                Spacer()
+                dismissKeyboardLabel
+            }
+            if planViewModel.workoutPlans.count > 1 {
+                HStack(spacing: 5) {
+                    ForEach(planViewModel.workoutPlans) { plan in
+                        Capsule()
+                            .fill(isActivePlan(plan) ? settings.fgColor : Color(white: 0.25))
+                            .frame(width: 14, height: 3)
+                    }
+                }
             }
         }
+        .padding(.horizontal, 20)
     }
 
     @ViewBuilder
@@ -426,20 +513,29 @@ struct PlanSuggestionView: View {
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $currentPlanId, anchor: .leading)
             .frame(height: 88)
+            .overlay(alignment: .trailing) {
+                // Trailing fade-to-black so any card overflowing past the
+                // right edge of the phone visually dissolves into the
+                // background instead of getting hard-clipped. Hidden when
+                // the last card is current — at that point nothing's
+                // overflowing and the gradient would just visually mute
+                // the trailing card's Suggest/Preview buttons.
+                LinearGradient(
+                    colors: [.black.opacity(0), .black],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 75)
+                .opacity(isLastCardCurrent ? 0 : 1)
+                .animation(.easeInOut(duration: 0.2), value: isLastCardCurrent)
+                .allowsHitTesting(false)
+            }
         }
     }
 
-    @ViewBuilder
-    private var dotIndicators: some View {
-        if planViewModel.workoutPlans.count > 1 {
-            HStack(spacing: 5) {
-                ForEach(planViewModel.workoutPlans) { plan in
-                    Capsule()
-                        .fill(isActivePlan(plan) ? settings.fgColor : Color(white: 0.25))
-                        .frame(width: 14, height: 3)
-                }
-            }
-        }
+    private var isLastCardCurrent: Bool {
+        guard let last = planViewModel.workoutPlans.last else { return true }
+        return currentPlanId == last.id
     }
 
     private func isActivePlan(_ plan: WorkoutPlan) -> Bool {

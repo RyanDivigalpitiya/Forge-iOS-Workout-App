@@ -15,10 +15,14 @@ struct CollabStatusBanner: View {
     @EnvironmentObject var sessionClient: SessionClient
     @EnvironmentObject var settings: GlobalSettings
     @State private var shareItem: ShareableURL? = nil
+    /// Last state value the user dismissed via swipe-up. Suppresses the
+    /// banner until state CHANGES — a fresh non-healthy state re-shows
+    /// the banner.
+    @State private var dismissedForState: SessionClient.State? = nil
 
     var body: some View {
         Group {
-            if let message = bannerMessage {
+            if let message = bannerMessage, !isDismissed {
                 HStack(spacing: 10) {
                     if showsSpinner {
                         ProgressView()
@@ -50,12 +54,27 @@ struct CollabStatusBanner: View {
                 .background(Capsule().fill(Color(white: 0.18)))
                 .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
                 .transition(.move(edge: .top).combined(with: .opacity))
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .onEnded { value in
+                            // Swipe up dismisses; reappears when state next changes.
+                            if value.translation.height < -20 {
+                                dismissedForState = sessionClient.state
+                            }
+                        }
+                )
             }
         }
         .animation(.easeInOut(duration: 0.25), value: sessionClient.state)
+        .animation(.easeInOut(duration: 0.25), value: isDismissed)
         .sheet(item: $shareItem) { wrapper in
             ShareSheet(activityItems: [wrapper.url])
         }
+    }
+
+    private var isDismissed: Bool {
+        guard let dismissedForState else { return false }
+        return dismissedForState == sessionClient.state
     }
 
     private var bannerMessage: String? {

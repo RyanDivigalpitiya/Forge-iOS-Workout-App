@@ -414,15 +414,13 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(settings.fgColor)
                                     Spacer()
 
-                                    Button(action: { showTimerSettings = true }) {
-                                        Image(systemName: "timer")
-                                            .font(.system(size: 20, weight: .light))
-                                            .foregroundColor(settings.fgColor)
-                                            .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
-                                    }
-                                    .disabled(timerEnabled)
-                                    .padding(.trailing, 5)
+                                    // Invisible 44pt placeholder mirrors the back chevron's
+                                    // footprint so the plan-name text stays visually centered.
+                                    // The break-duration picker is now opened by tapping any
+                                    // rest row in the workout — no toolbar button needed.
+                                    Color.clear
+                                        .frame(width: 44, height: 44)
+                                        .padding(.trailing, 5)
                                 }
                                 .padding(.bottom,1)
 
@@ -995,26 +993,31 @@ extension WorkoutInProgressView {
     /// The horizontal rest-break row that sits between set rows (within an
     /// exercise) and at the bottom of every exercise card except the last
     /// (between exercises). Peer / user connector columns + "Rest (Xs)"
-    /// label. Extracted so the between-exercise case can reuse the exact
-    /// same rendering.
+    /// label. Wrapped in a Button so tapping anywhere on the row opens
+    /// the break-duration picker — replaces the timer icon that used to
+    /// live in the top toolbar.
     @ViewBuilder
     private func restBreakRow() -> some View {
-        HStack(spacing: 0) {
-            if sessionClient.state == .connected {
+        Button(action: { showTimerSettings = true }) {
+            HStack(spacing: 0) {
+                if sessionClient.state == .connected {
+                    restConnectorColumn()
+                        .padding(.trailing, 8)
+                }
                 restConnectorColumn()
-                    .padding(.trailing, 8)
+                    .padding(.trailing, 16)
+                Text("Rest ( \(selectedBreakDuration)s )")
+                    .font(.system(size: 14))
+                    .fontWeight(.bold)
+                    .foregroundColor(darkGray)
+                    .padding(.vertical, 15)
+                    .padding(.leading, 10)
+                Spacer()
             }
-            restConnectorColumn()
-                .padding(.trailing, 16)
-            Text("Rest ( \(selectedBreakDuration)s )")
-                .font(.system(size: 14))
-                .fontWeight(.bold)
-                .foregroundColor(darkGray)
-                .padding(.vertical, 15)
-                .padding(.leading, 10)
-            Spacer()
+            .frame(height: restRowHeight)
+            .contentShape(Rectangle())
         }
-        .frame(height: restRowHeight)
+        .buttonStyle(.plain)
     }
 
     /// The line-dot-line connector rendered between successive set rows as a
