@@ -556,6 +556,51 @@ struct WorkoutInProgressView: View {
                 sessionClient.sendPositionUpdate(new)
             }
         }
+        .onChange(of: sessionClient.state) { _, new in
+            // On every transition INTO .connected (initial pair, peer
+            // rejoined after leaving, both phones recovering from a server
+            // restart), re-broadcast my joint-mode state. The peer's
+            // SessionClient cleared its peerPositions / peerCompletedSets /
+            // peerBreakTimer dicts when it reconnected, and the server
+            // doesn't persist any of it — so without this, the peer's view
+            // of me would stay empty until I happen to do something.
+            if new == .connected {
+                rebroadcastJointStateForPeer()
+            }
+        }
+    }
+
+    /// Pushes my current avatar position, every completed set, and any
+    /// active break timer to the peer. Called on every transition into
+    /// .connected so a freshly-(re)paired peer's local view of me is
+    /// fully populated without waiting for the next user action.
+    private func rebroadcastJointStateForPeer() {
+        guard sessionClient.state == .connected else { return }
+
+        sessionClient.sendPositionUpdate(myPosition)
+
+        for exercise in planViewModel.activePlan.exercises {
+            for (setIndex, set) in exercise.sets.enumerated() where set.completed {
+                sessionClient.sendSetCompletion(
+                    exerciseId: exercise.id,
+                    setIndex: setIndex,
+                    completed: true
+                )
+            }
+        }
+
+        if let endDate = breakTimerEndDate, timerEnabled {
+            // Use myPosition's setIndex/exerciseIndex if currently resting;
+            // fall back to (0, 0) which the receiver ignores when endDate
+            // is non-nil only for placement, not for the dict key.
+            let exIdx = myPosition.exerciseIndex
+            let sIdx = myPosition.setIndex
+            sessionClient.sendBreakTimerUpdate(
+                endDate: endDate,
+                exerciseIndex: exIdx,
+                setIndex: sIdx
+            )
+        }
     }
 }
 
