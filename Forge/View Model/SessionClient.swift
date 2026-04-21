@@ -256,6 +256,16 @@ final class SessionClient: ObservableObject {
         myId = nil
         peerIds = []
         peerProfiles = [:]
+        // Joint-mode side state was keyed by the OLD peer UUIDs and the OLD
+        // myId. After reconnect everyone gets fresh UUIDs, so any leftover
+        // entries become stale phantoms (e.g., the avatar gutter renders one
+        // ghost "?" avatar per stale peerPositions key). Clear them so the
+        // first peerPositionUpdated / peerSetCompletion / peerBreakTimerChanged
+        // after reconnect repopulates from scratch.
+        peerReady = [:]
+        peerCompletedSets = []
+        peerPositions = [:]
+        peerBreakTimer = [:]
         openSocket(sessionId: id)
     }
 
