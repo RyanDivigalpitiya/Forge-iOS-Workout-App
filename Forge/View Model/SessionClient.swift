@@ -444,7 +444,10 @@ final class SessionClient: ObservableObject {
         }
     }
 
-    private func handle(incoming text: String) {
+    /// Parses a server-side wire frame and mutates `@Published` state. Package-
+    /// internal rather than private so `ForgeTests/SessionClientTests` can feed
+    /// synthetic messages in without going through the WebSocket.
+    func handle(incoming text: String) {
         guard let data = text.data(using: .utf8),
               let message = try? JSONDecoder().decode(ServerMessage.self, from: data)
         else { return }
