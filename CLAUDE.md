@@ -173,11 +173,14 @@ Two friends each running Forge can join a shared, real-time workout session. Per
 | 7a | Client-side WebSocket heartbeat (URLSessionWebSocketTask.sendPing every 30s) + auto-reconnect on `.disconnected` with exponential backoff (2/4/8/16/32s, capped). Hummingbird's autoPing was already on at 30s but iOS wasn't pinging. | **DONE** |
 | 7b | Peer-disconnect status banner (`CollabStatusBanner`) with in-banner "Re-invite" button that share-sheets the current sessionId URL — recovery without ending the session | **DONE** |
 | 7b' | Mid-workout rejoin handling: server tracks `workoutInProgress: PlanSnapshot?` on the session, includes it in welcome; iOS `JoinSessionView` auto-submits cached profile; `PlanSuggestionView` auto-routes into `WorkoutInProgressView` with the active plan instead of letting the rejoiner re-suggest and stomp the partner's workout | **DONE** |
-| 7c | Cloudflare Named Tunnel on `forge-ws.ryan-div.com` + launchd plists for ForgeServer + cloudflared auto-start on Mac mini boot | **current focus** |
 
-### Current focus — Stage 7c
+The staged plan lands at 7b'. The six stages above deliver a feature-complete collab experience for practical use, and the next priorities on the project are elsewhere (not infrastructure).
 
-Cloudflare Named Tunnel + launchd auto-start. Pure infrastructure — no behavioral change. Steps:
+### Deferred: production-grade server deployment
+
+Disconnected from the staged plan above — will be picked up later when server infrastructure becomes the priority again. Captured here so the steps don't need to be re-researched.
+
+Pure infrastructure work — no behavioral change. Current state uses a Cloudflare Quick Tunnel which is ephemeral per `cloudflared` invocation; when this lands, the tunnel URL becomes permanent and both the server and tunnel auto-start on Mac mini boot.
 
 1. **Named tunnel** on the Mac mini:
    ```bash
@@ -191,7 +194,7 @@ Cloudflare Named Tunnel + launchd auto-start. Pure infrastructure — no behavio
 2. **iOS host swap** — change `SessionClient.serverHost` to `forge-ws.ryan-div.com`. One-line commit.
 3. **Launchd plists** at `~/Library/LaunchAgents/com.ryandiv.forgeserver.plist` and `com.ryandiv.forgeserver-tunnel.plist` for auto-start on boot. `RunAtLoad + KeepAlive`. Optionally commit copies into `server/launchd/` for repo-tracked reference.
 
-Once 7c lands, the collab feature is "done" for v1: idle-resilient connection, recoverable peer disconnects, mid-workout re-invite, and a permanent server URL that survives Mac mini reboots. Identity continuity across reconnect (server still issues fresh `myId` on rejoin) is intentionally deferred.
+Once this ships, the collab feature is "done" for v1: idle-resilient connection, recoverable peer disconnects, mid-workout re-invite, and a permanent server URL that survives Mac mini reboots. Identity continuity across reconnect (server still issues fresh `myId` on rejoin) is intentionally deferred further still.
 
 ### File map
 
@@ -229,7 +232,7 @@ swift run ForgeServer                                # binds 127.0.0.1:8080
 cloudflared tunnel --url http://localhost:8080       # prints a trycloudflare.com URL
 ```
 
-The iOS client hardcodes the hostname in `SessionClient.serverHost`. **`cloudflared` can stay up indefinitely; `ForgeServer` can be killed + restarted without changing the tunnel URL.** If `cloudflared` itself is restarted, the Quick Tunnel URL changes and the constant must be updated + the app rebuilt. Stage 7 migrates to a Named Tunnel on `forge-ws.ryan-div.com` for a permanent URL and adds a launchd plist at `~/Library/LaunchAgents/com.ryandiv.forgeserver.plist` so the server auto-starts on boot.
+The iOS client hardcodes the hostname in `SessionClient.serverHost`. **`cloudflared` can stay up indefinitely; `ForgeServer` can be killed + restarted without changing the tunnel URL.** If `cloudflared` itself is restarted, the Quick Tunnel URL changes and the constant must be updated + the app rebuilt. A future Named Tunnel migration (`forge-ws.ryan-div.com`) + launchd auto-start are captured in the deferred-work section above.
 
 ### Feature-specific gotchas
 
