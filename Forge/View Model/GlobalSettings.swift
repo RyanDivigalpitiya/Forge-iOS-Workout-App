@@ -50,6 +50,21 @@ class GlobalSettings: ObservableObject {
     let setsFontSize: CGFloat = 20
     let setsSpacing: CGFloat = 3
 
+    // Corner radii. Migrate call sites whose literal matches one of these
+    // exactly AND whose semantic bucket agrees — don't fold idiosyncratic
+    // one-off radii (e.g. the animated topToolBarCornerRadius that sweeps
+    // 0 → 30 as the break panel expands) into the shared scale.
+    let cornerRadiusSmall: CGFloat = 5   // chips, pill-shaped buttons
+    let cornerRadiusMedium: CGFloat = 8  // cards, carousel items, input fields
+    let cornerRadiusLarge: CGFloat = 16  // full panels, exercise blocks, gradient-bg containers
+
+    // Standard animation durations. Same discipline: only use when the
+    // intent matches; leave bespoke durations (2s finish-workout fade,
+    // 0.25s peerPosition anchor tween, 0.15s spring bounces) as literals.
+    let animationQuick: Double = 0.2     // set-tap pop feedback, small UI state toggles
+    let animationStandard: Double = 0.5  // scroll-view shrink/grow, break-timer transitions
+    let animationSlow: Double = 1.0      // opacity fade-ins after the starting countdown
+
     // Timing
     var breakDuration: Int {
         get {

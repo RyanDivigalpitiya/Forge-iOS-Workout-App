@@ -48,7 +48,7 @@ struct StartingCountdownView: View {
                         .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round))
                         .foregroundColor(settings.fgColor)
                         .rotationEffect(Angle(degrees: -90))
-                        .animation(.easeOut(duration: 1), value: remainingTime)
+                        .animation(.easeOut(duration: settings.animationSlow), value: remainingTime)
                         .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
                     Text("\(remainingTime)")
                         .font(.system(size: 60))
@@ -58,7 +58,7 @@ struct StartingCountdownView: View {
                 }
                 .opacity(contentOpacity)
                 .onAppear {
-                    withAnimation(.easeOut(duration: 0.5)) {
+                    withAnimation(.easeOut(duration: settings.animationStandard)) {
                         contentOpacity = 1.0
                     }
                     startTimer()

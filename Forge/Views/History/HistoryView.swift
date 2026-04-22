@@ -166,7 +166,7 @@ struct HistoryView: View {
                         }
                         .padding(17)
                         .background(bgColor)
-                        .cornerRadius(16)
+                        .cornerRadius(settings.cornerRadiusLarge)
                     }
                     .padding(.horizontal, 15)
                     .padding(.vertical, 8)

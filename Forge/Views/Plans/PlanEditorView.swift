@@ -123,7 +123,7 @@ struct PlanEditorView: View {
                         .disabled(planViewModel.activePlanIsReadOnly)
                         .padding(15)
                         .background(bgColor)
-                        .cornerRadius(16)
+                        .cornerRadius(settings.cornerRadiusLarge)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if !planViewModel.activePlanIsReadOnly {
                                 Button(role: .destructive) {
@@ -264,7 +264,7 @@ struct PlanEditorView: View {
                             generator.prepare()
                             generator.notificationOccurred(.success)
 
-                            withAnimation(.easeInOut(duration: 1)) {
+                            withAnimation(.easeInOut(duration: settings.animationSlow)) {
                                 isDoneCheckMarkVisible = true
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {

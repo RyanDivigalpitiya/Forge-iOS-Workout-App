@@ -71,7 +71,7 @@ struct SettingsView: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(settings.fgColor)
-                                        .cornerRadius(8)
+                                        .cornerRadius(settings.cornerRadiusMedium)
                                 }
                                 .buttonStyle(.borderless)
                             }

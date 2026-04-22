@@ -96,7 +96,7 @@ struct SetView: View {
                     .foregroundColor(labelTextColor)
                     .frame(width: labelWidth, height: 28)
                     .background(labelBg)
-                    .cornerRadius(5)
+                    .cornerRadius(settings.cornerRadiusSmall)
                     .padding(.trailing, setsSpacing + 2)
                     .opacity(isCompleted ? 0.5 : 1)
 
@@ -162,7 +162,7 @@ struct SetView: View {
             .frame(height: 28)
             .padding(.horizontal, 8)
             .background(GlobalSettings.shared.buttonCircleBgColor)
-            .cornerRadius(5)
+            .cornerRadius(settings.cornerRadiusSmall)
             .padding(.trailing, setsSpacing)
             .opacity(isCompleted ? 0.5 : 1)
     }

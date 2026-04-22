@@ -79,7 +79,7 @@ struct HomogeneousSetPicker: View {
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
                 .background(settings.fgColor)
-                .cornerRadius(5)
+                .cornerRadius(settings.cornerRadiusSmall)
             }
 
             // "X"
@@ -136,7 +136,7 @@ struct HomogeneousSetPicker: View {
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
                 .background(settings.fgColor)
-                .cornerRadius(5)
+                .cornerRadius(settings.cornerRadiusSmall)
             }
 
             // "X"
@@ -193,7 +193,7 @@ struct HomogeneousSetPicker: View {
                 }
                 .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
                 .background(settings.fgColor)
-                .cornerRadius(5)
+                .cornerRadius(settings.cornerRadiusSmall)
             }
         }
     }

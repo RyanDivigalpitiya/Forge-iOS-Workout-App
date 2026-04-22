@@ -165,7 +165,7 @@ struct PlanSuggestionView: View {
                 endPoint: .bottom
             )
         )
-        .cornerRadius(16)
+        .cornerRadius(settings.cornerRadiusLarge)
         .padding(.horizontal, 16)
         .padding(.top, 16)
     }
@@ -225,7 +225,7 @@ struct PlanSuggestionView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(isReady ? settings.fgColor : Color.clear)
-                .cornerRadius(5)
+                .cornerRadius(settings.cornerRadiusSmall)
         }
         .buttonStyle(.plain)
         .disabled(!canInteract)
@@ -321,7 +321,7 @@ struct PlanSuggestionView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Color(white: 0.15))
-            .cornerRadius(16)
+            .cornerRadius(settings.cornerRadiusLarge)
 
             Button(action: sendCurrentDraft) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -343,7 +343,7 @@ struct PlanSuggestionView: View {
 
     private func scrollToLatest(using proxy: ScrollViewProxy) {
         guard let lastId = sessionClient.chatEntries.last?.id else { return }
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(.easeOut(duration: settings.animationQuick)) {
             proxy.scrollTo(lastId, anchor: .bottom)
         }
     }
@@ -384,13 +384,13 @@ struct PlanSuggestionView: View {
                 }
                 .background(Color(white: 0.2))
                 .foregroundColor(.white)
-                .cornerRadius(5)
+                .cornerRadius(settings.cornerRadiusSmall)
                 .buttonStyle(.borderless)
             }
             .padding(12)
             .frame(maxWidth: .infinity)
             .background(Color(white: 0.1))
-            .cornerRadius(8)
+            .cornerRadius(settings.cornerRadiusMedium)
         } else {
             Text("Suggest Workout")
                 .font(.title3)
@@ -524,7 +524,7 @@ struct PlanSuggestionView: View {
                 )
                 .frame(width: 75)
                 .opacity(isLastCardCurrent ? 0 : 1)
-                .animation(.easeInOut(duration: 0.2), value: isLastCardCurrent)
+                .animation(.easeInOut(duration: settings.animationQuick), value: isLastCardCurrent)
                 .allowsHitTesting(false)
             }
         }
@@ -565,7 +565,7 @@ struct PlanCarouselCard: View {
         .padding(12)
         .frame(width: 280, height: 88)
         .background(Color(white: 0.1))
-        .cornerRadius(8)
+        .cornerRadius(settings.cornerRadiusMedium)
     }
 
     private var planInfo: some View {
@@ -592,7 +592,7 @@ struct PlanCarouselCard: View {
             }
             .background(settings.fgColor)
             .foregroundColor(.black)
-            .cornerRadius(5)
+            .cornerRadius(settings.cornerRadiusSmall)
             .buttonStyle(.borderless)
             .shadow(
                 color: settings.fgColor.opacity(0.5), // color + transparency
@@ -613,7 +613,7 @@ struct PlanCarouselCard: View {
             }
             .background(Color(white: 0.2))
             .foregroundColor(.white)
-            .cornerRadius(5)
+            .cornerRadius(settings.cornerRadiusSmall)
             .buttonStyle(.borderless)
         }
     }

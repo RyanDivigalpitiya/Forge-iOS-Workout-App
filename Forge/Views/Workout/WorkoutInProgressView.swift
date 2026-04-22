@@ -220,7 +220,7 @@ struct WorkoutInProgressView: View {
                                                             }
                                                         }
 
-                                                        withAnimation(.easeOut(duration: 0.2)) {
+                                                        withAnimation(.easeOut(duration: settings.animationQuick)) {
                                                             planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
                                                             let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
                                                             if sessionClient.state == .connected {
@@ -241,7 +241,7 @@ struct WorkoutInProgressView: View {
                                                                     isScrollViewDisabled = true
                                                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                                                         guard !isWorkoutDone else { return }
-                                                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                                                        withAnimation(.easeInOut(duration: settings.animationStandard)) {
                                                                             scrollViewScaleEffect = 0.95
                                                                             scrollViewVisible = false
                                                                             topToolBarHeight = screenHeight*0.8
@@ -250,7 +250,7 @@ struct WorkoutInProgressView: View {
                                                                             breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
                                                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                                                 guard !isWorkoutDone else { return }
-                                                                                withAnimation(.easeInOut(duration: 0.5)) {
+                                                                                withAnimation(.easeInOut(duration: settings.animationStandard)) {
                                                                                     timerVisible = true
                                                                                 }
                                                                             }
@@ -341,9 +341,9 @@ struct WorkoutInProgressView: View {
                                         }
 
                                     }
-                                    .padding(17) //.padding(EdgeInsets(top: 15, leading: 15, bottom: 15, trailing: 15))
+                                    .padding(17)
                                     .background(bgColor)
-                                    .cornerRadius(16)
+                                    .cornerRadius(settings.cornerRadiusLarge)
                                     }
                                     .overlayPreferenceValue(RowAnchorKey.self) { anchors in
                                         if sessionClient.state == .connected {
@@ -505,9 +505,9 @@ struct WorkoutInProgressView: View {
             
             if !shouldShowWorkout {
                 StartingCountdownView(initialSeconds: 3) {
-                    withAnimation(.easeInOut(duration: 0.5)) {
+                    withAnimation(.easeInOut(duration: settings.animationStandard)) {
                         shouldShowWorkout = true
-                        withAnimation(.easeInOut(duration: 1)) {
+                        withAnimation(.easeInOut(duration: settings.animationSlow)) {
                             isWorkoutOpacityFull = true
                             scrollViewScaleEffect = 1.0
                         }
@@ -702,7 +702,7 @@ extension WorkoutInProgressView {
         }
 
         triggerHapticFeedback()
-        withAnimation(.easeInOut(duration: 1)) {
+        withAnimation(.easeInOut(duration: settings.animationSlow)) {
             isDoneCheckMarkVisible = true
         }
         withAnimation(.easeInOut(duration: 2.0)) {
@@ -744,12 +744,12 @@ extension WorkoutInProgressView {
             center.removePendingNotificationRequests(withIdentifiers: [BreakTimerView.notificationIdentifier])
         }
 
-        withAnimation(.easeInOut(duration: 0.5)) {
+        withAnimation(.easeInOut(duration: settings.animationStandard)) {
             timerVisible = false
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation(.easeInOut(duration: 0.5)) {
+            withAnimation(.easeInOut(duration: settings.animationStandard)) {
                 isScrollViewDisabled = false
                 scrollViewVisible = true
                 if !isWorkoutDone {
@@ -1187,7 +1187,7 @@ struct BreakDurationPickerView: View {
             }
             .frame(width: 85, height: 30)
             .background(settings.fgColor)
-            .cornerRadius(5)
+            .cornerRadius(settings.cornerRadiusSmall)
             .padding(.bottom, 20)
         }
         .onAppear {

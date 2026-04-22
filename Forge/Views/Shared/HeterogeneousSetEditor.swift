@@ -63,7 +63,7 @@ struct HeterogeneousSetEditor: View {
                             }
                             .frame(width: 60, height: buttonPlusMinusHeight)
                             .background(settings.fgColor)
-                            .cornerRadius(5)
+                            .cornerRadius(settings.cornerRadiusSmall)
                         }
                         .padding(.trailing, 10)
 
@@ -109,7 +109,7 @@ struct HeterogeneousSetEditor: View {
                             }
                             .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
                             .background(settings.fgColor)
-                            .cornerRadius(5)
+                            .cornerRadius(settings.cornerRadiusSmall)
                         }
 
                         // "X"
@@ -187,7 +187,7 @@ struct HeterogeneousSetEditor: View {
                             }
                             .frame(width: buttonPlusMinusWidth + 50, height: buttonPlusMinusHeight)
                             .background(settings.fgColor)
-                            .cornerRadius(5)
+                            .cornerRadius(settings.cornerRadiusSmall)
                         }
                     }
                 }
