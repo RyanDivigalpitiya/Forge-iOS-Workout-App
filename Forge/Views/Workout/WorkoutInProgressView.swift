@@ -3,36 +3,8 @@ import Combine
 import UIKit
 import ActivityKit
 
-/// Identifies the (exerciseIndex, setIndex) of the set whose break timer
-/// is currently running. Used by recomputeMyPosition to decide whether to
-/// place the avatar on a rest row vs. on the next incomplete set.
-fileprivate struct RestingSet: Equatable {
-    let exercise: Int
-    let set: Int
-}
-
-/// Identifies a row within a single exercise card. Scoped per-exercise:
-/// each exercise's overlayPreferenceValue resolves its own dict of these,
-/// so exerciseIndex isn't part of the case.
-fileprivate enum RowID: Hashable {
-    case setRow(Int)   // setIndex
-    case restRow(Int)  // setIndex (the rest row sits BELOW the set with this index)
-}
-
-/// PreferenceKey carrying anchors for each row in an exercise card. The
-/// card publishes one anchor per set / rest row; the overlay reads them
-/// via a GeometryReader and absolutely positions an avatar at each row's
-/// midY. This makes avatar alignment immune to row-height variation
-/// (e.g. when an exercise name wraps to two lines).
-fileprivate struct RowAnchorKey: PreferenceKey {
-    static let defaultValue: [RowID: Anchor<CGRect>] = [:]
-    static func reduce(
-        value: inout [RowID: Anchor<CGRect>],
-        nextValue: () -> [RowID: Anchor<CGRect>]
-    ) {
-        value.merge(nextValue()) { _, new in new }
-    }
-}
+// Anchor-preference plumbing for the joint-mode avatar gutter lives in
+// `WorkoutAvatarGutter.swift`: RestingSet, RowID, RowAnchorKey.
 
 struct WorkoutInProgressView: View {
     
@@ -104,8 +76,21 @@ struct WorkoutInProgressView: View {
     @State private var showCancelConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     @State private var breakTimerEndDate: Date? = nil
-    // Avatar position in joint mode. First-class state, recomputed via
-    // recomputeMyPosition() at four events (workout start, set-tap toggle,
+
+    // NOTE: Stage 6 of the refactor sprint considered extracting myPosition /
+    // restingForSet / recomputeMyPosition / rebroadcastJointStateForPeer /
+    // handleSetTap into a `JointModeCoordinator: ObservableObject`. Declined
+    // on risk/value grounds: the joint-mode state is tightly coupled to the
+    // break-timer coordination logic that must stay here (scroll-view
+    // shrink/grow, Live Activity, watch haptics). Moving @State to @Published
+    // on a coordinator would also reopen the Stage 6d timing gotcha
+    // (CLAUDE.md: "Avatar position must be @State, not derived") without a
+    // clean fix. Decomposition made instead: anchor-preference types in
+    // WorkoutAvatarGutter.swift + the nested set-tap closure hoisted into
+    // handleSetTap / scheduleBreakTimerStart.
+    //
+    // Avatar position in joint mode. First-class @State, recomputed via
+    // recomputeMyPosition() at three events (workout start, set-tap toggle,
     // break-timer dismiss). The recompute uses a single rule — "first
     // incomplete set, with a rest-row adjustment when a break timer is
     // active for the immediately-preceding set" — which handles natural
@@ -205,82 +190,7 @@ struct WorkoutInProgressView: View {
                                                     // SET BUTTON
                                                     // marks set.completed to TRUE OR FALSE
                                                     Button(action: {
-                                                        // Predict whether this tap will start a break timer
-                                                        // and pre-empt restingForSet BEFORE the plan mutation.
-                                                        // The recompute that runs immediately after the
-                                                        // toggle then resolves to the rest row in one step,
-                                                        // with no intermediate "next set" frame.
-                                                        let willComplete = !planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                        if willComplete {
-                                                            var simulated = planViewModel.activePlan.exercises[exerciseIndex].sets
-                                                            simulated[setIndex].completed = true
-                                                            let willStartTimer = !simulated.allSatisfy(\.completed)
-                                                            if willStartTimer {
-                                                                restingForSet = RestingSet(exercise: exerciseIndex, set: setIndex)
-                                                            }
-                                                        }
-
-                                                        withAnimation(.easeOut(duration: settings.animationQuick)) {
-                                                            planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
-                                                            let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                            if sessionClient.isPaired {
-                                                                sessionClient.sendSetCompletion(
-                                                                    exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
-                                                                    setIndex: setIndex,
-                                                                    completed: isNowCompleted
-                                                                )
-                                                            }
-                                                            if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
-                                                                popUp()
-                                                            } else {
-                                                                popDown()
-                                                            }
-                                                            
-                                                            if !planViewModel.activePlan.exercises[exerciseIndex].completed {
-                                                                if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
-                                                                    isScrollViewDisabled = true
-                                                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                                                        guard !isWorkoutDone else { return }
-                                                                        withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                                                                            scrollViewScaleEffect = 0.95
-                                                                            scrollViewVisible = false
-                                                                            topToolBarHeight = screenHeight*0.8
-                                                                            topToolBarCornerRadius = 30
-                                                                            timerEnabled = true
-                                                                            breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
-                                                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                                                                guard !isWorkoutDone else { return }
-                                                                                withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                                                                                    timerVisible = true
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        updateLiveActivity()
-                                                                        if let endDate = breakTimerEndDate {
-                                                                            let nextSetForWatch = findNextIncompleteSet()
-                                                                            PhoneSessionManager.shared.sendTimerStarted(
-                                                                                endDate: endDate,
-                                                                                duration: selectedBreakDuration,
-                                                                                exerciseName: nextSetForWatch?.exerciseName,
-                                                                                setDescription: nextSetForWatch?.setDescription
-                                                                            )
-                                                                            if sessionClient.isPaired {
-                                                                                sessionClient.sendBreakTimerUpdate(
-                                                                                    endDate: endDate,
-                                                                                    exerciseIndex: exerciseIndex,
-                                                                                    setIndex: setIndex
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-
-                                                            feedbackGenerator.impactOccurred()
-                                                            calcPercentCompleted()
-                                                            updateLiveActivity()
-                                                            recomputeMyPosition()
-                                                        }
+                                                        handleSetTap(exerciseIndex: exerciseIndex, setIndex: setIndex)
                                                     }) {
                                                         if planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed {
                                                             ZStack {
@@ -576,6 +486,98 @@ struct WorkoutInProgressView: View {
             // empty until I happen to do something.
             if case .paired = new {
                 rebroadcastJointStateForPeer()
+            }
+        }
+    }
+
+    /// Handles a tap on a set's completion circle. Extracted from the Button
+    /// action closure in the view body — the flow is non-trivial:
+    ///  1. Predict whether toggling this set to completed will start a break
+    ///     timer, and pre-empt `restingForSet` BEFORE the plan mutation so
+    ///     the recompute resolves the avatar to the rest row in one step
+    ///     (no intermediate "next set" frame — Stage 6d gotcha).
+    ///  2. Toggle the set inside a `withAnimation` and broadcast the change.
+    ///  3. If the toggle just-completed an incomplete set AND the exercise
+    ///     isn't already fully complete, schedule the break-timer start
+    ///     animation (1s grace period → scroll view shrinks → timer fades in).
+    ///  4. Recompute avatar position + percent + Live Activity at the end.
+    private func handleSetTap(exerciseIndex: Int, setIndex: Int) {
+        let willComplete = !planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+        if willComplete {
+            var simulated = planViewModel.activePlan.exercises[exerciseIndex].sets
+            simulated[setIndex].completed = true
+            let willStartTimer = !simulated.allSatisfy(\.completed)
+            if willStartTimer {
+                restingForSet = RestingSet(exercise: exerciseIndex, set: setIndex)
+            }
+        }
+
+        withAnimation(.easeOut(duration: settings.animationQuick)) {
+            planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
+            let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+            if sessionClient.isPaired {
+                sessionClient.sendSetCompletion(
+                    exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
+                    setIndex: setIndex,
+                    completed: isNowCompleted
+                )
+            }
+            if isNowCompleted {
+                popUp()
+            } else {
+                popDown()
+            }
+
+            if !planViewModel.activePlan.exercises[exerciseIndex].completed,
+               isNowCompleted {
+                scheduleBreakTimerStart(exerciseIndex: exerciseIndex, setIndex: setIndex)
+            }
+
+            feedbackGenerator.impactOccurred()
+            calcPercentCompleted()
+            updateLiveActivity()
+            recomputeMyPosition()
+        }
+    }
+
+    /// Schedules the break-timer start animation after a 1-second grace
+    /// period — matches the pre-refactor timing exactly. The `guard
+    /// !isWorkoutDone` checks prevent the animation from firing if the
+    /// workout was cancelled / finished during the delay.
+    private func scheduleBreakTimerStart(exerciseIndex: Int, setIndex: Int) {
+        isScrollViewDisabled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            guard !isWorkoutDone else { return }
+            withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                scrollViewScaleEffect = 0.95
+                scrollViewVisible = false
+                topToolBarHeight = screenHeight * 0.8
+                topToolBarCornerRadius = 30
+                timerEnabled = true
+                breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    guard !isWorkoutDone else { return }
+                    withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                        timerVisible = true
+                    }
+                }
+            }
+            updateLiveActivity()
+            if let endDate = breakTimerEndDate {
+                let nextSetForWatch = findNextIncompleteSet()
+                PhoneSessionManager.shared.sendTimerStarted(
+                    endDate: endDate,
+                    duration: selectedBreakDuration,
+                    exerciseName: nextSetForWatch?.exerciseName,
+                    setDescription: nextSetForWatch?.setDescription
+                )
+                if sessionClient.isPaired {
+                    sessionClient.sendBreakTimerUpdate(
+                        endDate: endDate,
+                        exerciseIndex: exerciseIndex,
+                        setIndex: setIndex
+                    )
+                }
             }
         }
     }
