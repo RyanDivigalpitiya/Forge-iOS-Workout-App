@@ -148,7 +148,7 @@ struct WorkoutInProgressView: View {
                                         // overlayPreferenceValue(RowAnchorKey.self) attached to
                                         // this HStack, anchored to the actual rendered Y of each
                                         // row inside the card. No hardcoded offsets.
-                                        if sessionClient.state == .connected {
+                                        if sessionClient.isPaired {
                                             Color.clear.frame(width: gutterWidth)
                                         }
 
@@ -195,7 +195,7 @@ struct WorkoutInProgressView: View {
                                                     // filled with a grey checkmark when the peer
                                                     // has completed this set. Non-interactive —
                                                     // just a status mirror.
-                                                    if sessionClient.state == .connected {
+                                                    if sessionClient.isPaired {
                                                         peerCompletionCircle(
                                                             exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
                                                             setIndex: setIndex
@@ -223,7 +223,7 @@ struct WorkoutInProgressView: View {
                                                         withAnimation(.easeOut(duration: settings.animationQuick)) {
                                                             planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed.toggle()
                                                             let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                            if sessionClient.state == .connected {
+                                                            if sessionClient.isPaired {
                                                                 sessionClient.sendSetCompletion(
                                                                     exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
                                                                     setIndex: setIndex,
@@ -264,7 +264,7 @@ struct WorkoutInProgressView: View {
                                                                                 exerciseName: nextSetForWatch?.exerciseName,
                                                                                 setDescription: nextSetForWatch?.setDescription
                                                                             )
-                                                                            if sessionClient.state == .connected {
+                                                                            if sessionClient.isPaired {
                                                                                 sessionClient.sendBreakTimerUpdate(
                                                                                     endDate: endDate,
                                                                                     exerciseIndex: exerciseIndex,
@@ -315,7 +315,7 @@ struct WorkoutInProgressView: View {
                                                             set: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex],
                                                             index: setIndex
                                                         ),
-                                                        appearance: sessionClient.state == .connected
+                                                        appearance: sessionClient.isPaired
                                                             ? .workoutActiveCollab(
                                                                 isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
                                                             )
@@ -346,7 +346,7 @@ struct WorkoutInProgressView: View {
                                     .cornerRadius(settings.cornerRadiusLarge)
                                     }
                                     .overlayPreferenceValue(RowAnchorKey.self) { anchors in
-                                        if sessionClient.state == .connected {
+                                        if sessionClient.isPaired {
                                             GeometryReader { proxy in
                                                 let sets = planViewModel.activePlan.exercises[exerciseIndex].sets
                                                 ForEach(sets.indices, id: \.self) { setIndex in
@@ -557,24 +557,24 @@ struct WorkoutInProgressView: View {
         .onAppear {
             // Broadcast my starting position so the peer's avatar column
             // shows me at the first incomplete set right away.
-            if sessionClient.state == .connected {
+            if sessionClient.isPaired {
                 sessionClient.sendPositionUpdate(myPosition)
             }
         }
         .onChange(of: myPosition) { _, new in
-            if sessionClient.state == .connected {
+            if sessionClient.isPaired {
                 sessionClient.sendPositionUpdate(new)
             }
         }
         .onChange(of: sessionClient.state) { _, new in
-            // On every transition INTO .connected (initial pair, peer
-            // rejoined after leaving, both phones recovering from a server
-            // restart), re-broadcast my joint-mode state. The peer's
-            // SessionClient cleared its peerPositions / peerCompletedSets /
-            // peerBreakTimer dicts when it reconnected, and the server
-            // doesn't persist any of it — so without this, the peer's view
-            // of me would stay empty until I happen to do something.
-            if new == .connected {
+            // On every transition INTO .paired (initial pair, peer rejoined
+            // after leaving, both phones recovering from a server restart),
+            // re-broadcast my joint-mode state. The peer's SessionClient
+            // cleared its peerPositions / peerCompletedSets / peerBreakTimer
+            // dicts when it reconnected, and the server doesn't persist any
+            // of it — so without this, the peer's view of me would stay
+            // empty until I happen to do something.
+            if case .paired = new {
                 rebroadcastJointStateForPeer()
             }
         }
@@ -582,10 +582,10 @@ struct WorkoutInProgressView: View {
 
     /// Pushes my current avatar position, every completed set, and any
     /// active break timer to the peer. Called on every transition into
-    /// .connected so a freshly-(re)paired peer's local view of me is
+    /// .paired so a freshly-(re)paired peer's local view of me is
     /// fully populated without waiting for the next user action.
     private func rebroadcastJointStateForPeer() {
-        guard sessionClient.state == .connected else { return }
+        guard sessionClient.isPaired else { return }
 
         sessionClient.sendPositionUpdate(myPosition)
 
@@ -766,7 +766,7 @@ extension WorkoutInProgressView {
             }
             updateLiveActivity()
             PhoneSessionManager.shared.sendTimerDismissed()
-            if sessionClient.state == .connected {
+            if sessionClient.isPaired {
                 // Indices are ignored by the receiver when endDate is nil —
                 // they just clear the peer's entry from peerBreakTimer.
                 sessionClient.sendBreakTimerUpdate(
@@ -1018,7 +1018,7 @@ extension WorkoutInProgressView {
     private func restBreakRow() -> some View {
         Button(action: { showTimerSettings = true }) {
             HStack(spacing: 0) {
-                if sessionClient.state == .connected {
+                if sessionClient.isPaired {
                     restConnectorColumn()
                         .padding(.trailing, 8)
                 }

@@ -733,11 +733,10 @@ private func previewSessionClient(withSuggestion: Bool) -> SessionClient {
     let client = SessionClient()
     let peerId = UUID()
     client.myId = UUID()
-    client.peerIds = [peerId]
     client.myProfile = Profile(name: "Ryan", photoData: nil)
     client.peerProfiles = [peerId: Profile(name: "Alex", photoData: nil)]
     client.hasSubmittedProfile = true
-    client.state = .connected
+    client.state = .paired(peerIds: [peerId])
     if withSuggestion, let firstPlan = mockWorkoutPlans.first {
         client.suggestedPlan = PlanSnapshot(from: firstPlan)
     }

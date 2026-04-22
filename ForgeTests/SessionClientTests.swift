@@ -48,7 +48,7 @@ final class SessionClientTests {
         #expect(client.myId == myId)
         #expect(client.peerIds == [peerId])
         #expect(client.peerProfiles[peerId] == profile)
-        #expect(client.state == .connected)
+        #expect(client.isPaired)
     }
 
     @Test func welcomeWithNoPeersStaysWaitingForPeer() {
@@ -115,7 +115,7 @@ final class SessionClientTests {
         let peerId = UUID()
         send(.peerJoined(peerId: peerId))
         #expect(client.peerIds == [peerId])
-        #expect(client.state == .connected)
+        #expect(client.isPaired)
     }
 
     @Test func peerJoinedDoesNotDuplicateOnRepeatBroadcast() {
@@ -125,6 +125,23 @@ final class SessionClientTests {
         send(.peerJoined(peerId: peerId))
         send(.peerJoined(peerId: peerId))
         #expect(client.peerIds == [peerId])
+    }
+
+    @Test func peerJoinedPromotesWaitingForPeerToPaired() {
+        // State-enum invariant: after a welcome with no peers puts us in
+        // .waitingForPeer, the first peerJoined must transition to .paired.
+        // Regression guard for the Stage 5 invariant refactor.
+        send(.welcome(
+            yourId: UUID(),
+            peers: [],
+            suggestedPlan: nil,
+            workoutInProgress: nil
+        ))
+        #expect(client.state == .waitingForPeer)
+
+        let peerId = UUID()
+        send(.peerJoined(peerId: peerId))
+        #expect(client.state == .paired(peerIds: [peerId]))
     }
 
     // MARK: - peerLeft

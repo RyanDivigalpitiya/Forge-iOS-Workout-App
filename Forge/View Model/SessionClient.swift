@@ -173,11 +173,15 @@ final class SessionClient: ObservableObject {
     static let serverHost = "reserve-hiring-vegetables-adsl.trycloudflare.com"
     private static let profileKey = "collabProfile"
 
+    /// Session lifecycle. `.paired` carries peerIds directly so the "connected
+    /// without peers" illegal state is unrepresentable — any socket-up /
+    /// peer-present assertion in the view layer becomes a pattern match over
+    /// this case instead of a cross-check between two independent fields.
     enum State: Equatable {
         case idle
         case connecting
-        case waitingForPeer
-        case connected
+        case waitingForPeer                   // socket up, no peer yet
+        case paired(peerIds: [UUID])          // socket up, peer(s) present
         case disconnected(reason: String)
         case error(String)
     }
@@ -185,7 +189,6 @@ final class SessionClient: ObservableObject {
     @Published var state: State = .idle
     @Published var sessionId: UUID?
     @Published var myId: UUID?
-    @Published var peerIds: [UUID] = []
     @Published var peerProfiles: [UUID: Profile] = [:]
     @Published var myProfile: Profile?
     @Published var hasSubmittedProfile: Bool = false
@@ -236,6 +239,25 @@ final class SessionClient: ObservableObject {
             .store(in: &cancellables)
     }
 
+    /// Current paired peer UUIDs, or an empty array in any non-paired state.
+    /// Reads as a derived view of `state` — Swift won't auto-track the
+    /// dependency, but `@Published var state` already publishes on every
+    /// transition, so SwiftUI invalidation via `@EnvironmentObject` still
+    /// re-evaluates any view that reads this accessor.
+    var peerIds: [UUID] {
+        if case .paired(let ids) = state { return ids }
+        return []
+    }
+
+    /// True whenever the session is actively paired (socket up + peer present).
+    /// Preferred over `state == .paired(peerIds: ...)` at call sites that
+    /// don't need the peer list — pattern-matching a `case .paired` arm only
+    /// is also fine.
+    var isPaired: Bool {
+        if case .paired = state { return true }
+        return false
+    }
+
     var bothProfilesSubmitted: Bool {
         guard hasSubmittedProfile, !peerIds.isEmpty else { return false }
         return peerIds.allSatisfy { peerProfiles[$0] != nil }
@@ -259,7 +281,6 @@ final class SessionClient: ObservableObject {
         guard case .disconnected = state else { return }
         cleanupSocket()
         myId = nil
-        peerIds = []
         peerProfiles = [:]
         // Joint-mode side state was keyed by the OLD peer UUIDs and the OLD
         // myId. After reconnect everyone gets fresh UUIDs, so any leftover
@@ -281,7 +302,6 @@ final class SessionClient: ObservableObject {
         cleanupSocket()
         sessionId = nil
         myId = nil
-        peerIds = []
         peerProfiles = [:]
         hasSubmittedProfile = false
         suggestedPlan = nil
@@ -455,13 +475,13 @@ final class SessionClient: ObservableObject {
         switch message {
         case .welcome(let yourId, let peers, let suggested, let inProgress):
             myId = yourId
-            peerIds = peers.map(\.peerId)
+            let incomingPeerIds = peers.map(\.peerId)
             peerProfiles = Dictionary(uniqueKeysWithValues: peers.compactMap { peer in
                 peer.profile.map { (peer.peerId, $0) }
             })
             suggestedPlan = suggested
             workoutInProgress = inProgress
-            state = peerIds.isEmpty ? .waitingForPeer : .connected
+            state = incomingPeerIds.isEmpty ? .waitingForPeer : .paired(peerIds: incomingPeerIds)
             // Successful welcome — reset the backoff counter so any future
             // disconnect starts the next cycle from a 2s delay, not picking
             // up where the last cycle left off.
@@ -471,13 +491,13 @@ final class SessionClient: ObservableObject {
             }
 
         case .peerJoined(let peerId):
-            if !peerIds.contains(peerId) {
-                peerIds.append(peerId)
+            var updated = peerIds
+            if !updated.contains(peerId) {
+                updated.append(peerId)
             }
-            state = .connected
+            state = .paired(peerIds: updated)
 
         case .peerLeft(let peerId):
-            peerIds.removeAll { $0 == peerId }
             peerProfiles.removeValue(forKey: peerId)
             // Mirror the reconnect() cleanup — wipe per-peer side state
             // keyed by the leaving UUID so it doesn't linger as a ghost
@@ -485,7 +505,8 @@ final class SessionClient: ObservableObject {
             peerPositions.removeValue(forKey: peerId)
             peerBreakTimer.removeValue(forKey: peerId)
             peerReady.removeValue(forKey: peerId)
-            state = peerIds.isEmpty ? .waitingForPeer : .connected
+            let remaining = peerIds.filter { $0 != peerId }
+            state = remaining.isEmpty ? .waitingForPeer : .paired(peerIds: remaining)
 
         case .peerProfileUpdated(let peerId, let profile):
             // Ignore profile updates for peerIds we don't recognise — guards

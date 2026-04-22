@@ -79,7 +79,7 @@ struct CollabStatusBanner: View {
 
     private var bannerMessage: String? {
         switch sessionClient.state {
-        case .connected, .idle:
+        case .paired, .idle:
             return nil
         case .waitingForPeer:
             return "Friend disconnected"

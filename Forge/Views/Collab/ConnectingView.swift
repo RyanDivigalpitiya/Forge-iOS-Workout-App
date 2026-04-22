@@ -47,20 +47,20 @@ struct ConnectingView: View {
         .background(Color.black)
         .navigationBarBackButtonHidden(true)
         .onChange(of: sessionClient.state) { _, newState in
-            if newState == .connected {
+            if case .paired = newState {
                 Task {
                     try? await Task.sleep(for: .seconds(1.2))
-                    if sessionClient.state == .connected {
+                    if sessionClient.isPaired {
                         joinSessionActive = true
                     }
                 }
             }
         }
         .onAppear {
-            if sessionClient.state == .connected {
+            if sessionClient.isPaired {
                 Task {
                     try? await Task.sleep(for: .seconds(0.6))
-                    if sessionClient.state == .connected {
+                    if sessionClient.isPaired {
                         joinSessionActive = true
                     }
                 }
@@ -74,12 +74,12 @@ struct ConnectingView: View {
     }
 
     private var isConnected: Bool {
-        sessionClient.state == .connected
+        sessionClient.isPaired
     }
 
     private var iconName: String {
         switch sessionClient.state {
-        case .connected: return "checkmark.circle.fill"
+        case .paired: return "checkmark.circle.fill"
         case .error, .disconnected: return "exclamationmark.triangle.fill"
         default: return "antenna.radiowaves.left.and.right"
         }
@@ -90,7 +90,7 @@ struct ConnectingView: View {
         case .idle: return "Idle"
         case .connecting: return "Connecting…"
         case .waitingForPeer: return "Waiting for friend…"
-        case .connected: return "Connected."
+        case .paired: return "Connected."
         case .disconnected: return "Reconnecting…"
         case .error(let msg): return "Error\n\(msg)"
         }
