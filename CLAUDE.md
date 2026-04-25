@@ -335,6 +335,38 @@ The codebase has accumulated several rounds of refactoring (see git log for `Sta
     - `SessionClient.State`: `.connected` replaced with `.paired(peerIds: [UUID])`; `@Published var peerIds` removed; added `isPaired` + `peerIds` computed accessors for call-site continuity. ~15 view sites updated to `isPaired` or pattern-match `case .paired`.
     - `WorkoutInProgressView` decomposition (conservative scope): anchor-preference types (`RestingSet`, `RowID`, `RowAnchorKey`) moved to sibling `WorkoutAvatarGutter.swift`; the deeply-nested set-tap Button action closure flattened into `handleSetTap(exerciseIndex:setIndex:)` + `scheduleBreakTimerStart(exerciseIndex:setIndex:)` methods. Full `JointModeCoordinator` extraction was explicitly deferred — see the note at the joint-mode `@State` declarations explaining the risk/value rationale. Final state: 64 tests passing; solo + joint flows unchanged.
 
+## Future development roadmap
+
+Five-stage plan for upcoming work. Stages are listed in priority order but
+aren't strictly sequential — items can be promoted or reordered as
+priorities shift. Each stage will be scoped + planned individually before
+execution; the bullets below are intent, not commitments.
+
+1. **UI polish** — visual + interaction refinements across existing
+   surfaces. Scope TBD; expect small targeted commits rather than a single
+   sweep. Likely candidates surface during normal use (e.g. cosmetic
+   issues, animation timing, copy tweaks).
+2. **UI refactor for all iOS devices** — current layout assumes iPhone-class
+   screens with several `UIScreen.main.bounds`-derived fractional widths.
+   Goal: render correctly on iPad and Pro Max devices, plus better landscape
+   handling. Likely involves `GeometryReader` / size-class-aware adjustments
+   and consolidating the three `UIScreen.main.bounds` call sites flagged in
+   the gotchas section.
+3. **Robust Plan Data Model with new Plan ID** — replaces the current
+   per-plan `UUID` with an identity scheme that survives import/export
+   round-trips, AirDrop dedup, and (future) server-side persistence. Likely
+   ties together the existing `dedupePlanIdsIfNeeded` migration logic and
+   the `PlanSnapshot` wire type into a single coherent identity story.
+4. **History data visualization** — beyond the current per-workout
+   `HistoryView`, surface trends across workouts: volume over time,
+   frequency, per-exercise progress, etc. New screen(s) reachable from the
+   `CompletedWorkoutsView` list.
+5. **Production-grade server deployment** — Cloudflare Named Tunnel +
+   launchd auto-start. Steps already captured in the
+   "Deferred: production-grade server deployment" subsection under
+   Collaborative Workout Feature above. Pure infrastructure; no behavioral
+   change.
+
 ## Git usage
 
 - Do not credit yourself as a co-author when creating commit messages.
