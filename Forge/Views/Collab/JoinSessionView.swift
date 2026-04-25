@@ -44,7 +44,11 @@ struct JoinSessionView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            Spacer().frame(height: 50)
+            // Two flexible spacers — top + bottom — balance the avatar +
+            // name-field cluster between the title above and the button
+            // below, vertically centering the cluster in the available
+            // space without dragging the button up off the bottom edge.
+            Spacer()
 
             avatarPairRow
 
@@ -154,7 +158,7 @@ struct JoinSessionView: View {
                     fallbackInitial: initial(from: peerProfileTrimmedName.isEmpty ? "?" : peerProfileTrimmedName),
                     diameter: 80
                 )
-                Text(peerProfileTrimmedName.isEmpty ? "Entering their info…" : peerProfileTrimmedName)
+                Text(peerProfileTrimmedName.isEmpty ? "?" : peerProfileTrimmedName)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(peerProfileTrimmedName.isEmpty ? .gray : .white)
@@ -257,4 +261,40 @@ struct JoinSessionView: View {
         guard !trimmedCachedName.isEmpty else { return }
         sessionClient.submitProfile(cached)
     }
+}
+
+// MARK: - Previews
+
+/// Builds a SessionClient pre-configured for Xcode Canvas. Sets state to
+/// `.paired(peerIds:)` so `peerIds.first` resolves and the avatar pair
+/// row renders fully. Optionally seeds the peer's profile to preview the
+/// "friend's name shown" caption variant vs. "Entering their info…".
+@MainActor
+private func joinSessionPreviewClient(peerHasSubmittedProfile: Bool) -> SessionClient {
+    let client = SessionClient()
+    let peerId = UUID()
+    client.myId = UUID()
+    client.state = .paired(peerIds: [peerId])
+    if peerHasSubmittedProfile {
+        client.peerProfiles[peerId] = Profile(name: "Sarah", photoData: nil)
+    }
+    return client
+}
+
+#Preview("Peer entering info") {
+    NavigationStack {
+        JoinSessionView()
+            .environmentObject(joinSessionPreviewClient(peerHasSubmittedProfile: false))
+            .environmentObject(GlobalSettings.shared)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Peer with profile") {
+    NavigationStack {
+        JoinSessionView()
+            .environmentObject(joinSessionPreviewClient(peerHasSubmittedProfile: true))
+            .environmentObject(GlobalSettings.shared)
+    }
+    .preferredColorScheme(.dark)
 }
