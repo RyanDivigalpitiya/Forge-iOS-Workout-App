@@ -110,11 +110,12 @@ struct WorkoutInProgressView: View {
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
 
-    // Solo → joint share flow state. `shareItem` drives the iOS share sheet
-    // (same pattern as CollabStatusBanner's Re-invite path). `profilePromptActive`
-    // gates the name-entry sheet for users who've never used collab before —
-    // without a profile, the joined friend would see a "?" avatar for the host.
-    @State private var shareItem: ShareableURL? = nil
+    // Solo → joint share flow state. `inviteFriendSheetActive` presents
+    // `WorkoutWithFriendView` so the user sees the feature explainer + Copy /
+    // Share buttons before broadcasting. `profilePromptActive` gates the
+    // name-entry sheet for users who've never used collab before — without a
+    // profile, the joined friend would see a "?" avatar for the host.
+    @State private var inviteFriendSheetActive: Bool = false
     @State private var profilePromptActive: Bool = false
     @State private var profileDraftName: String = ""
     
@@ -495,8 +496,9 @@ struct WorkoutInProgressView: View {
             .presentationDetents([.height(300)])
             .environment(\.colorScheme, .dark)
         }
-        .sheet(item: $shareItem) { wrapper in
-            ShareSheet(activityItems: [wrapper.url])
+        .sheet(isPresented: $inviteFriendSheetActive) {
+            WorkoutWithFriendView(activeWorkoutPlan: planViewModel.activePlan)
+                .environment(\.colorScheme, .dark)
         }
         .sheet(isPresented: $profilePromptActive) {
             profileNamePrompt
@@ -654,27 +656,22 @@ struct WorkoutInProgressView: View {
         }
     }
 
-    /// Entry point for the Share button in the top toolbar. Three paths:
+    /// Entry point for the Share button in the top toolbar. The button is
+    /// only visible when `sessionId == nil` (truly solo), so two paths:
     ///   1. Host has never set a profile → present name prompt first; the
     ///      prompt's submit handler re-invokes this method once the profile
     ///      is set, so the friend never sees a "?" avatar for the host.
-    ///   2. Session doesn't exist yet → create one + register
-    ///      workoutInProgress server-side so the Stage 7b' welcome path
-    ///      auto-routes joiners straight into this view.
-    ///   3. Session already exists (paired OR waitingForPeer) → re-share
-    ///      the existing URL. Matches CollabStatusBanner.presentShare().
+    ///   2. Otherwise → present `WorkoutWithFriendView` as a sheet. The
+    ///      sheet's Copy / Share buttons call `startSharedSessionForActiveWorkout`
+    ///      themselves (registering `workoutInProgress` server-side so Stage 7b'
+    ///      auto-routes joiners back into this view) and dismiss back here.
     private func handleShareTap() {
         if sessionClient.myProfile == nil {
             profileDraftName = ""
             profilePromptActive = true
             return
         }
-        if sessionClient.sessionId == nil {
-            sessionClient.startSharedSessionForActiveWorkout(plan: planViewModel.activePlan)
-        }
-        if let url = sessionClient.shareLinkURL() {
-            shareItem = ShareableURL(url: url)
-        }
+        inviteFriendSheetActive = true
     }
 
     /// Minimal name-entry sheet shown when the user taps Share without ever

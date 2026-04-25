@@ -2,8 +2,17 @@ import SwiftUI
 import UIKit
 
 struct WorkoutWithFriendView: View {
+    /// Non-nil when presented over an in-progress solo workout. In that
+    /// mode Copy/Share use `startSharedSessionForActiveWorkout(plan:)` so
+    /// the joiner is auto-routed back into the active workout (Stage 7b'),
+    /// and the view dismisses itself instead of pushing `ConnectingView` —
+    /// the host stays inside `WorkoutInProgressView` and `CollabStatusBanner`
+    /// handles the `.waitingForPeer` UI from there.
+    var activeWorkoutPlan: WorkoutPlan? = nil
+
     @EnvironmentObject var sessionClient: SessionClient
     @EnvironmentObject var settings: GlobalSettings
+    @Environment(\.dismiss) private var dismiss
 
     @State private var connectingActive = false
     @State private var shareURL: ShareableURL?
@@ -97,6 +106,17 @@ struct WorkoutWithFriendView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $shareURL) { wrapper in
             ShareSheet(activityItems: [wrapper.url])
+        }
+        .onChange(of: shareURL?.id) { oldValue, newValue in
+            // Workout-mode dismissal: once the user finishes (or cancels)
+            // the iOS share sheet, return to the in-progress workout.
+            // ShareableURL isn't Equatable, so we observe its UUID id —
+            // transition from non-nil to nil means the share sheet closed.
+            // The History path leaves dismissal to `connectingActive`'s
+            // navigation push.
+            if oldValue != nil, newValue == nil, activeWorkoutPlan != nil {
+                dismiss()
+            }
         }
         .navigationDestination(isPresented: $connectingActive) {
             ConnectingView()
@@ -400,17 +420,37 @@ struct WorkoutWithFriendView: View {
     }
 
     private func generateAndCopy() {
-        sessionClient.createSession()
+        provisionSession()
         guard let url = sessionClient.shareLinkURL() else { return }
         UIPasteboard.general.string = url.absoluteString
-        connectingActive = true
+        if activeWorkoutPlan != nil {
+            dismiss()
+        } else {
+            connectingActive = true
+        }
     }
 
     private func generateAndShare() {
-        sessionClient.createSession()
+        provisionSession()
         guard let url = sessionClient.shareLinkURL() else { return }
         shareURL = ShareableURL(url: url)
-        connectingActive = true
+        // Workout mode defers dismissal until the share sheet itself
+        // closes — see `.onChange(of: shareURL)` in body.
+        if activeWorkoutPlan == nil {
+            connectingActive = true
+        }
+    }
+
+    /// Picks the right session-creation API for the current entry point.
+    /// Workout mode also registers `workoutInProgress` server-side so any
+    /// joiner is routed straight into `WorkoutInProgressView` via the
+    /// Stage 7b' welcome path.
+    private func provisionSession() {
+        if let plan = activeWorkoutPlan {
+            sessionClient.startSharedSessionForActiveWorkout(plan: plan)
+        } else {
+            sessionClient.createSession()
+        }
     }
 }
 
