@@ -334,22 +334,30 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(settings.fgColor)
                                     Spacer()
 
-                                    // Share button — mid-workout invite. In solo mode, creates
-                                    // a new session + marks workoutInProgress server-side so a
-                                    // joining friend auto-routes straight into this view. In an
-                                    // already-paired session the same button just re-presents
-                                    // the existing URL (mirrors CollabStatusBanner's Re-invite
-                                    // behavior). Disabled during break-timer expansion and while
-                                    // a socket handshake is mid-flight.
-                                    Button(action: handleShareTap) {
-                                        Image(systemName: "square.and.arrow.up")
-                                            .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(settings.fgColor)
+                                    // Share button — mid-workout invite. Visible only when
+                                    // truly solo (no session exists yet). Once a session
+                                    // is live (.connecting / .waitingForPeer / .paired /
+                                    // .disconnected / .error), the CollabStatusBanner's
+                                    // Re-invite path is the single affordance for sharing
+                                    // the URL — this avoids two redundant share buttons
+                                    // and keeps the joint workout view clean.
+                                    if sessionClient.sessionId == nil {
+                                        Button(action: handleShareTap) {
+                                            Image(systemName: "square.and.arrow.up")
+                                                .font(.system(size: 20, weight: .semibold))
+                                                .foregroundColor(settings.fgColor)
+                                                .frame(width: 44, height: 44)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .disabled(timerEnabled)
+                                        .padding(.trailing, 5)
+                                    } else {
+                                        // Invisible placeholder mirrors the back chevron's
+                                        // 44pt footprint so the plan-name text stays centered.
+                                        Color.clear
                                             .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
+                                            .padding(.trailing, 5)
                                     }
-                                    .disabled(timerEnabled || sessionClient.state == .connecting)
-                                    .padding(.trailing, 5)
                                 }
                                 .padding(.bottom,1)
 
