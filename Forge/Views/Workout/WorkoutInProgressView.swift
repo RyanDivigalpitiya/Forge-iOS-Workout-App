@@ -343,7 +343,7 @@ struct WorkoutInProgressView: View {
                                     // and keeps the joint workout view clean.
                                     if sessionClient.sessionId == nil {
                                         Button(action: handleShareTap) {
-                                            Image(systemName: "square.and.arrow.up")
+                                            Image(systemName: "person.2.fill")
                                                 .font(.system(size: 20, weight: .semibold))
                                                 .foregroundColor(settings.fgColor)
                                                 .frame(width: 44, height: 44)
@@ -455,11 +455,17 @@ struct WorkoutInProgressView: View {
                 }
             }
 
-            if showConfetti {
-                ConfettiView(colors: [settings.fgColor, .white, .black])
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-            }
+            // Always-mounted ConfettiView with internal trigger via
+            // `triggered`. Conditional `if showConfetti { ... }` mounting
+            // caused iOS-18 specific lag in onAppear → startDate landing
+            // near dismiss time → confetti barely playing before cut-off.
+            // See ConfettiView.swift comment for the full story.
+            ConfettiView(
+                colors: [settings.fgColor, .white, .black],
+                triggered: showConfetti
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
         }
         .overlay(alignment: .top) {
             // Joint-mode connectivity banner. Sits above the main workout
@@ -823,7 +829,17 @@ extension WorkoutInProgressView {
             scrollViewScaleEffect = 0.95
             isWorkoutOpacityFull = false
         }
-        showConfetti = true
+        // Explicitly nil-animation for the confetti flag. Without this,
+        // iOS 18 propagates the surrounding 2s easeInOut transaction
+        // onto this bare state change, and the conditional view's
+        // default .opacity insertion transition fades the confetti in
+        // over 2s — peaking just as the dismiss timer fires (so the
+        // confetti barely appears before it's cut off). iOS 26 changed
+        // transaction propagation, hiding the bug. withAnimation(nil)
+        // forces zero-duration insertion regardless of OS version.
+        withAnimation(nil) {
+            showConfetti = true
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             // Reset set completions and save plan AFTER the dismiss animation,
             // so the user never sees exercises visually unchecking.

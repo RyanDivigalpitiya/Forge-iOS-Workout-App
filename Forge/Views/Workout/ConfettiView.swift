@@ -2,12 +2,21 @@ import SwiftUI
 
 /// Full-screen confetti overlay rendered via Canvas + TimelineView for smooth 60fps playback.
 /// Two streams shoot from the bottom corners and float back down with air-drag physics.
+///
+/// Always-mounted; gating happens via `triggered`. The earlier conditional-
+/// mount pattern (`if showConfetti { ConfettiView(...) }`) caused a bug on
+/// iOS 18 where the conditional view's mount got deferred while the parent
+/// was mid-animation, so `onAppear` fired ~1.5s late and `startDate` ended
+/// up near the dismiss timer — confetti barely played before being cut off.
+/// iOS 26 mounts conditionals faster so the bug didn't surface there.
+/// Mount-on-parent-appear + trigger-via-binding sidesteps the issue entirely.
 struct ConfettiView: View {
 
     let colors: [Color]
+    let triggered: Bool
 
     @State private var particles: [Particle] = []
-    @State private var startDate: Date = Date()
+    @State private var startDate: Date = .distantPast
 
     private let particleCount = 150
     private let totalDuration: TimeInterval = 2.0
@@ -16,6 +25,10 @@ struct ConfettiView: View {
         GeometryReader { geo in
             TimelineView(.animation) { timeline in
                 Canvas { context, size in
+                    // Skip the per-particle loop until something has been
+                    // triggered. Empty particles array → cheap no-op even
+                    // though the TimelineView still ticks every frame.
+                    guard !particles.isEmpty else { return }
                     let elapsed = CGFloat(timeline.date.timeIntervalSince(startDate))
 
                     for particle in particles {
@@ -53,9 +66,14 @@ struct ConfettiView: View {
                 .frame(width: geo.size.width, height: geo.size.height)
             }
         }
-        .onAppear {
-            startDate = Date()
-            generateParticles()
+        .onChange(of: triggered) { _, new in
+            // Particles + startDate get reset every time `triggered` flips
+            // back to true. The current call site only flips it once per
+            // workout, but this is safer than relying on that contract.
+            if new {
+                startDate = Date()
+                generateParticles()
+            }
         }
     }
 
