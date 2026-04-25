@@ -117,6 +117,7 @@ enum ServerMessage: Codable {
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
     case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
+    case peerProfileSubmitted(peerId: UUID)
     case sessionFull
 }
 
@@ -132,6 +133,12 @@ enum ClientMessage: Codable {
     /// after `createSession()` when the user taps Share from an active
     /// solo workout. Mirrors server-side `ClientMessage.setWorkoutInProgress`.
     case setWorkoutInProgress(PlanSnapshot?)
+    /// Sent when the user explicitly taps "Join Session →" in
+    /// JoinSessionView. Distinct from `.profileUpdate` (which fires on
+    /// every in-progress edit) so peers can differentiate "still
+    /// entering" from "committed". Mirrors server-side
+    /// `ClientMessage.profileSubmitted`.
+    case profileSubmitted
 }
 
 /// Identifies a specific set in the joint workout. Used as a Hashable key
@@ -205,6 +212,12 @@ final class SessionClient: ObservableObject {
     /// needing to manually reset the flag between sessions.
     @Published var startWorkoutSignal: UUID?
     @Published var peerCompletedSets: Swift.Set<PeerSetKey> = []
+    /// UUIDs of peers who have explicitly tapped "Join Session →"
+    /// (server-broadcast `peerProfileSubmitted`). Tracked separately from
+    /// `peerProfiles` so live-edit `peerProfileUpdated` broadcasts don't
+    /// prematurely satisfy the bothProfilesSubmitted nav gate. Cleared
+    /// on disconnect/reconnect; entries removed on peerLeft.
+    @Published var peerCommittedProfiles: Swift.Set<UUID> = []
     @Published var peerPositions: [UUID: UserPosition] = [:]
     @Published var peerBreakTimer: [UUID: PeerBreakTimer] = [:]
     /// Set in the welcome handler when the server reports an active workout
@@ -264,7 +277,7 @@ final class SessionClient: ObservableObject {
 
     var bothProfilesSubmitted: Bool {
         guard hasSubmittedProfile, !peerIds.isEmpty else { return false }
-        return peerIds.allSatisfy { peerProfiles[$0] != nil }
+        return peerIds.allSatisfy { peerCommittedProfiles.contains($0) }
     }
 
     func createSession() {
@@ -318,6 +331,7 @@ final class SessionClient: ObservableObject {
         peerCompletedSets = []
         peerPositions = [:]
         peerBreakTimer = [:]
+        peerCommittedProfiles = []
         openSocket(sessionId: id)
     }
 
@@ -338,6 +352,7 @@ final class SessionClient: ObservableObject {
         peerCompletedSets = []
         peerPositions = [:]
         peerBreakTimer = [:]
+        peerCommittedProfiles = []
         workoutInProgress = nil
         state = .idle
     }
@@ -349,6 +364,37 @@ final class SessionClient: ObservableObject {
             UserDefaults.standard.set(data, forKey: Self.profileKey)
         }
         sendProfileOverSocket(profile)
+        // Distinct commit signal — peers gate auto-nav on this, not on
+        // .profileUpdate (which fires for every in-progress edit too).
+        sendClientMessage(.profileSubmitted)
+    }
+
+    /// Live-broadcast variant of `submitProfile`. Updates `myProfile` and
+    /// the UserDefaults cache, sends a `profileUpdate` to the server (which
+    /// re-broadcasts to peers as `peerProfileUpdated`) — but DOESN'T touch
+    /// `hasSubmittedProfile`. Use this for in-progress edits in
+    /// JoinSessionView so the peer sees the user's name/photo live without
+    /// the form locking or the navigation-to-PlanSuggestionView gate
+    /// firing on the local user's side. The explicit "Join Session →"
+    /// button still calls `submitProfile`, which is what trips the gate.
+    func updateProfile(_ profile: Profile) {
+        myProfile = profile
+        if let data = try? JSONEncoder().encode(profile) {
+            UserDefaults.standard.set(data, forKey: Self.profileKey)
+        }
+        sendProfileOverSocket(profile)
+    }
+
+    /// Wipes the locally-cached collab profile (name + photo) from memory
+    /// and UserDefaults, and resets `hasSubmittedProfile` so any future
+    /// JoinSessionView appearance will show the form for re-entry rather
+    /// than auto-submitting a stale profile. Doesn't broadcast anything
+    /// to the server — peers retain whatever profile they last received
+    /// for this user until the user submits a new one.
+    func clearProfile() {
+        myProfile = nil
+        hasSubmittedProfile = false
+        UserDefaults.standard.removeObject(forKey: Self.profileKey)
     }
 
     func suggestPlan(from plan: WorkoutPlan) {
@@ -514,6 +560,10 @@ final class SessionClient: ObservableObject {
             reconnectAttempt = 0
             if hasSubmittedProfile, let profile = myProfile {
                 sendProfileOverSocket(profile)
+                // Re-broadcast our committed status so peers (post-reconnect
+                // or already-in-session-when-we-arrived) know to flip our
+                // committed flag without a fresh tap-Join-Session.
+                sendClientMessage(.profileSubmitted)
             }
 
         case .peerJoined(let peerId):
@@ -522,6 +572,13 @@ final class SessionClient: ObservableObject {
                 updated.append(peerId)
             }
             state = .paired(peerIds: updated)
+            // The new peer's welcome carries existing peers' profiles but
+            // NOT their committed state (server doesn't track it). Re-send
+            // our commit signal so they flip our entry in their
+            // peerCommittedProfiles set.
+            if hasSubmittedProfile {
+                sendClientMessage(.profileSubmitted)
+            }
 
         case .peerLeft(let peerId):
             peerProfiles.removeValue(forKey: peerId)
@@ -531,6 +588,7 @@ final class SessionClient: ObservableObject {
             peerPositions.removeValue(forKey: peerId)
             peerBreakTimer.removeValue(forKey: peerId)
             peerReady.removeValue(forKey: peerId)
+            peerCommittedProfiles.remove(peerId)
             let remaining = peerIds.filter { $0 != peerId }
             state = remaining.isEmpty ? .waitingForPeer : .paired(peerIds: remaining)
 
@@ -540,6 +598,11 @@ final class SessionClient: ObservableObject {
             // leaving orphaned entries in peerProfiles.
             guard peerIds.contains(peerId) else { return }
             peerProfiles[peerId] = profile
+
+        case .peerProfileSubmitted(let peerId):
+            // Same out-of-order guard as peerProfileUpdated.
+            guard peerIds.contains(peerId) else { return }
+            peerCommittedProfiles.insert(peerId)
 
         case .planSuggested(_, let plan):
             suggestedPlan = plan

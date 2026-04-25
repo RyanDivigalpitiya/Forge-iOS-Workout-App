@@ -168,11 +168,13 @@ final class SessionClientTests {
             exerciseIndex: 0, setIndex: 0
         ))
         send(.peerReadyChanged(peerId: peerId, isReady: true))
+        send(.peerProfileSubmitted(peerId: peerId))
 
         #expect(client.peerProfiles[peerId] != nil)
         #expect(client.peerPositions[peerId] != nil)
         #expect(client.peerBreakTimer[peerId] != nil)
         #expect(client.peerReady[peerId] == true)
+        #expect(client.peerCommittedProfiles.contains(peerId))
 
         send(.peerLeft(peerId: peerId))
 
@@ -181,6 +183,7 @@ final class SessionClientTests {
         #expect(client.peerPositions[peerId] == nil)
         #expect(client.peerBreakTimer[peerId] == nil)
         #expect(client.peerReady[peerId] == nil)
+        #expect(client.peerCommittedProfiles.contains(peerId) == false)
         #expect(client.state == .waitingForPeer)
     }
 
@@ -309,6 +312,38 @@ final class SessionClientTests {
     }
 
     // MARK: - ClientMessage protocol symmetry
+
+    @Test func profileSubmittedClientMessageRoundTrips() {
+        // Wire-protocol guard for the explicit-commit signal that gates
+        // bothProfilesSubmitted nav. No payload — purely a flag flip on
+        // the receiver side.
+        let message = ClientMessage.profileSubmitted
+        let data = try! JSONEncoder().encode(message)
+        let decoded = try! JSONDecoder().decode(ClientMessage.self, from: data)
+        if case .profileSubmitted = decoded {
+            // Round-tripped correctly.
+        } else {
+            Issue.record("Expected .profileSubmitted, got \(decoded)")
+        }
+    }
+
+    @Test func peerProfileSubmittedFlipsCommittedSet() {
+        // peerProfileSubmitted should insert the peer into
+        // peerCommittedProfiles, gated on peerIds.contains. Untracked peers
+        // are silently ignored (out-of-order or post-peerLeft delivery).
+        let peerId = UUID()
+        send(.peerJoined(peerId: peerId))
+        #expect(client.peerCommittedProfiles.contains(peerId) == false)
+
+        send(.peerProfileSubmitted(peerId: peerId))
+        #expect(client.peerCommittedProfiles.contains(peerId))
+    }
+
+    @Test func peerProfileSubmittedIgnoredForUnknownPeerId() {
+        let unknown = UUID()
+        send(.peerProfileSubmitted(peerId: unknown))
+        #expect(client.peerCommittedProfiles.contains(unknown) == false)
+    }
 
     @Test func setWorkoutInProgressClientMessageRoundTrips() {
         // Outbound protocol guard: solo → joint share flow relies on

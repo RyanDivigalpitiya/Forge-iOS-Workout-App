@@ -167,6 +167,12 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     sessionId: sessionId,
                                     plan: plan
                                 )
+                            case .profileSubmitted:
+                                await manager.broadcast(
+                                    .peerProfileSubmitted(peerId: myId),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {

@@ -40,6 +40,12 @@ enum ServerMessage: Codable, Sendable {
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
     case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
+    /// Broadcast when a peer taps "Join Session →" (the explicit profile
+    /// commit). Receivers track committed peers separately from
+    /// `peerProfiles` so the auto-nav-to-PlanSuggestionView gate fires
+    /// only on commits, not in-progress edits delivered via
+    /// `peerProfileUpdated`.
+    case peerProfileSubmitted(peerId: UUID)
     case sessionFull
 }
 
@@ -59,4 +65,10 @@ enum ClientMessage: Codable, Sendable {
     /// to existing peers — they'll read the value on their next welcome
     /// (e.g. after a reconnect).
     case setWorkoutInProgress(PlanSnapshot?)
+    /// Sent when the user taps "Join Session →" — distinct from the
+    /// live-edit `profileUpdate` so peers can differentiate "still
+    /// entering their info" from "explicitly committed". No payload —
+    /// the latest `profileUpdate` carries the profile data; this just
+    /// flips the committed flag on the receiver side.
+    case profileSubmitted
 }

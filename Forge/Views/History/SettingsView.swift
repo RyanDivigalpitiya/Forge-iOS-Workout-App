@@ -1,12 +1,96 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: GlobalSettings
     @EnvironmentObject var planViewModel: PlanViewModel
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
+    @EnvironmentObject var sessionClient: SessionClient
+
+    // Local mirrors of the persisted collab profile, edited in this screen.
+    // Synced from sessionClient.myProfile on appear; written back via
+    // sessionClient.submitProfile(...) on Save (which persists to UserDefaults
+    // AND broadcasts the new profile if a session is currently active).
+    @State private var profileName: String = ""
+    @State private var profilePhotoData: Data? = nil
+    @State private var profilePhotoItem: PhotosPickerItem? = nil
+    @State private var showClearProfileConfirm: Bool = false
+
+    private var profileTrimmedName: String {
+        profileName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var profileHasUnsavedChanges: Bool {
+        let savedName = sessionClient.myProfile?.name ?? ""
+        let savedPhoto = sessionClient.myProfile?.photoData
+        let nameChanged = profileTrimmedName != savedName
+        let photoChanged = profilePhotoData != savedPhoto
+        return (nameChanged || photoChanged) && !profileTrimmedName.isEmpty
+    }
 
     var body: some View {
         List {
+            Section {
+                HStack(spacing: 16) {
+                    PhotosPicker(selection: $profilePhotoItem, matching: .images, photoLibrary: .shared()) {
+                        avatar(
+                            data: profilePhotoData,
+                            fallbackInitial: initial(from: profileTrimmedName.isEmpty ? "?" : profileTrimmedName),
+                            diameter: 56
+                        )
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.white)
+                                .padding(5)
+                                .background(Circle().fill(settings.fgColor))
+                                .offset(x: 2, y: 2)
+                        }
+                    }
+
+                    TextField(
+                        "",
+                        text: $profileName,
+                        prompt: Text("Your name").foregroundColor(.gray)
+                    )
+                    .font(.body)
+                    .foregroundColor(.white)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+
+                    Button {
+                        saveProfile()
+                    } label: {
+                        Text("Save")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(profileHasUnsavedChanges ? settings.fgColor : Color.gray.opacity(0.3))
+                            .cornerRadius(settings.cornerRadiusMedium)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(!profileHasUnsavedChanges)
+                }
+                .listRowBackground(GlobalSettings.shared.bgColor)
+
+                if sessionClient.myProfile != nil {
+                    Button(role: .destructive) {
+                        showClearProfileConfirm = true
+                    } label: {
+                        Text("Clear Profile")
+                    }
+                    .listRowBackground(GlobalSettings.shared.bgColor)
+                }
+            } header: {
+                Text("Collaboration Profile")
+            } footer: {
+                Text("Shown to friends when you join or host a collab session.")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            }
+
             Section {
                 HStack(spacing: 0) {
                     ForEach(ColorTheme.allCases, id: \.self) { theme in
@@ -87,6 +171,45 @@ struct SettingsView: View {
         .background(.black)
         .navigationTitle("Settings")
         .navigationBarTitleTextColor(settings.fgColor)
+        .onAppear {
+            // Hydrate the local form from the cached profile. Don't overwrite
+            // a typed-but-unsaved edit if the user navigates away and back.
+            if profileName.isEmpty {
+                profileName = sessionClient.myProfile?.name ?? ""
+            }
+            if profilePhotoData == nil {
+                profilePhotoData = sessionClient.myProfile?.photoData
+            }
+        }
+        .onChange(of: profilePhotoItem) { _, newItem in
+            Task {
+                guard let item = newItem,
+                      let data = try? await item.loadTransferable(type: Data.self),
+                      let uiImage = UIImage(data: data)
+                else { return }
+                let resized = resizeImage(uiImage, maxSide: 256)
+                profilePhotoData = resized.jpegData(compressionQuality: 0.7)
+            }
+        }
+        .alert("Clear Profile?", isPresented: $showClearProfileConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Clear", role: .destructive) { clearProfile() }
+        } message: {
+            Text("Removes your saved name and photo. You'll be prompted to enter them again next time you join a collab session.")
+        }
+    }
+
+    private func saveProfile() {
+        let trimmed = profileTrimmedName
+        guard !trimmed.isEmpty else { return }
+        sessionClient.submitProfile(Profile(name: trimmed, photoData: profilePhotoData))
+    }
+
+    private func clearProfile() {
+        sessionClient.clearProfile()
+        profileName = ""
+        profilePhotoData = nil
+        profilePhotoItem = nil
     }
 }
 
@@ -97,6 +220,7 @@ struct SettingsView_Previews: PreviewProvider {
                 .environmentObject(GlobalSettings.shared)
                 .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
                 .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+                .environmentObject(SessionClient())
                 .preferredColorScheme(.dark)
         }
     }

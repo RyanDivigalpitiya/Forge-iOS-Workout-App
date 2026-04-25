@@ -10,11 +10,20 @@ struct JoinSessionView: View {
     @State private var photoData: Data?
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var planSuggestionActive = false
+    @State private var showEndSessionConfirm = false
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
         guard let pid = peerId else { return nil }
         return sessionClient.peerProfiles[pid]
+    }
+
+    /// Peer's name with whitespace trimmed. Empty when the peer hasn't
+    /// broadcast a name yet (either no profile at all, or a photo-only
+    /// in-progress edit). Used to drive the friend-side caption fallback
+    /// to "Entering their info…" without rendering blank.
+    private var peerProfileTrimmedName: String {
+        peerProfile?.name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private var trimmedName: String {
@@ -33,80 +42,43 @@ struct JoinSessionView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, alignment: .center)
 
-            peerBanner
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
+            Spacer().frame(height: 50)
 
-            Spacer().frame(height: 32)
+            avatarPairRow
 
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
-                avatar(data: photoData, fallbackInitial: initial(from: trimmedName), diameter: 120)
-                    .overlay(alignment: .bottomTrailing) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(Circle().fill(settings.fgColor))
-                            .offset(x: 4, y: 4)
-                    }
-            }
+            Spacer().frame(height: 40)
 
-            Text("Tap to change photo")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.top, 8)
-
-            Spacer().frame(height: 28)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("YOUR NAME")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.gray)
-                TextField("", text: $name, prompt: Text("Required").foregroundColor(.gray))
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
-                    .background(Color(white: 0.15))
-                    .cornerRadius(10)
-                    .disabled(sessionClient.hasSubmittedProfile)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-            }
-            .padding(.horizontal, 24)
+            nameField
 
             Spacer()
 
-            Button {
-                submit()
-            } label: {
-                HStack {
-                    if sessionClient.hasSubmittedProfile {
-                        ProgressView()
-                            .tint(.white)
-                        Text("Waiting for friend…")
-                    } else {
-                        Text("Join Session →")
-                    }
-                }
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-            }
-            .background(canSubmit || sessionClient.hasSubmittedProfile ? settings.fgColor : Color.gray.opacity(0.3))
-            .foregroundColor(.white)
-            .cornerRadius(12)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
-            .disabled(!canSubmit)
+            joinButton
+                .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
-        .navigationBarBackButtonHidden(sessionClient.hasSubmittedProfile)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    showEndSessionConfirm = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                        Text("End")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(settings.fgColor)
+                }
+            }
+        }
+        .alert("End Session?", isPresented: $showEndSessionConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("End", role: .destructive) { sessionClient.disconnect() }
+        }
         .onAppear {
             if name.isEmpty {
                 name = sessionClient.myProfile?.name ?? ""
@@ -114,13 +86,7 @@ struct JoinSessionView: View {
             if photoData == nil {
                 photoData = sessionClient.myProfile?.photoData
             }
-            autoSubmitIfRejoiningActiveWorkout()
-        }
-        .onChange(of: sessionClient.workoutInProgress?.id) { _, _ in
-            // Welcome may arrive after JoinSessionView appears (still in
-            // .connecting when this view first renders). Re-check on
-            // change so the auto-submit fires once workoutInProgress shows up.
-            autoSubmitIfRejoiningActiveWorkout()
+            autoSubmitIfCachedProfile()
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             Task {
@@ -130,6 +96,11 @@ struct JoinSessionView: View {
                 else { return }
                 let resized = resizeImage(uiImage, maxSide: 256)
                 photoData = resized.jpegData(compressionQuality: 0.7)
+                // Photo just finished loading — push it to the peer so
+                // they see the avatar update live, without locking the
+                // form (the user might still want to type/correct their
+                // name afterwards).
+                broadcastInProgressEdit()
             }
         }
         .onChange(of: sessionClient.bothProfilesSubmitted) { _, submitted in
@@ -142,35 +113,112 @@ struct JoinSessionView: View {
         }
     }
 
-    @ViewBuilder
-    private var peerBanner: some View {
-        HStack(spacing: 14) {
-            avatar(data: peerProfile?.photoData, fallbackInitial: initial(from: peerProfile?.name ?? "?"), diameter: 44)
+    /// User photo + connector + friend photo, side-by-side, with status
+    /// captions under each. Mirrors the avatarRow pattern from
+    /// `PlanSuggestionView` so the two collab screens feel cohesive.
+    private var avatarPairRow: some View {
+        HStack(alignment: .top, spacing: 0) {
+            Spacer()
 
-            VStack(alignment: .leading, spacing: 2) {
-                if let peerProfile {
-                    Text(peerProfile.name)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    Text("Ready ✓")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                } else {
-                    Text("Friend")
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("Entering their info…")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+            VStack(spacing: 12) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
+                    avatar(
+                        data: photoData,
+                        fallbackInitial: initial(from: trimmedName.isEmpty ? "?" : trimmedName),
+                        diameter: 80
+                    )
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(Circle().fill(settings.fgColor))
+                            .offset(x: 2, y: 2)
+                    }
                 }
+                Text(trimmedName.isEmpty ? "You" : trimmedName)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(trimmedName.isEmpty ? .gray : .white)
+                    .lineLimit(1)
+                    .frame(maxWidth: 100)
             }
+
+            avatarConnector
+                .padding(.horizontal, 16)
+                .padding(.top, 36)   // visually centered against the 80pt avatar above the caption
+
+            VStack(spacing: 12) {
+                avatar(
+                    data: peerProfile?.photoData,
+                    fallbackInitial: initial(from: peerProfileTrimmedName.isEmpty ? "?" : peerProfileTrimmedName),
+                    diameter: 80
+                )
+                Text(peerProfileTrimmedName.isEmpty ? "Entering their info…" : peerProfileTrimmedName)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(peerProfileTrimmedName.isEmpty ? .gray : .white)
+                    .lineLimit(1)
+                    .frame(maxWidth: 100)
+            }
+
             Spacer()
         }
-        .padding(12)
-        .background(Color(white: 0.1))
-        .cornerRadius(12)
+    }
+
+    private var avatarConnector: some View {
+        HStack(spacing: 0) {
+            Circle().frame(width: 8, height: 8)
+            Rectangle().frame(width: 40, height: 1)
+            Circle().frame(width: 8, height: 8)
+        }
+        .foregroundColor(GlobalSettings.shared.darkGray)
+    }
+
+    private var nameField: some View {
+        TextField(
+            "",
+            text: $name,
+            prompt: Text("Enter Your Name Here").foregroundColor(.gray)
+        )
+        .font(.body)
+        .foregroundColor(.white)
+        .multilineTextAlignment(.center)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(Color(white: 0.15))
+        .cornerRadius(settings.cornerRadiusMedium)
+        .frame(maxWidth: 240)
+        .disabled(sessionClient.hasSubmittedProfile)
+        .textInputAutocapitalization(.words)
+        .submitLabel(.done)
+        // Tap Done on the keyboard → broadcast the current name+photo to
+        // the peer so they see live progress without us yet committing
+        // to "Join Session →".
+        .onSubmit { broadcastInProgressEdit() }
+    }
+
+    private var joinButton: some View {
+        Button {
+            submit()
+        } label: {
+            HStack(spacing: 8) {
+                if sessionClient.hasSubmittedProfile {
+                    ProgressView()
+                        .tint(.white)
+                    Text("Waiting for friend…")
+                } else {
+                    Text("Join Session →")
+                }
+            }
+            .fontWeight(.semibold)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 14)
+        }
+        .background(canSubmit || sessionClient.hasSubmittedProfile ? settings.fgColor : Color.gray.opacity(0.3))
+        .foregroundColor(.white)
+        .cornerRadius(settings.cornerRadiusMedium)
+        .disabled(!canSubmit)
     }
 
     private func submit() {
@@ -178,13 +226,31 @@ struct JoinSessionView: View {
         sessionClient.submitProfile(profile)
     }
 
-    /// When the server reports an active workout is in progress for this
-    /// session (mid-workout rejoin), and we have a cached profile to
-    /// submit, do so automatically so the user doesn't have to tap "Join
-    /// Session →" — they tapped a share link with the intent to rejoin
-    /// an in-flight workout, the profile form is just a speed bump.
-    private func autoSubmitIfRejoiningActiveWorkout() {
-        guard sessionClient.workoutInProgress != nil else { return }
+    /// Live-broadcast the current edit state to the peer without committing
+    /// (i.e., without setting `hasSubmittedProfile`). Skipped if the user
+    /// has already tapped Join Session → (form is locked) or hasn't made
+    /// any edit at all (don't send a totally-blank profile that just
+    /// overwrites the "Entering their info…" placeholder with nothing).
+    /// A name-only OR photo-only edit DOES broadcast — the receiver-side
+    /// caption logic below treats an empty name as "still entering" so
+    /// the peer sees the avatar update without a blank caption.
+    private func broadcastInProgressEdit() {
+        guard !sessionClient.hasSubmittedProfile else { return }
+        if trimmedName.isEmpty && photoData == nil { return }
+        sessionClient.updateProfile(Profile(name: trimmedName, photoData: photoData))
+    }
+
+    /// If the user has a cached profile from a prior session (loaded into
+    /// `myProfile` from UserDefaults at SessionClient init time), submit
+    /// it automatically so the peer sees the user's name + photo without
+    /// the user needing to tap "Join Session →". Profile editing now
+    /// lives in Settings → Collaboration Profile, so the form-on-every-
+    /// session step is redundant for returning users. First-time users
+    /// (no cached profile) still see the form and submit manually.
+    ///
+    /// Idempotent via the `!hasSubmittedProfile` guard — safe to call
+    /// from anywhere that might re-trigger the flow.
+    private func autoSubmitIfCachedProfile() {
         guard !sessionClient.hasSubmittedProfile else { return }
         guard let cached = sessionClient.myProfile else { return }
         let trimmedCachedName = cached.name.trimmingCharacters(in: .whitespacesAndNewlines)
