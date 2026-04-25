@@ -779,7 +779,12 @@ extension WorkoutInProgressView {
         dismiss()
         completedWorkoutsViewModel.isSelectPlanViewActive = false
         if wasInSession {
-            sessionClient.disconnect()
+            // Flush `workoutCancelled` before closing the socket so the
+            // peer surfaces a "Friend left session" banner instead of the
+            // generic disconnect/Re-invite UI. Server also clears
+            // `workoutInProgress` so a re-joiner doesn't get auto-routed
+            // back into the now-orphaned workout.
+            Task { await sessionClient.sendWorkoutCancelledAndDisconnect() }
         }
     }
 
@@ -792,6 +797,15 @@ extension WorkoutInProgressView {
 
         // Reset ready flag (see cancelWorkout for rationale).
         sessionClient.setReady(false)
+
+        // Joint-mode exit: tell the peer we finished BEFORE the socket
+        // closes, so they see a "Friend finished" banner rather than a
+        // silent disconnect, and the server clears `workoutInProgress`.
+        // The remainder of finishWorkout is purely local (save, confetti,
+        // 2s dismiss) so this Task runs concurrently without blocking.
+        if sessionClient.sessionId != nil {
+            Task { await sessionClient.sendWorkoutFinishedAndDisconnect() }
+        }
 
         // save completed workout to persistant storage
         let completedWorkout = CompletedWorkout(

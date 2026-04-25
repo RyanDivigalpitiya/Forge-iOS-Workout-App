@@ -119,6 +119,8 @@ enum ServerMessage: Codable {
     case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
     case peerProfileSubmitted(peerId: UUID)
     case sessionFull
+    case peerFinished(peerId: UUID)
+    case peerCancelled(peerId: UUID)
 }
 
 enum ClientMessage: Codable {
@@ -139,6 +141,37 @@ enum ClientMessage: Codable {
     /// entering" from "committed". Mirrors server-side
     /// `ClientMessage.profileSubmitted`.
     case profileSubmitted
+    /// Sent right before `disconnect()` from `WorkoutInProgressView.finishWorkout()`
+    /// when the user completes a paired workout. Server fans out as
+    /// `peerFinished` and clears `workoutInProgress`.
+    case workoutFinished
+    /// Sent right before `disconnect()` from `WorkoutInProgressView.cancelWorkout()`
+    /// when the user bails out of a paired workout. Server fans out as
+    /// `peerCancelled` and clears `workoutInProgress`.
+    case workoutCancelled
+}
+
+/// Transient payload set by `SessionClient` when the server reports the peer
+/// finished or cancelled their workout. The freshness `id` lets observers
+/// (e.g. `CollabStatusBanner`'s 5s auto-dismiss) start a new timer on each
+/// fresh signal without needing the peerId to differ. Persists for the
+/// lifetime of the session — once present, the banner suppresses the
+/// generic .waitingForPeer "Friend disconnected" UI for the rest of this
+/// session, and is cleared by `disconnect()` / `reconnect()`.
+struct PeerExitInfo: Equatable, Identifiable {
+    enum Reason: String, Equatable {
+        case finished
+        case cancelled
+    }
+    let id: UUID
+    let peerId: UUID
+    let reason: Reason
+
+    init(peerId: UUID, reason: Reason) {
+        self.id = UUID()
+        self.peerId = peerId
+        self.reason = reason
+    }
 }
 
 /// Identifies a specific set in the joint workout. Used as a Hashable key
@@ -225,6 +258,13 @@ final class SessionClient: ObservableObject {
     /// for re-joiners. Cleared on disconnect; the server clears its copy
     /// only when the session itself is deleted (last participant leaves).
     @Published var workoutInProgress: PlanSnapshot? = nil
+    /// Set when the server reports the peer's `workoutFinished` /
+    /// `workoutCancelled` message, before their socket closes. Drives a
+    /// transient banner on the still-working peer's screen and suppresses
+    /// the generic "Friend disconnected" Re-invite UI for the rest of this
+    /// session (the peer's exit was clean, not a network drop). Cleared
+    /// on `disconnect()` / `reconnect()`.
+    @Published var peerExitInfo: PeerExitInfo? = nil
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -332,6 +372,7 @@ final class SessionClient: ObservableObject {
         peerPositions = [:]
         peerBreakTimer = [:]
         peerCommittedProfiles = []
+        peerExitInfo = nil
         openSocket(sessionId: id)
     }
 
@@ -354,7 +395,43 @@ final class SessionClient: ObservableObject {
         peerBreakTimer = [:]
         peerCommittedProfiles = []
         workoutInProgress = nil
+        peerExitInfo = nil
         state = .idle
+    }
+
+    /// Best-effort flush + close used by the workout-end exit paths so the
+    /// peer reliably receives `peerFinished` / `peerCancelled` before our
+    /// socket closes. Awaits the actual `URLSessionWebSocketTask.send` so
+    /// the close frame doesn't race the message frame; the regular
+    /// fire-and-forget `sendClientMessage` provides no such guarantee. If
+    /// the encode or send fails, we still disconnect — failing loud beats
+    /// hanging an exit on a dead socket.
+    func sendWorkoutFinishedAndDisconnect() async {
+        await sendAndAwait(.workoutFinished)
+        disconnect()
+    }
+
+    func sendWorkoutCancelledAndDisconnect() async {
+        await sendAndAwait(.workoutCancelled)
+        disconnect()
+    }
+
+    private func sendAndAwait(_ message: ClientMessage) async {
+        guard let task else {
+            Log.debug("[SessionClient] sendAndAwait dropped — no active task")
+            return
+        }
+        guard let data = try? JSONEncoder().encode(message),
+              let text = String(data: data, encoding: .utf8)
+        else {
+            Log.debug("[SessionClient] sendAndAwait encode failed for \(message)")
+            return
+        }
+        do {
+            try await task.send(.string(text))
+        } catch {
+            Log.debug("[SessionClient] sendAndAwait send failed: \(error.localizedDescription)")
+        }
     }
 
     func submitProfile(_ profile: Profile) {
@@ -649,6 +726,12 @@ final class SessionClient: ObservableObject {
         case .sessionFull:
             state = .error("Session is full (2 participants max)")
             task?.cancel(with: .goingAway, reason: nil)
+
+        case .peerFinished(let peerId):
+            peerExitInfo = PeerExitInfo(peerId: peerId, reason: .finished)
+
+        case .peerCancelled(let peerId):
+            peerExitInfo = PeerExitInfo(peerId: peerId, reason: .cancelled)
         }
     }
 

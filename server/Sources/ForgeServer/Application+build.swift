@@ -173,6 +173,32 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .workoutFinished:
+                                // Clear workoutInProgress so any re-joiner
+                                // doesn't get auto-routed back into a
+                                // now-orphaned workout, then broadcast
+                                // peerFinished so the still-working peer
+                                // can show a "Friend finished" banner
+                                // before the finisher's WS closes.
+                                await manager.setWorkoutInProgress(
+                                    sessionId: sessionId,
+                                    plan: nil
+                                )
+                                await manager.broadcast(
+                                    .peerFinished(peerId: myId),
+                                    in: sessionId,
+                                    except: myId
+                                )
+                            case .workoutCancelled:
+                                await manager.setWorkoutInProgress(
+                                    sessionId: sessionId,
+                                    plan: nil
+                                )
+                                await manager.broadcast(
+                                    .peerCancelled(peerId: myId),
+                                    in: sessionId,
+                                    except: myId
+                                )
                             }
                         }
                     } catch {

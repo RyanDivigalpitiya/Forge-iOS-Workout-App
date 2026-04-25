@@ -47,6 +47,18 @@ enum ServerMessage: Codable, Sendable {
     /// `peerProfileUpdated`.
     case peerProfileSubmitted(peerId: UUID)
     case sessionFull
+    /// Broadcast when a peer taps Done in `WorkoutInProgressView`. The
+    /// finishing peer disconnects immediately afterwards; the still-working
+    /// peer surfaces a transient "Friend finished" banner so the
+    /// disconnect doesn't read as a generic drop. Server clears
+    /// `workoutInProgress` so any rejoiner doesn't get auto-routed back
+    /// into a now-orphaned workout.
+    case peerFinished(peerId: UUID)
+    /// Broadcast when a peer taps Cancel in `WorkoutInProgressView`. Same
+    /// semantics as `peerFinished` but distinguishes the "left the session"
+    /// exit path from the "finished their workout" exit path so the
+    /// remaining peer's banner copy can match.
+    case peerCancelled(peerId: UUID)
 }
 
 enum ClientMessage: Codable, Sendable {
@@ -71,4 +83,12 @@ enum ClientMessage: Codable, Sendable {
     /// the latest `profileUpdate` carries the profile data; this just
     /// flips the committed flag on the receiver side.
     case profileSubmitted
+    /// Sent by `WorkoutInProgressView.finishWorkout()` immediately before
+    /// `disconnect()`. Server fans out as `peerFinished` and clears
+    /// `workoutInProgress` for the session.
+    case workoutFinished
+    /// Sent by `WorkoutInProgressView.cancelWorkout()` immediately before
+    /// `disconnect()`. Server fans out as `peerCancelled` and clears
+    /// `workoutInProgress` for the session.
+    case workoutCancelled
 }
