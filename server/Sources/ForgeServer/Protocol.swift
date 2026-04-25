@@ -51,4 +51,12 @@ enum ClientMessage: Codable, Sendable {
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case breakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int)
+    /// Host-only write for the solo → joint promotion flow. The iOS host
+    /// creates a session mid-solo-workout, sends this message with the
+    /// plan snapshot, and shares the sessionId URL. Any peer that joins
+    /// afterwards gets `workoutInProgress` in their `welcome` and
+    /// auto-routes straight into `WorkoutInProgressView`. No broadcast
+    /// to existing peers — they'll read the value on their next welcome
+    /// (e.g. after a reconnect).
+    case setWorkoutInProgress(PlanSnapshot?)
 }
