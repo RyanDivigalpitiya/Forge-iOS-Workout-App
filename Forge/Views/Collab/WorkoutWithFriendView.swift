@@ -142,11 +142,11 @@ struct WorkoutWithFriendView: View {
             // Vertical offset matching card top padding (16) + exercise
             // name placeholder height (22) + bottom gap (12) = 50.
             Color.clear.frame(height: 50)
-            avatarSlot(filled: true)    // set 1 → avatar 1
-            avatarSlot(filled: false)   // rest 1
-            avatarSlot(filled: false)   // set 2
-            avatarSlot(filled: false)   // rest 2
-            avatarSlot(filled: true)    // set 3 → avatar 2
+            avatarSlot(imageName: "collabAvatar1")    // set 1 → avatar 1
+            avatarSlot(imageName: nil)                 // rest 1
+            avatarSlot(imageName: "collabAvatar2")                 // set 2
+            avatarSlot(imageName: nil)                 // rest 2
+            avatarSlot(imageName: nil)    // set 3 → avatar 2
             Spacer(minLength: 0)
         }
         .frame(width: 60)
@@ -185,18 +185,18 @@ struct WorkoutWithFriendView: View {
         .cornerRadius(12)
     }
 
-    private func avatarSlot(filled: Bool) -> some View {
+    /// Renders an avatar (bundled portrait + right-arrow) when `imageName`
+    /// is non-nil; otherwise an empty 40pt slot that preserves the
+    /// gutter's row-by-row alignment with the card.
+    private func avatarSlot(imageName: String?) -> some View {
         Group {
-            if filled {
+            if let imageName {
                 HStack(spacing: 5) {
-                    Circle()
-                        .fill(GlobalSettings.shared.darkGray)
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFill()
                         .frame(width: 36, height: 36)
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
+                        .clipShape(Circle())
                     Image(systemName: "arrowtriangle.right.fill")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.gray)
