@@ -307,4 +307,45 @@ final class SessionClientTests {
             Issue.record("Expected .error state, got \(client.state)")
         }
     }
+
+    // MARK: - ClientMessage protocol symmetry
+
+    @Test func setWorkoutInProgressClientMessageRoundTrips() {
+        // Outbound protocol guard: solo → joint share flow relies on
+        // .setWorkoutInProgress encoding/decoding identically on both sides
+        // of the socket. If the enum case ever drifts (reorder, rename,
+        // associated-value change), this fails loudly before manual smoke.
+        let snapshot = PlanSnapshot(
+            id: UUID(),
+            name: "Push Day",
+            exercises: [
+                ExerciseSnapshot(id: UUID(), name: "Bench Press", sets: [
+                    SetSnapshot(weight: 135, reps: 8, tillFailure: false)
+                ])
+            ]
+        )
+        let message = ClientMessage.setWorkoutInProgress(snapshot)
+
+        let data = try! JSONEncoder().encode(message)
+        let decoded = try! JSONDecoder().decode(ClientMessage.self, from: data)
+
+        if case .setWorkoutInProgress(let roundTripped) = decoded {
+            #expect(roundTripped?.id == snapshot.id)
+            #expect(roundTripped?.name == "Push Day")
+            #expect(roundTripped?.exercises.count == 1)
+        } else {
+            Issue.record("Expected .setWorkoutInProgress, got \(decoded)")
+        }
+
+        // Nil payload is the "clear workoutInProgress" signal — must survive
+        // the round trip without collapsing into some other case.
+        let clearMessage = ClientMessage.setWorkoutInProgress(nil)
+        let clearData = try! JSONEncoder().encode(clearMessage)
+        let clearDecoded = try! JSONDecoder().decode(ClientMessage.self, from: clearData)
+        if case .setWorkoutInProgress(let plan) = clearDecoded {
+            #expect(plan == nil)
+        } else {
+            Issue.record("Expected .setWorkoutInProgress(nil), got \(clearDecoded)")
+        }
+    }
 }

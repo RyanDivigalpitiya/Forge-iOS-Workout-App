@@ -162,6 +162,11 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
+                            case .setWorkoutInProgress(let plan):
+                                await manager.setWorkoutInProgress(
+                                    sessionId: sessionId,
+                                    plan: plan
+                                )
                             }
                         }
                     } catch {
