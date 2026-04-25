@@ -12,6 +12,10 @@ struct WorkoutWithFriendView: View {
     /// preview graphic; each rectangle reads `appearedIndices.contains`
     /// to drive its own opacity + offset.
     @State private var appearedIndices: Swift.Set<Int> = []
+    /// Parallel cascade for the three instruction rows above the graphic.
+    /// Indices 0…2 fire alongside `appearedIndices` 0…2 so the two
+    /// cascades visually share the same wave-front.
+    @State private var instructionAppearedIndices: Swift.Set<Int> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,24 +103,43 @@ struct WorkoutWithFriendView: View {
     /// remain the visual anchors.
     private var instructionList: some View {
         VStack(spacing: 28) {
-            instructionRow(icon: "square.and.arrow.up.fill", text: "Share invite link with a friend")
-            instructionRow(icon: "bubble.left.and.text.bubble.right.fill", text: "Choose a workout plan together")
-            instructionRow(icon: "person.2.fill", text: "Workout with each other")
+            instructionRow(
+                icon: "square.and.arrow.up.fill",
+                text: "Share invite link with a friend",
+                staggerIndex: 0
+            )
+            instructionRow(
+                icon: "bubble.left.and.text.bubble.right.fill",
+                text: "Choose a workout plan together",
+                staggerIndex: 1
+            )
+            instructionRow(
+                icon: "person.2.fill",
+                text: "Workout with each other",
+                staggerIndex: 2
+            )
         }
     }
 
-    private func instructionRow(icon: String, text: String) -> some View {
-        VStack(spacing: 6) {
+    private func instructionRow(
+        icon: String,
+        text: String,
+        staggerIndex: Int
+    ) -> some View {
+        let isAppeared = instructionAppearedIndices.contains(staggerIndex)
+        return VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
+                .foregroundColor(GlobalSettings.shared.editorDarkGray)
             Text(text)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
+                .foregroundColor(GlobalSettings.shared.editorDarkGray)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
+        .opacity(isAppeared ? 1 : 0)
+        .offset(x: isAppeared ? 0 : 24)
     }
 
     // MARK: - Collab preview graphic
@@ -156,8 +179,14 @@ struct WorkoutWithFriendView: View {
             // offset change at trigger time — no implicit layout capture.
             try? await Task.sleep(for: .milliseconds(80))
             for index in 0..<6 {
-                withAnimation(.easeOut(duration: 0.5)) {
+                withAnimation(.easeOut(duration: 0.7)) {
                     _ = appearedIndices.insert(index)
+                    // Instructions cascade has 3 rows; fire each at the
+                    // matching tick of the rectangle cascade so the two
+                    // wave-fronts run in lockstep parallel.
+                    if index < 3 {
+                        _ = instructionAppearedIndices.insert(index)
+                    }
                 }
                 try? await Task.sleep(for: .milliseconds(80))
             }
