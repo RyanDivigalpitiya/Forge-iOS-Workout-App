@@ -7,6 +7,11 @@ struct WorkoutWithFriendView: View {
 
     @State private var connectingActive = false
     @State private var shareURL: ShareableURL?
+    /// Tracks which gradient rectangles have run their on-appear stagger
+    /// animation. Indices 0…5 cascade top-to-bottom inside the collab
+    /// preview graphic; each rectangle reads `appearedIndices.contains`
+    /// to drive its own opacity + offset.
+    @State private var appearedIndices: Swift.Set<Int> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -135,6 +140,28 @@ struct WorkoutWithFriendView: View {
             graphicCard
         }
         .frame(maxWidth: .infinity)
+        .task {
+            // Let the NavigationStack push transition + initial layout
+            // settle before the first stagger fires. Without this, the
+            // value-scoped .animation(_:value:) modifier could capture
+            // layout-in-flux during the push and interpolate everything's
+            // y-position, making the rectangles appear to "float down"
+            // from the top of the card instead of slide in from the right.
+            // Canvas previews have no push transition, so the bug only
+            // surfaces on device.
+            //
+            // Driving each rectangle with its own withAnimation scope
+            // (instead of a single .animation modifier covering the chain)
+            // limits the animatable scope to the specific opacity + x-
+            // offset change at trigger time — no implicit layout capture.
+            try? await Task.sleep(for: .milliseconds(80))
+            for index in 0..<6 {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    _ = appearedIndices.insert(index)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+        }
     }
 
     private var graphicGutter: some View {
@@ -153,19 +180,22 @@ struct WorkoutWithFriendView: View {
     }
 
     private var graphicCard: some View {
+        // Indexes 0…5 cascade top-to-bottom for the on-appear fade-in
+        // animation in `flexiblePlaceholder`.
         VStack(alignment: .leading, spacing: 0) {
             flexiblePlaceholder(
                 height: 22,
                 leftColor: Color.gray,
-                rightColor: .clear
+                rightColor: .clear,
+                staggerIndex: 0
             )
             .padding(.bottom, 12)
 
-            graphicSetRow().frame(height: 40)
-            graphicRestRow().frame(height: 40)
-            graphicSetRow().frame(height: 40)
-            graphicRestRow().frame(height: 40)
-            graphicSetRow().frame(height: 40)
+            graphicSetRow(staggerIndex: 1).frame(height: 40)
+            graphicRestRow(staggerIndex: 2).frame(height: 40)
+            graphicSetRow(staggerIndex: 3).frame(height: 40)
+            graphicRestRow(staggerIndex: 4).frame(height: 40)
+            graphicSetRow(staggerIndex: 5).frame(height: 40)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -229,12 +259,20 @@ struct WorkoutWithFriendView: View {
     /// Width-flexible variant — fills the available horizontal space inside
     /// its parent (used for placeholders that should stretch to the right
     /// edge of the exercise card).
+    ///
+    /// `staggerIndex` (0…5) maps the rectangle to its slot in the
+    /// `appearedIndices` set. The collabPreviewGraphic's .task body flips
+    /// each index in turn with its own withAnimation block. Top-to-bottom
+    /// indexing — 0 = exercise name, 5 = bottom-most set bar — so the
+    /// cascade flows downward.
     private func flexiblePlaceholder(
         height: CGFloat,
         leftColor: Color,
-        rightColor: Color
+        rightColor: Color,
+        staggerIndex: Int
     ) -> some View {
-        LinearGradient(
+        let isAppeared = appearedIndices.contains(staggerIndex)
+        return LinearGradient(
             gradient: Gradient(stops: [
                 .init(color: leftColor, location: 0),
                 .init(color: rightColor, location: 1),
@@ -245,9 +283,11 @@ struct WorkoutWithFriendView: View {
         .frame(maxWidth: .infinity)
         .frame(height: height)
         .clipShape(RoundedRectangle(cornerRadius: height / 5))
+        .opacity(isAppeared ? 1 : 0)
+        .offset(x: isAppeared ? 0 : 24)
     }
 
-    private func graphicSetRow() -> some View {
+    private func graphicSetRow(staggerIndex: Int) -> some View {
         HStack(spacing: 0) {
             Circle()
                 .stroke(Color.gray.opacity(0.6), lineWidth: 1.8)
@@ -265,12 +305,13 @@ struct WorkoutWithFriendView: View {
             flexiblePlaceholder(
                 height: 22,
                 leftColor: settings.fgColor.opacity(0.3),
-                rightColor: .clear
+                rightColor: .clear,
+                staggerIndex: staggerIndex
             )
         }
     }
 
-    private func graphicRestRow() -> some View {
+    private func graphicRestRow(staggerIndex: Int) -> some View {
         HStack(spacing: 0) {
             graphicConnector
                 .padding(.trailing, 9)
@@ -279,7 +320,8 @@ struct WorkoutWithFriendView: View {
             flexiblePlaceholder(
                 height: 14,
                 leftColor: Color.gray,
-                rightColor: .clear
+                rightColor: .clear,
+                staggerIndex: staggerIndex
             )
         }
     }
