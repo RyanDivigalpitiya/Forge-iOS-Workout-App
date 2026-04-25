@@ -16,6 +16,13 @@ struct WorkoutWithFriendView: View {
     /// Indices 0…2 fire alongside `appearedIndices` 0…2 so the two
     /// cascades visually share the same wave-front.
     @State private var instructionAppearedIndices: Swift.Set<Int> = []
+    /// Avatar glide state. Each flip triggers a 2s easeInOut .offset(y:)
+    /// shift of 80pt (one set + one rest row) — moving the avatar one
+    /// "set row" down. Sequence (relative to view appear):
+    ///   t = 2s → avatar 2 slides set 2 → set 3.
+    ///   t = 6s → avatar 1 slides set 1 → set 2 (avatar 2 already gone).
+    @State private var avatar1Glided = false
+    @State private var avatar2Glided = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -191,6 +198,26 @@ struct WorkoutWithFriendView: View {
                 try? await Task.sleep(for: .milliseconds(80))
             }
         }
+        .task {
+            // Avatar glide timeline — independent of the cascade above.
+            // Both .task blocks fire on view appear; this one sleeps long
+            // enough to start the glides AFTER the cascade has settled.
+            //   t = 2s  → avatar 2 slides set 2 → set 3 (2s easeInOut)
+            //   t = 6s  → avatar 1 slides set 1 → set 2 (2s easeInOut)
+            //             (4s after avatar 2's glide started)
+            // Tighter cubic-Bezier S-curve than the stock .easeInOut
+            // (0.42, 0, 0.58, 1). Control points pushed outward give a
+            // slower ramp up + ramp down with a faster peak velocity in
+            // the middle of the glide.
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.timingCurve(0.65, 0, 0.35, 1, duration: 2)) {
+                avatar2Glided = true
+            }
+            try? await Task.sleep(for: .seconds(4))
+            withAnimation(.timingCurve(0.65, 0, 0.35, 1, duration: 2)) {
+                avatar1Glided = true
+            }
+        }
     }
 
     private var graphicGutter: some View {
@@ -198,11 +225,18 @@ struct WorkoutWithFriendView: View {
             // Vertical offset matching card top padding (16) + exercise
             // name placeholder height (22) + bottom gap (12) = 50.
             Color.clear.frame(height: 50)
-            avatarSlot(imageName: "collabAvatar1")    // set 1 → avatar 1
+            // Avatar 1 lives in slot 1 (set 1) layout-wise; .offset(y:)
+            // visually slides it down 80pt (one set + one rest row) into
+            // slot 3 (set 2) when avatar1Glided flips.
+            avatarSlot(imageName: "collabAvatar1")
+                .offset(y: avatar1Glided ? 80 : 0)
             avatarSlot(imageName: nil)                 // rest 1
-            avatarSlot(imageName: "collabAvatar2")                 // set 2
+            // Avatar 2 lives in slot 3 (set 2) layout-wise; the same 80pt
+            // offset slides it down into slot 5 (set 3).
+            avatarSlot(imageName: "collabAvatar2")
+                .offset(y: avatar2Glided ? 80 : 0)
             avatarSlot(imageName: nil)                 // rest 2
-            avatarSlot(imageName: nil)    // set 3 → avatar 2
+            avatarSlot(imageName: nil)                 // set 3 (vacant until avatar 2 glides into it)
             Spacer(minLength: 0)
         }
         .frame(width: 60)
