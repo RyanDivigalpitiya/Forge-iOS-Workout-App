@@ -128,6 +128,10 @@ enum ClientMessage: Codable {
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case breakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int)
+    /// Host-only write for the solo → joint promotion flow. Sent right
+    /// after `createSession()` when the user taps Share from an active
+    /// solo workout. Mirrors server-side `ClientMessage.setWorkoutInProgress`.
+    case setWorkoutInProgress(PlanSnapshot?)
 }
 
 /// Identifies a specific set in the joint workout. Used as a Hashable key
@@ -274,6 +278,28 @@ final class SessionClient: ObservableObject {
         disconnect()
         sessionId = id
         openSocket(sessionId: id)
+    }
+
+    /// Host-side entry point for the solo → joint promotion flow. Creates a
+    /// fresh session and immediately registers `workoutInProgress` server-side
+    /// so any peer who joins via the shared URL auto-routes into
+    /// `WorkoutInProgressView` (via the Stage 7b' welcome path). Messages
+    /// buffer on the URLSessionWebSocketTask if the socket isn't fully open
+    /// yet, so no await gymnastics needed — the task flushes them as soon as
+    /// the upgrade completes, well before any peer can tap the link, navigate,
+    /// submit profile, and connect.
+    ///
+    /// `myProfile` is preserved in memory across `createSession()`'s
+    /// `disconnect()`, but `hasSubmittedProfile` gets cleared. We re-flag it
+    /// here + re-send so the new session carries the host's name/photo
+    /// without an extra user action.
+    func startSharedSessionForActiveWorkout(plan: WorkoutPlan) {
+        createSession()
+        sendClientMessage(.setWorkoutInProgress(PlanSnapshot(from: plan)))
+        if let profile = myProfile {
+            hasSubmittedProfile = true
+            sendClientMessage(.profileUpdate(profile))
+        }
     }
 
     func reconnect() {

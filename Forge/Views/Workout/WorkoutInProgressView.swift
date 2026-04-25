@@ -109,6 +109,14 @@ struct WorkoutInProgressView: View {
     @State private var showTimerSettings = false
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
+
+    // Solo → joint share flow state. `shareItem` drives the iOS share sheet
+    // (same pattern as CollabStatusBanner's Re-invite path). `profilePromptActive`
+    // gates the name-entry sheet for users who've never used collab before —
+    // without a profile, the joined friend would see a "?" avatar for the host.
+    @State private var shareItem: ShareableURL? = nil
+    @State private var profilePromptActive: Bool = false
+    @State private var profileDraftName: String = ""
     
     var body: some View {
         ZStack {
@@ -326,13 +334,22 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(settings.fgColor)
                                     Spacer()
 
-                                    // Invisible 44pt placeholder mirrors the back chevron's
-                                    // footprint so the plan-name text stays visually centered.
-                                    // The break-duration picker is now opened by tapping any
-                                    // rest row in the workout — no toolbar button needed.
-                                    Color.clear
-                                        .frame(width: 44, height: 44)
-                                        .padding(.trailing, 5)
+                                    // Share button — mid-workout invite. In solo mode, creates
+                                    // a new session + marks workoutInProgress server-side so a
+                                    // joining friend auto-routes straight into this view. In an
+                                    // already-paired session the same button just re-presents
+                                    // the existing URL (mirrors CollabStatusBanner's Re-invite
+                                    // behavior). Disabled during break-timer expansion and while
+                                    // a socket handshake is mid-flight.
+                                    Button(action: handleShareTap) {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .foregroundColor(settings.fgColor)
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .disabled(timerEnabled || sessionClient.state == .connecting)
+                                    .padding(.trailing, 5)
                                 }
                                 .padding(.bottom,1)
 
@@ -463,6 +480,14 @@ struct WorkoutInProgressView: View {
             .fixedSize(horizontal: false, vertical: true)
             .presentationDetents([.height(300)])
             .environment(\.colorScheme, .dark)
+        }
+        .sheet(item: $shareItem) { wrapper in
+            ShareSheet(activityItems: [wrapper.url])
+        }
+        .sheet(isPresented: $profilePromptActive) {
+            profileNamePrompt
+                .presentationDetents([.height(260)])
+                .environment(\.colorScheme, .dark)
         }
         .onAppear {
             // Broadcast my starting position so the peer's avatar column
@@ -613,6 +638,85 @@ struct WorkoutInProgressView: View {
                 setIndex: sIdx
             )
         }
+    }
+
+    /// Entry point for the Share button in the top toolbar. Three paths:
+    ///   1. Host has never set a profile → present name prompt first; the
+    ///      prompt's submit handler re-invokes this method once the profile
+    ///      is set, so the friend never sees a "?" avatar for the host.
+    ///   2. Session doesn't exist yet → create one + register
+    ///      workoutInProgress server-side so the Stage 7b' welcome path
+    ///      auto-routes joiners straight into this view.
+    ///   3. Session already exists (paired OR waitingForPeer) → re-share
+    ///      the existing URL. Matches CollabStatusBanner.presentShare().
+    private func handleShareTap() {
+        if sessionClient.myProfile == nil {
+            profileDraftName = ""
+            profilePromptActive = true
+            return
+        }
+        if sessionClient.sessionId == nil {
+            sessionClient.startSharedSessionForActiveWorkout(plan: planViewModel.activePlan)
+        }
+        if let url = sessionClient.shareLinkURL() {
+            shareItem = ShareableURL(url: url)
+        }
+    }
+
+    /// Minimal name-entry sheet shown when the user taps Share without ever
+    /// having used collab. Photo is skipped here — can be added later via
+    /// the normal JoinSessionView flow. On Save we submit the profile and
+    /// re-enter handleShareTap() to continue the share flow.
+    private var profileNamePrompt: some View {
+        VStack(spacing: 20) {
+            Text("Your Name")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .padding(.top, 30)
+
+            Text("Shown to your friend when they join.")
+                .font(.caption)
+                .foregroundColor(.gray)
+
+            TextField("", text: $profileDraftName, prompt: Text("Required").foregroundColor(.gray))
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .background(Color(white: 0.15))
+                .cornerRadius(settings.cornerRadiusMedium)
+                .textInputAutocapitalization(.words)
+                .submitLabel(.done)
+                .padding(.horizontal, 24)
+
+            Button {
+                let trimmed = profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                sessionClient.submitProfile(Profile(name: trimmed, photoData: nil))
+                profilePromptActive = false
+                // Continue the interrupted share flow now that myProfile is set.
+                DispatchQueue.main.async { handleShareTap() }
+            } label: {
+                Text("Save")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .background(
+                profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? Color.gray.opacity(0.3)
+                    : settings.fgColor
+            )
+            .foregroundColor(.white)
+            .cornerRadius(settings.cornerRadiusMedium)
+            .padding(.horizontal, 24)
+            .disabled(profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
     }
 }
 
