@@ -160,7 +160,7 @@ struct JoinSessionView: View {
                 )
                 Text(peerProfileTrimmedName.isEmpty ? "?" : peerProfileTrimmedName)
                     .font(.caption)
-                    .fontWeight(.semibold)
+                        .fontWeight(.semibold)
                     .foregroundColor(peerProfileTrimmedName.isEmpty ? .gray : .white)
                     .lineLimit(1)
                     .frame(maxWidth: 100)

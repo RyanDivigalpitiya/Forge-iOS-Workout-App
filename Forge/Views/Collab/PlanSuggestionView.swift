@@ -36,7 +36,10 @@ struct PlanSuggestionView: View {
             gradientPanel
 
             carouselHeaderRow
-                .padding(.horizontal, 20)
+                // Horizontal inset matches gradientPanel's `.padding(.horizontal, 16)`
+                // above so the suggested-plan card and the chat container line
+                // up edge-to-edge.
+                .padding(.horizontal, 16)
 
             planCarousel
 
@@ -182,20 +185,14 @@ struct PlanSuggestionView: View {
     }
 
     private var avatarRow: some View {
+        // Friend on the left, user on the right — visually mirrors the chat
+        // bubble alignment below (peer bubbles left-aligned, user bubbles
+        // right-aligned).
         HStack(spacing: 0) {
             Spacer()
 
-            readyUpButton(isSelf: true)
+            readyUpButton(isSelf: false)
                 .padding(.trailing, 7)
-
-            avatar(
-                data: sessionClient.myProfile?.photoData,
-                fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                diameter: 44
-            )
-
-            connector
-                .padding(.horizontal, 8)
 
             avatar(
                 data: peerProfile?.photoData,
@@ -203,7 +200,16 @@ struct PlanSuggestionView: View {
                 diameter: 44
             )
 
-            readyUpButton(isSelf: false)
+            connector
+                .padding(.horizontal, 8)
+
+            avatar(
+                data: sessionClient.myProfile?.photoData,
+                fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
+                diameter: 44
+            )
+
+            readyUpButton(isSelf: true)
                 .padding(.leading, 7)
 
             Spacer()
@@ -215,21 +221,55 @@ struct PlanSuggestionView: View {
         let isReady = isSelf ? sessionClient.myIsReady : peerIsReady
         let canInteract = isSelf && sessionClient.suggestedPlan != nil
 
+        // "READY UP" is an action prompt — only meaningful for self.
+        // For the friend, show "Not Ready" as a status descriptor (greyed
+        // out) so it doesn't read like a tappable affordance.
+        let label: String
+        if isReady {
+            label = "READY"
+        } else if isSelf {
+            label = "READY UP"
+        } else {
+            label = "NOT READY"
+        }
+        let labelColor: Color
+        if isReady {
+            labelColor = .black
+        } else if isSelf {
+            labelColor = settings.fgColor
+        } else {
+            labelColor = .gray
+        }
+
         return Button {
             if isSelf { sessionClient.toggleReady() }
         } label: {
-            Text(isReady ? "READY" : "READY UP")
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(isReady ? .black : settings.fgColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isReady ? settings.fgColor : Color.clear)
-                .cornerRadius(settings.cornerRadiusSmall)
+            HStack(spacing: 4) {
+                // Checkmark sits on the inward-facing side of each button so
+                // it points toward the avatar it belongs to: right button
+                // (self) has the icon on the left of READY, left button
+                // (peer) has it on the right.
+                if isReady && isSelf {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                }
+                Text(label)
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                if isReady && !isSelf {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                }
+            }
+            .foregroundColor(labelColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isReady ? settings.fgColor : Color.clear)
+            .cornerRadius(settings.cornerRadiusSmall)
         }
         .buttonStyle(.plain)
         .disabled(!canInteract)
-        .opacity(isReady || canInteract ? 1.0 : 0.35)
+        .opacity(isReady || canInteract ? 1.0 : 0.65)
         .shadow(
             color: settings.fgColor.opacity(isReady ? 0.5 : 0.4),
             radius: 15,
@@ -257,14 +297,22 @@ struct PlanSuggestionView: View {
 
     private var chatMessagesScroll: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                if sessionClient.chatEntries.isEmpty {
+            // Empty-state placeholder lives OUTSIDE the ScrollView so it can
+            // fill the chat container's full vertical space and center
+            // itself. ScrollView sizes to content, so wrapping the
+            // placeholder in a Spacer-padded VStack inside it wouldn't
+            // actually take the available height.
+            if sessionClient.chatEntries.isEmpty {
+                VStack {
+                    Spacer()
                     Text("Say hi 👋")
                         .font(.caption)
                         .foregroundColor(.gray.opacity(0.4))
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 12)
-                } else {
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
                     LazyVStack(spacing: 6) {
                         ForEach(sessionClient.chatEntries) { entry in
                             chatBubble(entry: entry)
@@ -273,23 +321,23 @@ struct PlanSuggestionView: View {
                     }
                     .padding(.vertical, 8)
                 }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .onChange(of: sessionClient.chatEntries.count) { _, _ in
-                scrollToLatest(using: proxy)
-            }
-            .onAppear {
-                scrollToLatest(using: proxy)
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)
-            ) { _ in
-                scrollToLatest(using: proxy)
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(for: UIResponder.keyboardDidChangeFrameNotification)
-            ) { _ in
-                scrollToLatest(using: proxy)
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: sessionClient.chatEntries.count) { _, _ in
+                    scrollToLatest(using: proxy)
+                }
+                .onAppear {
+                    scrollToLatest(using: proxy)
+                }
+                .onReceive(
+                    NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)
+                ) { _ in
+                    scrollToLatest(using: proxy)
+                }
+                .onReceive(
+                    NotificationCenter.default.publisher(for: UIResponder.keyboardDidChangeFrameNotification)
+                ) { _ in
+                    scrollToLatest(using: proxy)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -349,11 +397,15 @@ struct PlanSuggestionView: View {
     }
 
     private var carouselHeaderRow: some View {
-        HStack(spacing: 10) {
-            suggestedHeaderCluster
-                .scaleEffect(suggestedPaneScale)
-            Spacer()
-        }
+        // Single .frame(maxWidth:) wrapper rather than an HStack+Spacer so
+        // the populated card (which has its own .frame(maxWidth: .infinity))
+        // actually fills the row — an HStack-with-Spacer ends up clipping
+        // it to its intrinsic content width on some layout passes. Leading
+        // alignment keeps the "Suggest Workout" placeholder text on the
+        // left edge in the unpopulated case.
+        suggestedHeaderCluster
+            .scaleEffect(suggestedPaneScale)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -361,7 +413,7 @@ struct PlanSuggestionView: View {
         if let suggested = sessionClient.suggestedPlan {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Suggested")
+                    Text("Suggested:")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.gray)
@@ -389,7 +441,7 @@ struct PlanSuggestionView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .background(Color(white: 0.1))
+            .background(shimmeringSuggestedBackground)
             .cornerRadius(settings.cornerRadiusMedium)
         } else {
             Text("Suggest Workout")
@@ -406,12 +458,7 @@ struct PlanSuggestionView: View {
     /// from wall-clock time. 2.5s per sweep cycle.
     private func shimmeringSuggestedName(_ name: String) -> some View {
         TimelineView(.animation) { context in
-            let cycle: Double = 2.5
-            let progress = context.date.timeIntervalSinceReferenceDate
-                .truncatingRemainder(dividingBy: cycle) / cycle
-            // Map [0,1] → [-1.5, 1.5] so the bright midpoint sweeps from
-            // off-left, across the text, to off-right per cycle.
-            let phase = CGFloat(progress * 3.0 - 1.5)
+            let phase = shimmerPhase(at: context.date)
             Text(name)
                 .font(.title3)
                 .fontWeight(.bold)
@@ -429,21 +476,61 @@ struct PlanSuggestionView: View {
         }
     }
 
-    /// END SESSION text label — replaces the old X-circle button. Same plain
-    /// fg-color text styling as the DISMISS label on the trailing edge.
+    /// Card-background shimmer for the suggested-plan panel. Same phase
+    /// math + same 2.5s cycle as `shimmeringSuggestedName`, so the
+    /// background highlight band stays in sync with the bright text-peak
+    /// sweeping across the plan name.
+    ///
+    /// Color stops are darker than the text shimmer — `Color(white: 0.1)`
+    /// matches the original static panel background, with an
+    /// `fgColor.opacity(0.25)` mid-band so the sweep reads as a subtle
+    /// branded glow rather than a high-contrast stripe.
+    private var shimmeringSuggestedBackground: some View {
+        TimelineView(.animation) { context in
+            let phase = shimmerPhase(at: context.date)
+            LinearGradient(
+                stops: [
+                    .init(color: Color(white: 0.1), location: 0),
+                    .init(color: settings.fgColor.opacity(0.25), location: 0.5),
+                    .init(color: Color(white: 0.1), location: 1),
+                ],
+                startPoint: UnitPoint(x: phase, y: 0.5),
+                endPoint: UnitPoint(x: phase + 1, y: 0.5)
+            )
+        }
+    }
+
+    /// Maps wall-clock time into the [-1.5, +1.5] sweep phase used by both
+    /// shimmer surfaces (text + background). Cycle constant is shared so
+    /// the two shimmers can't drift out of sync.
+    private func shimmerPhase(at date: Date) -> CGFloat {
+        let cycle: Double = 2.5
+        let progress = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: cycle) / cycle
+        return CGFloat(progress * 3.0 - 1.5)
+    }
+
+    /// END SESSION label with a back-chevron prefix to read as a "Leave"
+    /// affordance. Same plain fg-color text styling as the DISMISS label
+    /// on the trailing edge.
     private var endSessionLabel: some View {
         Button { showEndSessionConfirm = true } label: {
-            Text("LEAVE")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(settings.fgColor)
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 11, weight: .bold))
+                Text("LEAVE")
+                    .font(.caption)
+                    .fontWeight(.bold)
+            }
+            .foregroundColor(settings.fgColor)
         }
         .buttonStyle(.plain)
     }
 
     /// DISMISS label — only enabled while the keyboard is up. Sends
     /// resignFirstResponder system-wide so KeyboardPersistentTextField (a
-    /// UITextField) drops focus and the keyboard slides away.
+    /// UITextField) drops focus and the keyboard slides away. Trailing
+    /// down-chevron icon mirrors the HistoryView toolbar's Dismiss button.
     private var dismissKeyboardLabel: some View {
         Button {
             UIApplication.shared.sendAction(
@@ -451,10 +538,15 @@ struct PlanSuggestionView: View {
                 to: nil, from: nil, for: nil
             )
         } label: {
-            Text("DISMISS")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(keyboardVisible ? settings.fgColor : Color(white: 0.3))
+            HStack(spacing: 4) {
+                Text("DISMISS")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                Image(systemName: "chevron.down")
+                    .resizable()
+                    .frame(width: 9, height: 6)
+            }
+            .foregroundColor(keyboardVisible ? settings.fgColor : Color(white: 0.3))
         }
         .buttonStyle(.plain)
         .disabled(!keyboardVisible)
@@ -505,7 +597,13 @@ struct PlanSuggestionView: View {
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal, 20)
+                // Leading 16 matches the suggested-plan pane / gradientPanel
+                // outer padding above so the first carousel card lines up
+                // edge-to-edge with the populated suggestion card. Trailing
+                // stays at 20 — the right edge falls under the fade-to-black
+                // overlay, so no alignment constraint there.
+                .padding(.leading, 16)
+                .padding(.trailing, 20)
             }
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $currentPlanId, anchor: .leading)
