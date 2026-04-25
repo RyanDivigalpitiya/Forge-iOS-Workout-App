@@ -35,30 +35,43 @@ struct WorkoutWithFriendView: View {
 
             Spacer()
 
-            HStack(spacing: 12) {
-                Button {
-                    generateAndCopy()
-                } label: {
-                    Label("Copy Link", systemImage: "doc.on.doc.fill")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                }
-                .background(GlobalSettings.shared.bgColor)
-                .foregroundColor(settings.fgColor)
-                .cornerRadius(12)
+            VStack(spacing: 14) {
+                HStack(spacing: 12) {
+                    Button {
+                        generateAndCopy()
+                    } label: {
+                        Label("Copy Link", systemImage: "doc.on.doc.fill")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .background(GlobalSettings.shared.bgColor)
+                    .foregroundColor(settings.fgColor)
+                    .cornerRadius(12)
 
-                Button {
-                    generateAndShare()
-                } label: {
-                    Label("Share Link", systemImage: "square.and.arrow.up.fill")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    Button {
+                        generateAndShare()
+                    } label: {
+                        Label("Share Link", systemImage: "square.and.arrow.up.fill")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .background(GlobalSettings.shared.bgColor)
+                    .foregroundColor(settings.fgColor)
+                    .cornerRadius(12)
                 }
-                .background(GlobalSettings.shared.bgColor)
-                .foregroundColor(settings.fgColor)
-                .cornerRadius(12)
+
+                Rectangle()
+                    .fill(GlobalSettings.shared.buttonCircleBgColor)
+                    .frame(width: 30, height: 1)
+                    .padding(.vertical, 6)
+
+                Text("or ask a friend to share their link with you")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
+                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
@@ -82,7 +95,7 @@ struct WorkoutWithFriendView: View {
     private var instructionList: some View {
         VStack(spacing: 28) {
             instructionRow(icon: "square.and.arrow.up.fill", text: "Share invite link with a friend")
-            instructionRow(icon: "dumbbell.fill", text: "Choose a workout plan together")
+            instructionRow(icon: "bubble.left.and.text.bubble.right.fill", text: "Choose a workout plan together")
             instructionRow(icon: "person.2.fill", text: "Workout with each other")
         }
     }
@@ -126,9 +139,9 @@ struct WorkoutWithFriendView: View {
 
     private var graphicGutter: some View {
         VStack(spacing: 0) {
-            // Vertical offset matching card top padding (12) + exercise
-            // name placeholder height (14) + bottom gap (8) = 34.
-            Color.clear.frame(height: 34)
+            // Vertical offset matching card top padding (16) + exercise
+            // name placeholder height (22) + bottom gap (12) = 50.
+            Color.clear.frame(height: 50)
             avatarSlot(filled: true)    // set 1 → avatar 1
             avatarSlot(filled: false)   // rest 1
             avatarSlot(filled: false)   // set 2
@@ -136,25 +149,25 @@ struct WorkoutWithFriendView: View {
             avatarSlot(filled: true)    // set 3 → avatar 2
             Spacer(minLength: 0)
         }
-        .frame(width: 44)
+        .frame(width: 60)
     }
 
     private var graphicCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             flexiblePlaceholder(
-                height: 14,
+                height: 22,
                 leftColor: Color.gray,
                 rightColor: .clear
             )
-            .padding(.bottom, 8)
+            .padding(.bottom, 12)
 
-            graphicSetRow().frame(height: 26)
-            graphicRestRow().frame(height: 26)
-            graphicSetRow().frame(height: 26)
-            graphicRestRow().frame(height: 26)
-            graphicSetRow().frame(height: 26)
+            graphicSetRow().frame(height: 40)
+            graphicRestRow().frame(height: 40)
+            graphicSetRow().frame(height: 40)
+            graphicRestRow().frame(height: 40)
+            graphicSetRow().frame(height: 40)
         }
-        .padding(12)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         // Card bg fades out left → right so the right edge of the panel
         // dissolves into the screen background, mirroring the grey-to-clear
@@ -175,24 +188,24 @@ struct WorkoutWithFriendView: View {
     private func avatarSlot(filled: Bool) -> some View {
         Group {
             if filled {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Circle()
                         .fill(GlobalSettings.shared.darkGray)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 36, height: 36)
                         .overlay {
                             Image(systemName: "person.fill")
-                                .font(.system(size: 12))
+                                .font(.system(size: 18))
                                 .foregroundColor(.white.opacity(0.6))
                         }
                     Image(systemName: "arrowtriangle.right.fill")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.gray)
                 }
             } else {
                 Color.clear
             }
         }
-        .frame(height: 26)
+        .frame(height: 40)
     }
 
     private func placeholderRect(
@@ -210,7 +223,7 @@ struct WorkoutWithFriendView: View {
             endPoint: .trailing
         )
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: height / 3))
+        .clipShape(RoundedRectangle(cornerRadius: height / 5))
     }
 
     /// Width-flexible variant — fills the available horizontal space inside
@@ -231,24 +244,26 @@ struct WorkoutWithFriendView: View {
         )
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: height / 3))
+        .clipShape(RoundedRectangle(cornerRadius: height / 5))
     }
 
     private func graphicSetRow() -> some View {
         HStack(spacing: 0) {
             Circle()
-                .stroke(Color.gray.opacity(0.6), lineWidth: 1.2)
-                .frame(width: 14, height: 14)
-                .padding(.trailing, 6)
+                .stroke(Color.gray.opacity(0.6), lineWidth: 1.8)
+                .frame(width: 22, height: 22)
+                .padding(.trailing, 9)
             Circle()
-                .stroke(settings.fgColor.opacity(0.6), lineWidth: 1.2)
-                .frame(width: 14, height: 14)
-                .padding(.trailing, 10)
+                .stroke(settings.fgColor.opacity(0.6), lineWidth: 1.8)
+                .frame(width: 22, height: 22)
+                .padding(.trailing, 14)
             // Set + weight x reps placeholder — fg-tinted so it reads as
             // the "active" content row vs. the grey name/rest placeholders.
-            // Stretches to the card's right edge.
+            // Height matches the completion circles' diameter so the row
+            // reads as a single horizontal block. Stretches to the card's
+            // right edge.
             flexiblePlaceholder(
-                height: 12,
+                height: 22,
                 leftColor: settings.fgColor.opacity(0.3),
                 rightColor: .clear
             )
@@ -258,11 +273,11 @@ struct WorkoutWithFriendView: View {
     private func graphicRestRow() -> some View {
         HStack(spacing: 0) {
             graphicConnector
-                .padding(.trailing, 6)
+                .padding(.trailing, 9)
             graphicConnector
-                .padding(.trailing, 10)
+                .padding(.trailing, 14)
             flexiblePlaceholder(
-                height: 10,
+                height: 14,
                 leftColor: Color.gray,
                 rightColor: .clear
             )
@@ -270,13 +285,13 @@ struct WorkoutWithFriendView: View {
     }
 
     private var graphicConnector: some View {
-        VStack(spacing: 1) {
-            Rectangle().frame(width: 1, height: 7)
-            Circle().frame(width: 4, height: 4)
-            Rectangle().frame(width: 1, height: 7)
+        VStack(spacing: 4) {
+            Rectangle().frame(width: 1.5, height: 11)
+            Circle().frame(width: 6, height: 6)
+            Rectangle().frame(width: 1.5, height: 11)
         }
         .foregroundColor(GlobalSettings.shared.darkGray)
-        .frame(width: 14)
+        .frame(width: 22)
     }
 
     private func generateAndCopy() {
