@@ -1210,6 +1210,7 @@ extension WorkoutInProgressView {
                 HStack(spacing: -10) {
                     ForEach(peerIdsHere, id: \.self) { peerId in
                         let profile = sessionClient.peerProfiles[peerId]
+                        let isAway = sessionClient.peerAway[peerId] != nil
                         avatar(
                             data: profile?.photoData,
                             fallbackInitial: initial(from: profile?.name ?? "?"),
@@ -1217,6 +1218,14 @@ extension WorkoutInProgressView {
                             borderColor: .black,
                             borderWidth: 2
                         )
+                        // Gutter avatars are small (22-28pt) — the moon
+                        // badge from `awayDimmedAvatar` would be too
+                        // cramped here, and these sit alongside a
+                        // black-bordered cluster, so opacity-only is
+                        // the cleaner read. The chat header carries
+                        // the canonical badge.
+                        .opacity(isAway ? 0.45 : 1.0)
+                        .animation(.easeInOut(duration: 0.25), value: isAway)
                     }
                     if showMe {
                         avatar(

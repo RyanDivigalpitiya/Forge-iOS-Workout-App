@@ -1,6 +1,34 @@
 import SwiftUI
 import UIKit
 
+/// Renders an `avatar(...)` plus a subtle "stepped away" overlay when
+/// `isAway` is true: dims the avatar to ~45% opacity and adds a small
+/// `moon.fill` badge in the bottom-trailing corner. Use this anywhere
+/// a peer's avatar is shown alongside a `peerAway[peerId]` lookup so
+/// the visual treatment stays consistent (chat header + workout gutter).
+@ViewBuilder
+func awayDimmedAvatar(
+    data: Data?,
+    fallbackInitial: String,
+    diameter: CGFloat,
+    isAway: Bool
+) -> some View {
+    let badgeSize = max(8, diameter * 0.28)
+    avatar(data: data, fallbackInitial: fallbackInitial, diameter: diameter)
+        .opacity(isAway ? 0.45 : 1.0)
+        .overlay(alignment: .bottomTrailing) {
+            if isAway {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: badgeSize * 0.55, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: badgeSize, height: badgeSize)
+                    .background(Circle().fill(Color.black.opacity(0.75)))
+                    .offset(x: 2, y: 2)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: isAway)
+}
+
 func avatar(
     data: Data?,
     fallbackInitial: String,

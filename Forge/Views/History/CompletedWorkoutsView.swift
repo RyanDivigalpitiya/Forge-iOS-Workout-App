@@ -149,8 +149,32 @@ struct CompletedWorkoutsView: View {
             handleIncomingURL(url)
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .active && oldPhase != .active {
-                sessionClient.reconnect()
+            switch newPhase {
+            case .active:
+                if oldPhase != .active {
+                    sessionClient.reconnect()
+                    // After reconnect, the rebind path on the server
+                    // implicitly broadcasts peerReturned. This call is
+                    // a defensive fallback for the rare case where the
+                    // WS survived backgrounding (no reconnect rebind) —
+                    // server's markReturned is a no-op if we're already
+                    // .connected, so it's safe to fire either way.
+                    sessionClient.sendReturningToForeground()
+                }
+            case .background:
+                // Tell the server we're backgrounding BEFORE iOS kills
+                // the WS (~5s of background runtime available). The
+                // awaited send guarantees the frame leaves the device
+                // before the OS suspends us. Without this, every brief
+                // app-switch surfaces a "Friend disconnected" banner
+                // on the other phone.
+                Task { await sessionClient.sendGoingBackgroundAndAwait() }
+            case .inactive:
+                // Transient (control center, multitasking switcher) —
+                // WS usually survives, don't trigger the away path.
+                break
+            @unknown default:
+                break
             }
         }
         .onChange(of: sessionClient.state) { _, newState in

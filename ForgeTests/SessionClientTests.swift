@@ -187,6 +187,59 @@ final class SessionClientTests {
         #expect(client.state == .waitingForPeer)
     }
 
+    // MARK: - peerAway / peerReturned
+
+    @Test func peerAwayMarksPeerAndPreservesPairedState() {
+        // Background-aware presence: server reports the peer backgrounded
+        // Forge. We mark them as away (drives the subtle avatar dim) but
+        // the slot is still alive — `state` MUST stay .paired and
+        // per-peer dicts MUST persist (so the chat history, profile,
+        // ready flag etc. all remain). The 5-min server-side timeout
+        // owns eventual cleanup if the peer doesn't return.
+        let peerId = UUID()
+        send(.peerJoined(peerId: peerId))
+        send(.peerProfileUpdated(
+            peerId: peerId,
+            profile: Profile(name: "A", photoData: nil)
+        ))
+        send(.peerReadyChanged(peerId: peerId, isReady: true))
+
+        send(.peerAway(peerId: peerId))
+
+        #expect(client.peerAway[peerId] != nil)
+        #expect(client.isPaired)
+        #expect(client.peerProfiles[peerId] != nil)
+        #expect(client.peerReady[peerId] == true)
+    }
+
+    @Test func peerReturnedClearsAwayMark() {
+        let peerId = UUID()
+        send(.peerJoined(peerId: peerId))
+        send(.peerAway(peerId: peerId))
+        #expect(client.peerAway[peerId] != nil)
+
+        send(.peerReturned(peerId: peerId))
+
+        #expect(client.peerAway[peerId] == nil)
+        #expect(client.isPaired)
+    }
+
+    @Test func peerLeftClearsAwayMark() {
+        // The 5-min away timeout fires on the server, which then
+        // broadcasts `peerLeft`. Make sure the `peerAway` entry is
+        // cleared alongside the rest of the per-peer state so the away
+        // indicator doesn't linger after the peer truly goes.
+        let peerId = UUID()
+        send(.peerJoined(peerId: peerId))
+        send(.peerAway(peerId: peerId))
+        #expect(client.peerAway[peerId] != nil)
+
+        send(.peerLeft(peerId: peerId))
+
+        #expect(client.peerAway[peerId] == nil)
+        #expect(client.peerIds.isEmpty)
+    }
+
     // MARK: - peerProfileUpdated
 
     @Test func peerProfileUpdatedStoresProfile() {

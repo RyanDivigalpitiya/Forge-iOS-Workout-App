@@ -109,6 +109,13 @@ enum ServerMessage: Codable {
     case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?, workoutInProgress: PlanSnapshot?)
     case peerJoined(peerId: UUID)
     case peerLeft(peerId: UUID)
+    /// Server reports the peer backgrounded Forge — drives the subtle
+    /// "stepped away" indicator, NOT a disconnect banner. Slot stays
+    /// alive server-side for 5 min; if no return, server fires peerLeft.
+    case peerAway(peerId: UUID)
+    /// Server reports an away peer reconnected (rebind) or sent
+    /// `returningToForeground`. Receiver clears the away indicator.
+    case peerReturned(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
@@ -149,6 +156,18 @@ enum ClientMessage: Codable {
     /// when the user bails out of a paired workout. Server fans out as
     /// `peerCancelled` and clears `workoutInProgress`.
     case workoutCancelled
+    /// Sent when iOS scenePhase transitions to .background — flushed
+    /// over the live WS via `sendGoingBackgroundAndAwait()` during the
+    /// ~5s of background runtime iOS gives us before suspending.
+    /// Server marks our slot away + holds it for 5 min; the other peer
+    /// sees `peerAway` instead of `peerLeft`.
+    case goingBackground
+    /// Defensive fallback for the rare case where the WS survived
+    /// backgrounding without dying — when scenePhase returns to
+    /// `.active` we fire this so the server can flip us back to
+    /// `.connected` and broadcast `peerReturned`. The reconnect-into-
+    /// away-slot path handles the more common case implicitly.
+    case returningToForeground
 }
 
 /// Transient payload set by `SessionClient` when the server reports the peer
@@ -216,6 +235,7 @@ final class SessionClient: ObservableObject {
 
     static let serverHost = "reserve-hiring-vegetables-adsl.trycloudflare.com"
     private static let profileKey = "collabProfile"
+    private static let participantIdKey = "collabParticipantId"
 
     /// Session lifecycle. `.paired` carries peerIds directly so the "connected
     /// without peers" illegal state is unrepresentable — any socket-up /
@@ -265,6 +285,35 @@ final class SessionClient: ObservableObject {
     /// session (the peer's exit was clean, not a network drop). Cleared
     /// on `disconnect()` / `reconnect()`.
     @Published var peerExitInfo: PeerExitInfo? = nil
+    /// Peers currently `.away` (server reported `peerAway` because they
+    /// backgrounded Forge). Empty value means everyone is foregrounded.
+    /// The `Date` is when the peer went away — available to UI if we
+    /// ever want "stepped away N seconds ago" copy. Cleared on
+    /// disconnect/reconnect and per-peer when `peerReturned` /
+    /// `peerLeft` arrives.
+    @Published var peerAway: [UUID: Date] = [:]
+
+    /// Stable per-device identity, generated once on first launch and
+    /// persisted to UserDefaults. Sent on every WS connect via the URL
+    /// query string (`?participantId=<uuid>`) so the server can match
+    /// reconnects to an existing slot. This eliminates the per-WS-UUID
+    /// rotation that today causes a peerLeft → peerJoined flash on
+    /// every transient reconnect, and is the basis for the
+    /// background-aware "away" handling — when the iOS app is killed
+    /// while backgrounded and reopens, the server matches the same
+    /// stable id and broadcasts `peerReturned` instead of fresh
+    /// `peerJoined`.
+    private(set) lazy var stableParticipantId: UUID = {
+        if let data = UserDefaults.standard.data(forKey: Self.participantIdKey),
+           let id = try? JSONDecoder().decode(UUID.self, from: data) {
+            return id
+        }
+        let new = UUID()
+        if let data = try? JSONEncoder().encode(new) {
+            UserDefaults.standard.set(data, forKey: Self.participantIdKey)
+        }
+        return new
+    }()
 
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
@@ -373,6 +422,7 @@ final class SessionClient: ObservableObject {
         peerBreakTimer = [:]
         peerCommittedProfiles = []
         peerExitInfo = nil
+        peerAway = [:]
         openSocket(sessionId: id)
     }
 
@@ -396,6 +446,7 @@ final class SessionClient: ObservableObject {
         peerCommittedProfiles = []
         workoutInProgress = nil
         peerExitInfo = nil
+        peerAway = [:]
         state = .idle
     }
 
@@ -414,6 +465,24 @@ final class SessionClient: ObservableObject {
     func sendWorkoutCancelledAndDisconnect() async {
         await sendAndAwait(.workoutCancelled)
         disconnect()
+    }
+
+    /// Awaited send used from the `scenePhase = .background` observer.
+    /// iOS gives us ~5s of background runtime before suspension; the
+    /// awaited path guarantees the frame leaves the device before the
+    /// socket dies (fire-and-forget over a doomed WS would never make
+    /// it to the server). Safe to call when no session is active —
+    /// `sendAndAwait` no-ops if there's no task.
+    func sendGoingBackgroundAndAwait() async {
+        await sendAndAwait(.goingBackground)
+    }
+
+    /// Defensive fallback for the rare case where the WS survived the
+    /// background blip without dying (no reconnect happened on the
+    /// `.active` transition). Idempotent server-side: `markReturned`
+    /// no-ops if state is already `.connected`.
+    func sendReturningToForeground() {
+        sendClientMessage(.returningToForeground)
     }
 
     private func sendAndAwait(_ message: ClientMessage) async {
@@ -546,7 +615,13 @@ final class SessionClient: ObservableObject {
 
     private func openSocket(sessionId: UUID) {
         state = .connecting
-        let url = URL(string: "wss://\(Self.serverHost)/sessions/\(sessionId.uuidString)")!
+        // Append the stable participantId as a query param so the server
+        // can recognise reconnects and route them into the existing
+        // away-slot (rebind) instead of treating them as a fresh peer.
+        let url = URL(
+            string: "wss://\(Self.serverHost)/sessions/\(sessionId.uuidString)" +
+                    "?participantId=\(stableParticipantId.uuidString)"
+        )!
         let newTask = URLSession.shared.webSocketTask(with: url)
         task = newTask
         newTask.resume()
@@ -666,8 +741,19 @@ final class SessionClient: ObservableObject {
             peerBreakTimer.removeValue(forKey: peerId)
             peerReady.removeValue(forKey: peerId)
             peerCommittedProfiles.remove(peerId)
+            peerAway.removeValue(forKey: peerId)
             let remaining = peerIds.filter { $0 != peerId }
             state = remaining.isEmpty ? .waitingForPeer : .paired(peerIds: remaining)
+
+        case .peerAway(let peerId):
+            // Server reports the peer backgrounded Forge. Drive the
+            // subtle "away" indicator on the avatar; do NOT change
+            // `state` (still .paired) and do NOT clear any per-peer
+            // dicts — the slot is held alive server-side for 5 min.
+            peerAway[peerId] = Date()
+
+        case .peerReturned(let peerId):
+            peerAway.removeValue(forKey: peerId)
 
         case .peerProfileUpdated(let peerId, let profile):
             // Ignore profile updates for peerIds we don't recognise — guards

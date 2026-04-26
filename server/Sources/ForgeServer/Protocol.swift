@@ -32,6 +32,16 @@ enum ServerMessage: Codable, Sendable {
     case welcome(yourId: UUID, peers: [PeerInfo], suggestedPlan: PlanSnapshot?, workoutInProgress: PlanSnapshot?)
     case peerJoined(peerId: UUID)
     case peerLeft(peerId: UUID)
+    /// Broadcast when a peer sends `goingBackground` (iOS app moved off-screen).
+    /// The other peer can show a subtle "stepped away" indicator instead of
+    /// the loud "Friend disconnected" UI. The slot stays alive on the server
+    /// for 5 minutes; if the peer doesn't return in that window, server fires
+    /// `peerLeft` (true disconnect path).
+    case peerAway(peerId: UUID)
+    /// Broadcast when an away peer reconnects (reconnect-into-away-slot
+    /// rebind), or when a still-connected away peer sends an explicit
+    /// `returningToForeground`. Receiver clears the away indicator.
+    case peerReturned(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
     case peerChat(peerId: UUID, text: String, timestamp: Date)
@@ -91,4 +101,18 @@ enum ClientMessage: Codable, Sendable {
     /// `disconnect()`. Server fans out as `peerCancelled` and clears
     /// `workoutInProgress` for the session.
     case workoutCancelled
+    /// Sent by the iOS client when `scenePhase` transitions to `.background`
+    /// — iOS gives the app ~5s of background runtime before suspending,
+    /// during which we flush this message over the live WS so the server
+    /// can mark the slot "away" before the OS kills the socket. Without
+    /// this, every brief app-switch by one friend surfaces a "Friend
+    /// disconnected" banner on the other phone.
+    case goingBackground
+    /// Sent by the iOS client when `scenePhase` transitions back to
+    /// `.active`. The reconnect-into-away-slot path also implicitly clears
+    /// the away state (server broadcasts `peerReturned` in `addParticipant`'s
+    /// `.rebound` case), so this message is mainly a defensive fallback for
+    /// the rare case where the WS survived backgrounding (no reconnect
+    /// needed) but the server still has us flagged as away.
+    case returningToForeground
 }

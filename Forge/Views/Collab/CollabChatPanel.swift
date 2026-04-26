@@ -59,10 +59,12 @@ struct CollabChatPanel: View {
     }
 
     private var avatarHeader: some View {
-        avatar(
+        let isAway = peerId.flatMap { sessionClient.peerAway[$0] } != nil
+        return awayDimmedAvatar(
             data: peerProfile?.photoData,
             fallbackInitial: initial(from: peerProfile?.name ?? "?"),
-            diameter: 56
+            diameter: 56,
+            isAway: isAway
         )
     }
 
