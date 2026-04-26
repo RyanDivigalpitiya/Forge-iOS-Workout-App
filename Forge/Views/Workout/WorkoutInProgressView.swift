@@ -125,6 +125,12 @@ struct WorkoutInProgressView: View {
     @State private var chatPanelHeight: CGFloat = 0
     @State private var chatPanelVisible: Bool = false
     @State private var chatPanelCornerRadius: CGFloat = 0
+    // Counts peer messages received while the chat panel is minimized
+    // mid-workout. Surfaced in the Open Chat button label and cleared
+    // when the panel re-opens. Local @State (not on SessionClient) since
+    // "is chat open" is a workout-view concern; PlanSuggestionView's chat
+    // is always visible and doesn't need unread tracking.
+    @State private var unreadChatCount: Int = 0
     /// Tracked manually so the chat container's bottom can sit exactly
     /// at the keyboard top (when shown) or just above the 3-button row
     /// (when hidden). SwiftUI's default keyboard avoidance positions
@@ -519,7 +525,8 @@ struct WorkoutInProgressView: View {
                                     chatPanelHeight - max(0, keyboardHeight - bottomToolbarHeight)
                                 ),
                                 chatPanelVisible: chatPanelVisible,
-                                chatPanelCornerRadius: chatPanelCornerRadius
+                                chatPanelCornerRadius: chatPanelCornerRadius,
+                                unreadCount: unreadChatCount
                             )
                             .padding(.bottom, keyboardHeight > 0 ? keyboardHeight : bottomToolbarHeight)
                         }
@@ -662,6 +669,24 @@ struct WorkoutInProgressView: View {
                 chatPanelCornerRadius = 0
                 isChatOpen = false
             }
+            if !isPaired {
+                unreadChatCount = 0
+            }
+        }
+        .onChange(of: sessionClient.chatEntries.count) { oldCount, newCount in
+            // While the chat panel is minimized, surface peer messages
+            // via an unread count in the Open Chat label + a single
+            // light haptic per arrival batch. No-op when the panel is
+            // open (user is reading them in real time) or when the
+            // delta is our own send (`isMine`).
+            guard !isChatOpen, newCount > oldCount else { return }
+            let newPeerCount = sessionClient.chatEntries
+                .suffix(newCount - oldCount)
+                .filter { !$0.isMine }
+                .count
+            guard newPeerCount > 0 else { return }
+            unreadChatCount += newPeerCount
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
@@ -987,6 +1012,8 @@ extension WorkoutInProgressView {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
             )
+        } else {
+            unreadChatCount = 0
         }
         // Target: chat panel top edge lands at the same vertical
         // position as the first exercise row, so the gap between the

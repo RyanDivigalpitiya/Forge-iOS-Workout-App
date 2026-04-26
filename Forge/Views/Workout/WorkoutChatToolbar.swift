@@ -18,9 +18,19 @@ struct WorkoutChatToolbar: View {
     let chatPanelHeight: CGFloat
     let chatPanelVisible: Bool
     let chatPanelCornerRadius: CGFloat
+    let unreadCount: Int
 
     @EnvironmentObject var settings: GlobalSettings
     private let chatRowHeight: CGFloat = 50
+
+    private var buttonLabel: String {
+        if isChatOpen { return "Minimize Chat" }
+        switch unreadCount {
+        case 0:  return "Open Chat"
+        case 1:  return "Open Chat (1 New Message)"
+        default: return "Open Chat (\(unreadCount) New Messages)"
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +59,7 @@ struct WorkoutChatToolbar: View {
             Button(action: { onChatToggleTapped() }) {
                 HStack {
                     Image(systemName: isChatOpen ? "xmark.bubble.fill" : "bubble.left.fill")
-                    Text(isChatOpen ? "Minimize Chat" : "Open Chat").fontWeight(.bold)
+                    Text(buttonLabel).fontWeight(.bold)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
