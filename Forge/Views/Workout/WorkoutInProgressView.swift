@@ -121,6 +121,14 @@ struct WorkoutInProgressView: View {
     @State private var chatPanelHeight: CGFloat = 0
     @State private var chatPanelVisible: Bool = false
     @State private var chatPanelCornerRadius: CGFloat = 0
+    /// Tracked manually so the chat container's bottom can sit exactly
+    /// at the keyboard top (when shown) or just above the 3-button row
+    /// (when hidden). SwiftUI's default keyboard avoidance positions
+    /// the FOCUSED FIELD above the keyboard, which would leave the
+    /// Minimize Chat button (positioned BELOW the input field in the
+    /// layout) hidden by the keyboard. We disable the default via
+    /// `.ignoresSafeArea(.keyboard)` and drive the position ourselves.
+    @State private var keyboardHeight: CGFloat = 0
     // Mirrors `chatRowAdditionalHeight` in WorkoutBottomToolbarView.
     // Used to compute the expanded chat-panel height so its top edge
     // lands at the same vertical position as the first exercise row.
@@ -436,6 +444,11 @@ struct WorkoutInProgressView: View {
                     }
                     .edgesIgnoringSafeArea(.top)
                     
+                    // 3-button toolbar: anchored at the bottom of the
+                    // screen via `.edgesIgnoringSafeArea(.bottom)` and
+                    // OPTED OUT of keyboard avoidance via
+                    // `.ignoresSafeArea(.keyboard)` so the keyboard
+                    // covers it instead of pushing it up.
                     WorkoutBottomToolbarView(
                         exerciseEditorIsPresented: $exerciseEditorIsPresented,
                         reorderDeleteViewPresented: $reorderDeleteViewPresented,
@@ -449,15 +462,45 @@ struct WorkoutInProgressView: View {
                         },
                         onDoneTapped: {
                             finishWorkout()
-                        },
-                        showChatRow: sessionClient.isPaired,
-                        isChatOpen: isChatOpen,
-                        onChatToggleTapped: { toggleChatPanel() },
-                        chatPanelHeight: chatPanelHeight,
-                        chatPanelVisible: chatPanelVisible,
-                        chatPanelCornerRadius: chatPanelCornerRadius
+                        }
                     )
                     .edgesIgnoringSafeArea(.bottom)
+                    .ignoresSafeArea(.keyboard)
+
+                    // Chat container: rendered as a separate sibling so
+                    // its position is decoupled from the 3-button row.
+                    // We OPT OUT of SwiftUI's default keyboard avoidance
+                    // and drive the bottom padding ourselves: when the
+                    // keyboard is up, padding = keyboardHeight (so the
+                    // container's bottom sits at the keyboard top); when
+                    // hidden, padding = bottomToolbarHeight (sits just
+                    // above the 3-button row). The Minimize Chat button
+                    // is at the bottom edge of the container, so it
+                    // ends up just above the keyboard / 3-button row in
+                    // both states. Drawn AFTER the 3-button row in the
+                    // ZStack so its blur covers any visual seam.
+                    if sessionClient.isPaired {
+                        VStack {
+                            Spacer()
+                            WorkoutChatToolbar(
+                                isChatOpen: isChatOpen,
+                                onChatToggleTapped: { toggleChatPanel() },
+                                chatPanelHeight: chatPanelHeight,
+                                chatPanelVisible: chatPanelVisible,
+                                chatPanelCornerRadius: chatPanelCornerRadius
+                            )
+                            .padding(.bottom, keyboardHeight > 0 ? keyboardHeight : bottomToolbarHeight)
+                        }
+                        // Ignore the bottom safe area so .padding(.bottom, X)
+                        // positions the chat container's bottom edge at
+                        // exactly y = screenBottom - X (matching the
+                        // 3-button row, which also ignores bottom safe
+                        // area). Without this, the chat container's
+                        // bottom lands `safeAreaBottom` (~34pt) above the
+                        // 3-button row's top, creating a visible gap.
+                        .ignoresSafeArea(edges: .bottom)
+                        .ignoresSafeArea(.keyboard)
+                    }
                 }
                 .opacity(isWorkoutOpacityFull ? 1 : 0)
                 .background(.black)
@@ -571,6 +614,28 @@ struct WorkoutInProgressView: View {
                 chatPanelHeight = 0
                 chatPanelCornerRadius = 0
                 isChatOpen = false
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { notification in
+            // Pull the keyboard's animation duration + curve from the
+            // notification so our chat container's slide-up matches the
+            // system keyboard's slide-up — they animate as one piece.
+            guard
+                let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            else { return }
+            let duration = (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = frame.height
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        ) { notification in
+            let duration = (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = 0
             }
         }
     }
@@ -866,6 +931,14 @@ extension WorkoutInProgressView {
     /// as one piece.
     func toggleChatPanel() {
         let opening = !isChatOpen
+        // When closing, dismiss the keyboard if it's up so it slides
+        // down in sync with the chat-container collapse instead of
+        // floating mid-screen until the user taps elsewhere.
+        if !opening {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
+            )
+        }
         // Target: chat panel top edge lands at the same vertical
         // position as the first exercise row, so the gap between the
         // chat panel and the top toolbar matches the gap between the

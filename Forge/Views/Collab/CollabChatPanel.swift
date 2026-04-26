@@ -40,6 +40,22 @@ struct CollabChatPanel: View {
             chatInputBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Drag-down gesture covers the empty state + avatar header
+        // (where there's no scrollview to swipe). The messages
+        // ScrollView has its own .scrollDismissesKeyboard(.immediately)
+        // so this gesture is overshadowed there — touches inside the
+        // ScrollView go to the scroll, not this gesture.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    if value.translation.height > 30 {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil
+                        )
+                    }
+                }
+        )
     }
 
     private var avatarHeader: some View {
@@ -76,7 +92,7 @@ struct CollabChatPanel: View {
                     }
                     .padding(.vertical, 8)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .scrollDismissesKeyboard(.immediately)
                 .onChange(of: sessionClient.chatEntries.count) { _, _ in
                     scrollToLatest(using: proxy)
                 }

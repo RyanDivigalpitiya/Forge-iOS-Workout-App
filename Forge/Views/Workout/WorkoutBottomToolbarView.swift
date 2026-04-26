@@ -3,6 +3,12 @@ import SwiftUI
 /// Bottom toolbar shown during an active workout: Add | Done | Edit.
 /// Owns the sheet presentations for ExerciseEditorView (Add) and ReorderDeleteView (Edit).
 /// The Add and Edit buttons are disabled while the break timer is active.
+///
+/// In a collab session, the chat panel + Open/Minimize Chat row are
+/// rendered by `WorkoutChatToolbar` as a SEPARATE sibling positioned just
+/// above this toolbar. Splitting them lets the chat container rise with
+/// the keyboard while this 3-button row stays anchored at the bottom
+/// (via `.ignoresSafeArea(.keyboard)` applied at the call site).
 struct WorkoutBottomToolbarView: View {
 
     @Binding var exerciseEditorIsPresented: Bool
@@ -14,80 +20,19 @@ struct WorkoutBottomToolbarView: View {
     let onAddTapped: () -> Void
     let onDoneTapped: () -> Void
 
-    // Collab-only chat row above the 3 buttons. When `showChatRow` is true,
-    // the toolbar grows to accommodate a divider + Open/Minimize Chat button
-    // styled to match `PlanEditorView`'s "New Exercise" row.
-    var showChatRow: Bool = false
-    var isChatOpen: Bool = false
-    var onChatToggleTapped: () -> Void = {}
-
-    // Mid-workout chat panel state. Lives INSIDE the toolbar's blur
-    // container so the toolbar itself appears to grow upward as the panel
-    // expands — same visual language as the top-toolbar break-timer
-    // expansion. Owner is `WorkoutInProgressView`. The corner radius
-    // animates the top-edge rounding from 0 (collapsed) to ~30 (expanded).
-    var chatPanelHeight: CGFloat = 0
-    var chatPanelVisible: Bool = false
-    var chatPanelCornerRadius: CGFloat = 0
-
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
-    private let chatRowAdditionalHeight: CGFloat = 50
     private let screenWidth = UIScreen.main.bounds.width
 
     var body: some View {
         VStack {
             Spacer()
-            VStack(spacing: 0) {
-                if showChatRow {
-                    CollabChatPanel(showAvatarHeader: true)
-                        .opacity(chatPanelVisible ? 1 : 0)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-                        .frame(height: chatPanelHeight)
-                        .clipped()
-                    chatToggleRow
-                        .frame(height: chatRowAdditionalHeight)
-                    Divider()
-                        .padding(.horizontal, 54)
-                }
-                buttonRow
-                    .padding(.bottom, 15)
-                    .frame(height: bottomToolbarHeight)
-            }
-            .background(BlurView(style: .systemChromeMaterial))
-            .clipShape(
-                .rect(
-                    topLeadingRadius: chatPanelCornerRadius,
-                    topTrailingRadius: chatPanelCornerRadius
-                )
-            )
-        }
-    }
-
-    private var chatToggleRow: some View {
-        HStack {
-            Button(action: { onChatToggleTapped() }) {
-                HStack {
-                    Image(systemName: isChatOpen ? "xmark.bubble.fill" : "bubble.left.fill")
-                    Text(isChatOpen ? "Minimize Chat" : "Open Chat").fontWeight(.bold)
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .foregroundColor(settings.fgColor)
-            }
-        }
-    }
-
-    private var buttonRow: some View {
-        HStack {
+            HStack {
                 Spacer()
 
                 // ADD BUTTON
                 HStack {
-                    Button(action: {
-                        onAddTapped()
-                    }) {
+                    Button(action: { onAddTapped() }) {
                         Text("Add")
                             .font(.system(size: 18))
                             .fontWeight(.bold)
@@ -110,9 +55,7 @@ struct WorkoutBottomToolbarView: View {
 
                 // DONE BUTTON
                 HStack {
-                    Button(action: {
-                        onDoneTapped()
-                    }) {
+                    Button(action: { onDoneTapped() }) {
                         ZStack {
                             HStack {
                                 Text("Done")
@@ -168,5 +111,9 @@ struct WorkoutBottomToolbarView: View {
 
                 Spacer()
             }
+            .padding(.bottom, 15)
+            .frame(height: bottomToolbarHeight)
+            .background(BlurView(style: .systemChromeMaterial))
         }
+    }
 }
