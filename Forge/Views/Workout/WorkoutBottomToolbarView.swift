@@ -13,7 +13,6 @@ struct WorkoutBottomToolbarView: View {
 
     @Binding var exerciseEditorIsPresented: Bool
     @Binding var reorderDeleteViewPresented: Bool
-    @Binding var selectedDetent: PresentationDetent
 
     let isDoneCheckMarkVisible: Bool
     let timerEnabled: Bool
@@ -41,9 +40,7 @@ struct WorkoutBottomToolbarView: View {
                     .foregroundColor(settings.fgColor)
                     .disabled(timerEnabled)
                     .sheet(isPresented: $exerciseEditorIsPresented) {
-                        ExerciseEditorView(selectedDetent: $selectedDetent)
-                            .presentationDetents([.medium, .large], selection: $selectedDetent)
-                            .presentationDragIndicator(.hidden)
+                        ExerciseEditorView()
                             .environment(\.colorScheme, .dark)
                     }
                 }

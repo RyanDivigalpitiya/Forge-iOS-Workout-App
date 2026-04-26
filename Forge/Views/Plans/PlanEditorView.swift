@@ -11,8 +11,6 @@ struct PlanEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isPlanNameFocused: Bool // used to assign focus on plan name textfield on appear
     @State private var exerciseEditorIsPresented = false
-    @State var selectedDetent: PresentationDetent = .medium
-    private let availableDetents: [PresentationDetent] = [.medium, .large]
     @State private var isDoneCheckMarkVisible: Bool = false
     @State private var editMode: EditMode = .inactive
     @State private var exerciseToTransferIndex: Int? = nil
@@ -181,9 +179,7 @@ struct PlanEditorView: View {
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, $editMode)
                 .sheet(isPresented: $exerciseEditorIsPresented) {
-                    ExerciseEditorView(selectedDetent: $selectedDetent)
-                        .presentationDetents([.medium, .large], selection: $selectedDetent)
-                        .presentationDragIndicator(.hidden)
+                    ExerciseEditorView()
                         .environment(\.colorScheme, .dark)
                 }
                 .sheet(isPresented: $showTransferSheet) {

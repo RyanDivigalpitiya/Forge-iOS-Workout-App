@@ -23,7 +23,6 @@ struct WorkoutInProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var exerciseEditorIsPresented = false
     @State private var reorderDeleteViewPresented = false
-    @State var selectedDetent: PresentationDetent = .medium
     @State var percentCompleted: Int = 0
 
     // Break timer coordination state — BreakTimerView owns its own timer state.
@@ -208,9 +207,7 @@ struct WorkoutInProgressView: View {
                                             }
                                             .sheet(isPresented: $exerciseEditorIsPresented) {
                                                 
-                                                ExerciseEditorView(selectedDetent: $selectedDetent)
-                                                    .presentationDetents([.medium, .large], selection: $selectedDetent)
-                                                    .presentationDragIndicator(.hidden)
+                                                ExerciseEditorView()
                                                     .environment(\.colorScheme, .dark)
                                                 
                                             }
@@ -477,7 +474,6 @@ struct WorkoutInProgressView: View {
                     WorkoutBottomToolbarView(
                         exerciseEditorIsPresented: $exerciseEditorIsPresented,
                         reorderDeleteViewPresented: $reorderDeleteViewPresented,
-                        selectedDetent: $selectedDetent,
                         isDoneCheckMarkVisible: isDoneCheckMarkVisible,
                         timerEnabled: timerEnabled,
                         onAddTapped: {

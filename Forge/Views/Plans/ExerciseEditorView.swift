@@ -10,7 +10,35 @@ struct ExerciseEditorView: View {
     
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFieldFocused: Bool // used to assign focus on exercise name textfield on appear
-    @Binding var selectedDetent: PresentationDetent
+
+    /// Sheet detent. Owned locally so the editor can size itself to its
+    /// content height. Two detents are defined in the body:
+    ///  - `homoModeDetent`: tight fit for homogeneous mode
+    ///  - `.large`: roomy for heterogeneous mode (variable per-set rows)
+    @State private var selectedDetent: PresentationDetent = .height(380)
+
+    /// Bottom safe-area inset of the active window (home-indicator height,
+    /// 0 on SE / phones with a physical home button). Added to the homo
+    /// detent so the visible content area is identical across devices.
+    private var bottomSafeAreaInset: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .first as? UIWindowScene)?
+            .windows
+            .first(where: { $0.isKeyWindow })?
+            .safeAreaInsets.bottom ?? 0
+    }
+
+    /// Tight detent for homogeneous mode. Base = ~360pt of usable content
+    /// (title bar + name field + 200pt picker + toggle).
+    /// On home-indicator phones we add the bottom safe-area inset so the
+    /// indicator doesn't eat into the toggle. SE-class phones have no
+    /// indicator AND no bleed-room (the sheet edge hard-clips), so we
+    /// substitute a fixed 40pt buffer.
+    private var homoModeDetent: PresentationDetent {
+        let baseHeight: CGFloat = 360
+        let buffer: CGFloat = bottomSafeAreaInset > 0 ? bottomSafeAreaInset : 40
+        return .height(baseHeight + buffer)
+    }
     
     //- ////////////////////////////////////////////////////////////////////////////
     // Data being inputted / edited:
@@ -104,7 +132,7 @@ struct ExerciseEditorView: View {
                         }
                     }
                     .frame(width: 0.6*screenWidth)
-                
+
                     // save button
                     HStack {
                         Button(action: {
@@ -142,7 +170,8 @@ struct ExerciseEditorView: View {
                 // EXERCISE NAME
                 VStack{
                     TextField("Enter Exercise Name Here", text: $exerciseName)
-                        .frame(width: 300)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 24)
                         .focused($isNameFieldFocused)
                         .autocapitalization(.words)
                         .foregroundColor(.white)
@@ -203,7 +232,7 @@ struct ExerciseEditorView: View {
                         
                         editedExerciseStartedWithUniqueSets = false
     
-                        selectedDetent = newValue ? .large : .medium
+                        selectedDetent = newValue ? .large : homoModeDetent
                         
                         withAnimation(.easeInOut(duration: 0.3)) {
                             homogenousSelectorHeight = newValue ? 0 : 200
@@ -243,8 +272,10 @@ struct ExerciseEditorView: View {
             
             Spacer()
             }
-            
+
         }
+        .presentationDetents([homoModeDetent, .large], selection: $selectedDetent)
+        .presentationDragIndicator(.hidden)
         .onAppear {
             homoHeteroControlsAreConnected = false
             // initialize UI dimensions, labels + toggle based on activeExercise and activeMode
@@ -260,7 +291,7 @@ struct ExerciseEditorView: View {
                 editedExerciseStartedWithUniqueSets = true
             }
 
-            selectedDetent = areSetsUnique ? .large : .medium
+            selectedDetent = areSetsUnique ? .large : homoModeDetent
 
             // LOAD UI WITH ACTIVE EXERCISE'S DATA: ////////////////////////////////////
             // clear hetero values and append values from activeExercise's set data
@@ -412,7 +443,7 @@ extension ExerciseEditorView {
 
 struct ExerciseEditorView_Previews: PreviewProvider {
     static var previews: some View {
-        ExerciseEditorView(selectedDetent: .constant(.medium))
+        ExerciseEditorView()
             .environmentObject(CompletedWorkoutsViewModel())
             .environmentObject(ExerciseViewModel())
             .environmentObject(GlobalSettings.shared)
