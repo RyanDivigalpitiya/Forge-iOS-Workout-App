@@ -149,7 +149,7 @@ struct BreakTimerView: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 24)
             .padding(.bottom, 20)
             .opacity(timerVisible ? 1 : 0)
             .onChange(of: remaining) { _, newValue in

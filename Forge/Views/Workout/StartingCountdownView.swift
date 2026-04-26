@@ -74,7 +74,7 @@ struct StartingCountdownView: View {
             }
             Spacer()
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 24)
         .background(.black)
     }
 

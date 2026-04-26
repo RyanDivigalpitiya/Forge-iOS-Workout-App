@@ -42,10 +42,6 @@ struct WorkoutWithFriendView: View {
         VStack(spacing: 0) {
             Spacer()
 
-//            Image(systemName: "person.2.fill")
-//                .font(.system(size: 50))
-//                .foregroundColor(settings.fgColor)
-
             Spacer().frame(height: 16)
 
             Text("Workout with a Friend")
