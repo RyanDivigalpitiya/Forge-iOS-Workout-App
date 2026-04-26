@@ -24,9 +24,11 @@ struct WorkoutBottomToolbarView: View {
     // Mid-workout chat panel state. Lives INSIDE the toolbar's blur
     // container so the toolbar itself appears to grow upward as the panel
     // expands — same visual language as the top-toolbar break-timer
-    // expansion. Owner is `WorkoutInProgressView`.
+    // expansion. Owner is `WorkoutInProgressView`. The corner radius
+    // animates the top-edge rounding from 0 (collapsed) to ~30 (expanded).
     var chatPanelHeight: CGFloat = 0
     var chatPanelVisible: Bool = false
+    var chatPanelCornerRadius: CGFloat = 0
 
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
@@ -38,7 +40,7 @@ struct WorkoutBottomToolbarView: View {
             Spacer()
             VStack(spacing: 0) {
                 if showChatRow {
-                    CollabChatPanel()
+                    CollabChatPanel(showAvatarHeader: true)
                         .opacity(chatPanelVisible ? 1 : 0)
                         .padding(.horizontal, 12)
                         .padding(.top, 8)
@@ -54,6 +56,12 @@ struct WorkoutBottomToolbarView: View {
                     .frame(height: bottomToolbarHeight)
             }
             .background(BlurView(style: .systemChromeMaterial))
+            .clipShape(
+                .rect(
+                    topLeadingRadius: chatPanelCornerRadius,
+                    topTrailingRadius: chatPanelCornerRadius
+                )
+            )
         }
     }
 

@@ -114,16 +114,21 @@ struct WorkoutInProgressView: View {
     // label + icon. `chatPanelHeight` animates the expansion (the panel
     // lives INSIDE the bottom toolbar's blur container so the toolbar
     // itself appears to grow upward); `chatPanelVisible` gates the
-    // panel's content opacity (mirrors the break-timer pattern — grow
-    // first, then fade in).
+    // panel's content opacity; `chatPanelCornerRadius` animates the
+    // top-edge rounding from 0 (collapsed) to 30 (expanded). All three
+    // animate in parallel inside one withAnimation transaction.
     @State private var isChatOpen: Bool = false
     @State private var chatPanelHeight: CGFloat = 0
     @State private var chatPanelVisible: Bool = false
-    // Mirrors `chatRowAdditionalHeight` in WorkoutBottomToolbarView. Used
-    // to compute the expanded chat-panel height so its top edge lands
-    // just below the (collapsed) top toolbar.
+    @State private var chatPanelCornerRadius: CGFloat = 0
+    // Mirrors `chatRowAdditionalHeight` in WorkoutBottomToolbarView.
+    // Used to compute the expanded chat-panel height so its top edge
+    // lands at the same vertical position as the first exercise row.
     private let chatRowExtraHeight: CGFloat = 50
-    private let topToolbarBaseHeight: CGFloat = 163
+    // Read off the layout so the chat panel's top edge can match the
+    // first exercise row's top exactly (= safeAreaTop + the 118pt scroll
+    // spacer). Updated via GeometryReader in the body.
+    @State private var safeAreaTop: CGFloat = 0
 
     // Solo → joint share flow state. `inviteFriendSheetActive` presents
     // `WorkoutWithFriendView` so the user sees the feature explainer + Copy /
@@ -449,7 +454,8 @@ struct WorkoutInProgressView: View {
                         isChatOpen: isChatOpen,
                         onChatToggleTapped: { toggleChatPanel() },
                         chatPanelHeight: chatPanelHeight,
-                        chatPanelVisible: chatPanelVisible
+                        chatPanelVisible: chatPanelVisible,
+                        chatPanelCornerRadius: chatPanelCornerRadius
                     )
                     .edgesIgnoringSafeArea(.bottom)
                 }
@@ -497,6 +503,16 @@ struct WorkoutInProgressView: View {
             CollabStatusBanner()
                 .padding(.top, 60)
         }
+        .background(
+            // Capture the actual top safe-area inset so the chat panel's
+            // expanded top edge can match the first exercise row's y
+            // position exactly (= safeAreaTop + 118pt scroll spacer).
+            GeometryReader { proxy in
+                Color.clear.onAppear {
+                    safeAreaTop = proxy.safeAreaInsets.top
+                }
+            }
+        )
         .disabled(isWorkoutDone)
         .alert(
             sessionClient.sessionId != nil ? "Leave Session?" : "Cancel Workout?",
@@ -553,6 +569,7 @@ struct WorkoutInProgressView: View {
             if !isPaired && isChatOpen {
                 chatPanelVisible = false
                 chatPanelHeight = 0
+                chatPanelCornerRadius = 0
                 isChatOpen = false
             }
         }
@@ -838,43 +855,32 @@ extension WorkoutInProgressView {
         }
     }
 
-    /// Two-stage open/close animation for the mid-workout chat panel,
-    /// modelled on the break-timer top-toolbar expansion (see
-    /// `scheduleBreakTimerStart` / `dismissBreakTimerView`):
-    /// open  → grow height, then (after the same duration) fade content in;
-    /// close → fade content out, then (after the same duration) shrink.
-    /// The panel itself is rendered inside `WorkoutBottomToolbarView`'s
-    /// blur container, so animating the height grows the whole toolbar
-    /// upward as one piece.
+    /// Open/close animation for the mid-workout chat panel. All three
+    /// animatable properties (height, content opacity, top-edge corner
+    /// radius) run IN PARALLEL inside one withAnimation transaction.
+    /// Custom timing curve: very steep initial slope (high peak velocity)
+    /// trailing into a long flat tail (gentle settle), at a slightly
+    /// extended duration.
+    /// The panel is rendered inside `WorkoutBottomToolbarView`'s blur
+    /// container, so animating the height grows the whole toolbar upward
+    /// as one piece.
     func toggleChatPanel() {
-        if isChatOpen {
-            withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                chatPanelVisible = false
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + settings.animationStandard) {
-                withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                    chatPanelHeight = 0
-                    isChatOpen = false
-                }
-            }
-        } else {
-            // Target: chat panel top edge ends just below the COLLAPSED
-            // top toolbar (163pt). When the break timer is also expanded
-            // (top toolbar grows to ~80% screen), the chat panel will
-            // visually overlap the timer — intentional per spec.
-            let target = max(
-                200,
-                screenHeight - topToolbarBaseHeight - bottomToolbarHeight - chatRowExtraHeight - 8
-            )
-            withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                chatPanelHeight = target
-                isChatOpen = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + settings.animationStandard) {
-                withAnimation(.easeInOut(duration: settings.animationStandard)) {
-                    chatPanelVisible = true
-                }
-            }
+        let opening = !isChatOpen
+        // Target: chat panel top edge lands at the same vertical
+        // position as the first exercise row, so the gap between the
+        // chat panel and the top toolbar matches the gap between the
+        // first exercise row and the top toolbar. The first exercise's
+        // top is at `safeAreaTop + 118` (118pt scroll spacer below the
+        // safe area inset that ScrollView automatically inserts).
+        let firstExerciseTop = safeAreaTop + 118
+        let target = opening
+            ? max(200, screenHeight - firstExerciseTop - bottomToolbarHeight - chatRowExtraHeight)
+            : 0
+        withAnimation(.timingCurve(0.05, 0.85, 0.2, 1.0, duration: 0.35)) {
+            chatPanelHeight = target
+            chatPanelVisible = opening
+            chatPanelCornerRadius = opening ? 30 : 0
+            isChatOpen = opening
         }
     }
 
