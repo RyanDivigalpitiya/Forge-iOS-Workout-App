@@ -110,6 +110,10 @@ struct WorkoutInProgressView: View {
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
 
+    // Stage 1 of mid-workout chat: drives the Open/Minimize Chat button label
+    // + icon. The expanding chat panel itself is wired up in Stage 2.
+    @State private var isChatOpen: Bool = false
+
     // Solo → joint share flow state. `inviteFriendSheetActive` presents
     // `WorkoutWithFriendView` so the user sees the feature explainer + Copy /
     // Share buttons before broadcasting. The profile-name prompt that gates
@@ -301,7 +305,7 @@ struct WorkoutInProgressView: View {
                                 .padding(.horizontal, 15)
                                 .padding(.vertical, 8)
     
-                                Spacer().frame(height: 80)
+                                Spacer().frame(height: sessionClient.isPaired ? 130 : 80)
                             }
                         }
                         .opacity(scrollViewVisible ? 1 : 0.5)
@@ -429,6 +433,13 @@ struct WorkoutInProgressView: View {
                         },
                         onDoneTapped: {
                             finishWorkout()
+                        },
+                        showChatRow: sessionClient.isPaired,
+                        isChatOpen: isChatOpen,
+                        onChatToggleTapped: {
+                            withAnimation(.easeInOut(duration: settings.animationQuick)) {
+                                isChatOpen.toggle()
+                            }
                         }
                     )
                     .edgesIgnoringSafeArea(.bottom)
@@ -730,15 +741,6 @@ extension WorkoutInProgressView {
         // Reset ready flag (see cancelWorkout for rationale).
         sessionClient.setReady(false)
 
-        // Joint-mode exit: tell the peer we finished BEFORE the socket
-        // closes, so they see a "Friend finished" banner rather than a
-        // silent disconnect, and the server clears `workoutInProgress`.
-        // The remainder of finishWorkout is purely local (save, confetti,
-        // 2s dismiss) so this Task runs concurrently without blocking.
-        if sessionClient.sessionId != nil {
-            Task { await sessionClient.sendWorkoutFinishedAndDisconnect() }
-        }
-
         // save completed workout to persistant storage
         let completedWorkout = CompletedWorkout(
             date: Date(),
@@ -798,6 +800,18 @@ extension WorkoutInProgressView {
                 planViewModel.workoutPlans[planViewModel.activePlanIndex] = planViewModel.activePlan
             }
             planViewModel.savePlans()
+
+            // Joint-mode exit deferred until AFTER the 2s confetti / fade
+            // animation. Firing this earlier flips sessionClient.state to
+            // .idle, which triggers CompletedWorkoutsView's state observer
+            // to unwind the collab nav stack — popping PlanSuggestionView
+            // and tearing down the .fullScreenCover that hosts this view,
+            // cutting the confetti short. The peer sees their "Friend
+            // finished" banner ~2s later, which is fine: by that point
+            // Phone 1 has actually finished.
+            if sessionClient.sessionId != nil {
+                Task { await sessionClient.sendWorkoutFinishedAndDisconnect() }
+            }
 
             dismiss()
             // after dismissing this view, send user back to CompletedWorkoutsView

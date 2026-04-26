@@ -14,14 +14,52 @@ struct WorkoutBottomToolbarView: View {
     let onAddTapped: () -> Void
     let onDoneTapped: () -> Void
 
+    // Collab-only chat row above the 3 buttons. When `showChatRow` is true,
+    // the toolbar grows to accommodate a divider + Open/Minimize Chat button
+    // styled to match `PlanEditorView`'s "New Exercise" row.
+    var showChatRow: Bool = false
+    var isChatOpen: Bool = false
+    var onChatToggleTapped: () -> Void = {}
+
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
+    private let chatRowAdditionalHeight: CGFloat = 50
     private let screenWidth = UIScreen.main.bounds.width
 
     var body: some View {
         VStack {
             Spacer()
-            HStack {
+            VStack(spacing: 0) {
+                if showChatRow {
+                    chatToggleRow
+                        .frame(height: chatRowAdditionalHeight)
+                    Divider()
+                        .padding(.horizontal, 54)
+                }
+                buttonRow
+                    .padding(.bottom, 15)
+                    .frame(height: bottomToolbarHeight)
+            }
+            .background(BlurView(style: .systemChromeMaterial))
+        }
+    }
+
+    private var chatToggleRow: some View {
+        HStack {
+            Button(action: { onChatToggleTapped() }) {
+                HStack {
+                    Image(systemName: isChatOpen ? "xmark.bubble.fill" : "bubble.left.fill")
+                    Text(isChatOpen ? "Minimize Chat" : "Open Chat").fontWeight(.bold)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .foregroundColor(settings.fgColor)
+            }
+        }
+    }
+
+    private var buttonRow: some View {
+        HStack {
                 Spacer()
 
                 // ADD BUTTON
@@ -109,9 +147,5 @@ struct WorkoutBottomToolbarView: View {
 
                 Spacer()
             }
-            .padding(.bottom, 15)
-            .frame(height: bottomToolbarHeight)
-            .background(BlurView(style: .systemChromeMaterial))
         }
-    }
 }
