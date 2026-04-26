@@ -616,6 +616,21 @@ struct WorkoutInProgressView: View {
                 rebroadcastJointStateForPeer()
             }
         }
+        .onChange(of: sessionClient.peerAway) { old, new in
+            // The PEER backgrounded Forge (we got peerAway), then returned
+            // (we got peerReturned). On iOS 18 their WS actually died and
+            // they reconnected — at which point their SessionClient cleared
+            // its joint-mode dicts. Their `state` stayed .paired throughout
+            // (they were `.away`, not disconnected, on the server side),
+            // so the .paired observer above doesn't fire on their side
+            // and they have no idea our state needs replaying. Detect the
+            // any-peer-was-away → no-peer-away transition here and re-
+            // broadcast our state so the returning peer's gutter
+            // repopulates without waiting for our next set tap.
+            if !old.isEmpty && new.isEmpty {
+                rebroadcastJointStateForPeer()
+            }
+        }
         .onChange(of: sessionClient.isPaired) { _, isPaired in
             // Peer left mid-workout: collapse the chat panel + reset its
             // state so the next pairing starts cleanly. The toolbar's
