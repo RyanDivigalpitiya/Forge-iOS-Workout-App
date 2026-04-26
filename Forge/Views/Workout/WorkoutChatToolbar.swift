@@ -59,12 +59,46 @@ struct WorkoutChatToolbar: View {
             Button(action: { onChatToggleTapped() }) {
                 HStack {
                     Image(systemName: isChatOpen ? "xmark.bubble.fill" : "bubble.left.fill")
-                    Text(buttonLabel).fontWeight(.bold)
+                    if !isChatOpen && unreadCount > 0 {
+                        shimmeringLabel(buttonLabel)
+                    } else {
+                        Text(buttonLabel).fontWeight(.bold)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .foregroundColor(settings.fgColor)
             }
         }
+    }
+
+    /// Shimmer treatment for the unread-state label. LinearGradient endpoints
+    /// can't be animated via `withAnimation`, so phase is driven from a
+    /// `TimelineView(.animation)` re-rendering each frame — same pattern +
+    /// 2.5s cycle as `PlanSuggestionView.shimmeringSuggestedName`.
+    private func shimmeringLabel(_ text: String) -> some View {
+        TimelineView(.animation) { context in
+            let phase = shimmerPhase(at: context.date)
+            Text(text)
+                .fontWeight(.bold)
+                .foregroundStyle(
+                    LinearGradient(
+                        stops: [
+                            .init(color: settings.fgColor, location: 0),
+                            .init(color: .white, location: 0.5),
+                            .init(color: settings.fgColor, location: 1),
+                        ],
+                        startPoint: UnitPoint(x: phase, y: 0.5),
+                        endPoint: UnitPoint(x: phase + 1, y: 0.5)
+                    )
+                )
+        }
+    }
+
+    private func shimmerPhase(at date: Date) -> CGFloat {
+        let cycle: Double = 2.5
+        let progress = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: cycle) / cycle
+        return CGFloat(progress * 3.0 - 1.5)
     }
 }
