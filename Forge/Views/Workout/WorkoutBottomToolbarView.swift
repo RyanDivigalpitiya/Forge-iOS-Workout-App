@@ -21,6 +21,13 @@ struct WorkoutBottomToolbarView: View {
     var isChatOpen: Bool = false
     var onChatToggleTapped: () -> Void = {}
 
+    // Mid-workout chat panel state. Lives INSIDE the toolbar's blur
+    // container so the toolbar itself appears to grow upward as the panel
+    // expands — same visual language as the top-toolbar break-timer
+    // expansion. Owner is `WorkoutInProgressView`.
+    var chatPanelHeight: CGFloat = 0
+    var chatPanelVisible: Bool = false
+
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
     private let chatRowAdditionalHeight: CGFloat = 50
@@ -31,6 +38,12 @@ struct WorkoutBottomToolbarView: View {
             Spacer()
             VStack(spacing: 0) {
                 if showChatRow {
+                    CollabChatPanel()
+                        .opacity(chatPanelVisible ? 1 : 0)
+                        .padding(.horizontal, 12)
+                        .padding(.top, 8)
+                        .frame(height: chatPanelHeight)
+                        .clipped()
                     chatToggleRow
                         .frame(height: chatRowAdditionalHeight)
                     Divider()

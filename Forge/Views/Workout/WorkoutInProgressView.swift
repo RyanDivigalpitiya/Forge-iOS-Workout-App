@@ -110,9 +110,20 @@ struct WorkoutInProgressView: View {
     @State private var selectedBreakDuration: Int = GlobalSettings.shared.breakDuration
     @State private var showConfetti = false
 
-    // Stage 1 of mid-workout chat: drives the Open/Minimize Chat button label
-    // + icon. The expanding chat panel itself is wired up in Stage 2.
+    // Mid-workout chat. `isChatOpen` drives the Open/Minimize button
+    // label + icon. `chatPanelHeight` animates the expansion (the panel
+    // lives INSIDE the bottom toolbar's blur container so the toolbar
+    // itself appears to grow upward); `chatPanelVisible` gates the
+    // panel's content opacity (mirrors the break-timer pattern — grow
+    // first, then fade in).
     @State private var isChatOpen: Bool = false
+    @State private var chatPanelHeight: CGFloat = 0
+    @State private var chatPanelVisible: Bool = false
+    // Mirrors `chatRowAdditionalHeight` in WorkoutBottomToolbarView. Used
+    // to compute the expanded chat-panel height so its top edge lands
+    // just below the (collapsed) top toolbar.
+    private let chatRowExtraHeight: CGFloat = 50
+    private let topToolbarBaseHeight: CGFloat = 163
 
     // Solo → joint share flow state. `inviteFriendSheetActive` presents
     // `WorkoutWithFriendView` so the user sees the feature explainer + Copy /
@@ -436,11 +447,9 @@ struct WorkoutInProgressView: View {
                         },
                         showChatRow: sessionClient.isPaired,
                         isChatOpen: isChatOpen,
-                        onChatToggleTapped: {
-                            withAnimation(.easeInOut(duration: settings.animationQuick)) {
-                                isChatOpen.toggle()
-                            }
-                        }
+                        onChatToggleTapped: { toggleChatPanel() },
+                        chatPanelHeight: chatPanelHeight,
+                        chatPanelVisible: chatPanelVisible
                     )
                     .edgesIgnoringSafeArea(.bottom)
                 }
@@ -535,6 +544,16 @@ struct WorkoutInProgressView: View {
             // empty until I happen to do something.
             if case .paired = new {
                 rebroadcastJointStateForPeer()
+            }
+        }
+        .onChange(of: sessionClient.isPaired) { _, isPaired in
+            // Peer left mid-workout: collapse the chat panel + reset its
+            // state so the next pairing starts cleanly. The toolbar's
+            // `showChatRow` already reactively hides the toggle row.
+            if !isPaired && isChatOpen {
+                chatPanelVisible = false
+                chatPanelHeight = 0
+                isChatOpen = false
             }
         }
     }
@@ -816,6 +835,46 @@ extension WorkoutInProgressView {
             dismiss()
             // after dismissing this view, send user back to CompletedWorkoutsView
             completedWorkoutsViewModel.isSelectPlanViewActive = false
+        }
+    }
+
+    /// Two-stage open/close animation for the mid-workout chat panel,
+    /// modelled on the break-timer top-toolbar expansion (see
+    /// `scheduleBreakTimerStart` / `dismissBreakTimerView`):
+    /// open  → grow height, then (after the same duration) fade content in;
+    /// close → fade content out, then (after the same duration) shrink.
+    /// The panel itself is rendered inside `WorkoutBottomToolbarView`'s
+    /// blur container, so animating the height grows the whole toolbar
+    /// upward as one piece.
+    func toggleChatPanel() {
+        if isChatOpen {
+            withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                chatPanelVisible = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + settings.animationStandard) {
+                withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                    chatPanelHeight = 0
+                    isChatOpen = false
+                }
+            }
+        } else {
+            // Target: chat panel top edge ends just below the COLLAPSED
+            // top toolbar (163pt). When the break timer is also expanded
+            // (top toolbar grows to ~80% screen), the chat panel will
+            // visually overlap the timer — intentional per spec.
+            let target = max(
+                200,
+                screenHeight - topToolbarBaseHeight - bottomToolbarHeight - chatRowExtraHeight - 8
+            )
+            withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                chatPanelHeight = target
+                isChatOpen = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + settings.animationStandard) {
+                withAnimation(.easeInOut(duration: settings.animationStandard)) {
+                    chatPanelVisible = true
+                }
+            }
         }
     }
 
