@@ -485,7 +485,18 @@ struct WorkoutInProgressView: View {
                             WorkoutChatToolbar(
                                 isChatOpen: isChatOpen,
                                 onChatToggleTapped: { toggleChatPanel() },
-                                chatPanelHeight: chatPanelHeight,
+                                // Shrink the chat-bubbles area by the
+                                // amount the keyboard pushes the
+                                // container's bottom up. Keeps the
+                                // container's TOP edge (avatar) fixed
+                                // while the keyboard slides up — same
+                                // pattern as the PlanSuggestionView
+                                // chat. When keyboard hidden, this
+                                // collapses to chatPanelHeight as-is.
+                                chatPanelHeight: max(
+                                    0,
+                                    chatPanelHeight - max(0, keyboardHeight - bottomToolbarHeight)
+                                ),
                                 chatPanelVisible: chatPanelVisible,
                                 chatPanelCornerRadius: chatPanelCornerRadius
                             )
