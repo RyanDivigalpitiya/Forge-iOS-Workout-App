@@ -213,7 +213,8 @@ struct ExerciseEditorView: View {
                         }
                     }
                 }
-                .frame(width: 235)
+                .frame(maxWidth: 280)
+                .padding(.horizontal, 24)
                 .padding(.top, areSetsUnique ? 0 : 20)
             
                 // HETEROGENOUS SET ROWS + CONTROLS

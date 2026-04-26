@@ -28,6 +28,21 @@ struct BreakTimerView: View {
     @EnvironmentObject var settings: GlobalSettings
     @EnvironmentObject var sessionClient: SessionClient
 
+    /// True on short-screen phones (SE-class). Drives the small-screen UX:
+    /// the cancel-timer X moves up to the workout's top toolbar (replacing
+    /// the disabled back chevron) and the in-ring cancel button hides so
+    /// the ring + Up Next + bottom safe area all fit comfortably.
+    let isSmallScreen: Bool
+
+    // Ring diameter scales with screen width but caps at 260pt so the ring
+    // doesn't dominate on Pro Max. Small screens get an explicit 200pt ring
+    // so the Up Next info below isn't pushed off-screen.
+    // SE: 200pt, 17: ~236pt, Pro Max: 260pt.
+    private var ringDiameter: CGFloat {
+        if isSmallScreen { return 200 }
+        return min(UIScreen.main.bounds.width * 0.60, 260)
+    }
+
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let remaining = computeRemaining(at: context.date)
@@ -72,14 +87,26 @@ struct BreakTimerView: View {
                         Text("Rest for")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(settings.fgColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
                         Text("\(remaining)s")
                             .font(.system(size: 60, weight: .bold))
                             .foregroundColor(settings.fgColor)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                     }
+                    // Constrain text width so `minimumScaleFactor` actually
+                    // triggers (without a width bound the text reports its
+                    // natural size and never shrinks). 160pt fits "100s" at
+                    // 60pt and stays well inside the ring on SE.
+                    .frame(maxWidth: 160)
                 }
-                .padding(.horizontal, 50)
-                .padding(.bottom, 55)
+                // Explicit ring size scales with screen width but caps so Pro
+                // Max doesn't render an oversized ring. Without the explicit
+                // frame the ring shrinks under vertical pressure on SE.
+                .frame(width: ringDiameter, height: ringDiameter)
+                .padding(.bottom, 30)
 
                 // Up next info
                 if let exerciseName = nextExerciseName, let setDescription = nextSetDescription {
@@ -104,18 +131,20 @@ struct BreakTimerView: View {
                     .padding(.bottom, 30)
                 }
 
-                Button(action: {
-                    onCancelTapped()
-                }) {
-                    ZStack {
-                        Circle()
-                            .frame(width: 30, height: 30)
-                            .foregroundColor(Color(.systemGray4))
-                        Image(systemName: "xmark")
-                            .resizable()
-                            .frame(width: 13, height: 13)
-                            .fontWeight(.bold)
-                            .foregroundColor(settings.fgColor)
+                if !isSmallScreen {
+                    Button(action: {
+                        onCancelTapped()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(Color(.systemGray4))
+                            Image(systemName: "xmark")
+                                .resizable()
+                                .frame(width: 13, height: 13)
+                                .fontWeight(.bold)
+                                .foregroundColor(settings.fgColor)
+                        }
                     }
                 }
                 Spacer()

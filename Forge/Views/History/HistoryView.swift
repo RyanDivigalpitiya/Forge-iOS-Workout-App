@@ -32,6 +32,8 @@ struct HistoryView: View {
                             .foregroundColor(settings.fgColor)
                             .fontWeight(.medium)
                             .font(.system(size: 35))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Spacer().frame(height:3)
                         Text(completedWorkoutsViewModel.formatDate(completedWorkout.dateCompleted))
                             .foregroundColor(darkGray)

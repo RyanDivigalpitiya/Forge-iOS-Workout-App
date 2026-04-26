@@ -61,6 +61,11 @@ struct WorkoutInProgressView: View {
     let setsSpacing = GlobalSettings.shared.setsSpacing
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
+    /// SE-class phones (4.7" / 667pt tall) don't have room for the in-ring
+    /// cancel button below the break timer + Up Next + safe-area padding.
+    /// On these phones the cancel-timer X moves up to the top toolbar,
+    /// replacing the disabled back chevron during the rest period.
+    var isSmallScreen: Bool { screenHeight < 700 }
 
     // Joint-mode set / rest row heights. Soft floors so rows stay visually
     // consistent across exercises — actual avatar alignment is now driven
@@ -157,6 +162,9 @@ struct WorkoutInProgressView: View {
                         ScrollView {
                             
                             LazyVStack {
+                                // Load-bearing for the chat-panel height endpoint:
+                                // expanded panel top = safeAreaTop + 118 + first row top.
+                                // Don't tune without re-checking chat-keyboard avoidance.
                                 Spacer().frame(height: 118)
                                 
                                 // EXERCISE LIST
@@ -346,15 +354,31 @@ struct WorkoutInProgressView: View {
                             // Plan name + back button + %complete
                             VStack(spacing:0) {
                                 HStack {
-                                    Button(action: { showCancelConfirmation = true }) {
-                                        Image(systemName: "chevron.left")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(settings.fgColor)
-                                            .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
+                                    // On small screens, while the break timer is active the
+                                    // back chevron swaps for an X that dismisses the timer
+                                    // (the in-ring X is hidden in that mode — vertical room
+                                    // doesn't allow it). Otherwise the standard chevron-left
+                                    // shows the cancel-workout confirmation.
+                                    if isSmallScreen && timerEnabled {
+                                        Button(action: { dismissBreakTimerView() }) {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 20, weight: .bold))
+                                                .foregroundColor(settings.fgColor)
+                                                .frame(width: 44, height: 44)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .padding(.leading, 5)
+                                    } else {
+                                        Button(action: { showCancelConfirmation = true }) {
+                                            Image(systemName: "chevron.left")
+                                                .font(.system(size: 20, weight: .bold))
+                                                .foregroundColor(settings.fgColor)
+                                                .frame(width: 44, height: 44)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .disabled(timerEnabled)
+                                        .padding(.leading, 5)
                                     }
-                                    .disabled(timerEnabled)
-                                    .padding(.leading, 5)
 
                                     Spacer()
                                     Text("\(planViewModel.activePlan.name)")
@@ -431,7 +455,8 @@ struct WorkoutInProgressView: View {
                                     },
                                     onCancelTapped: {
                                         dismissBreakTimerView()
-                                    }
+                                    },
+                                    isSmallScreen: isSmallScreen
                                 )
                             }
                         }
@@ -727,6 +752,8 @@ struct WorkoutInProgressView: View {
             withAnimation(.easeInOut(duration: settings.animationStandard)) {
                 scrollViewScaleEffect = 0.95
                 scrollViewVisible = false
+                // 0.8 is the break-timer expansion factor — fills 80% of screen
+                // height on every device. Animation endpoint; keep proportional.
                 topToolBarHeight = screenHeight * 0.8
                 topToolBarCornerRadius = 30
                 timerEnabled = true

@@ -50,6 +50,8 @@ struct PlanEditorView: View {
                         .font(.system(size: 40))
                         .fontWeight(.bold)
                         .foregroundColor(settings.fgColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Spacer()
                 }
 
@@ -62,6 +64,8 @@ struct PlanEditorView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 30))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .submitLabel(.done)
                     .disabled(planViewModel.activePlanIsReadOnly)
                     .onChange(of: planViewModel.activePlan.name) { _, newValue in
@@ -88,6 +92,8 @@ struct PlanEditorView: View {
                                         .fontWeight(.bold)
                                         .foregroundColor(settings.fgColor)
                                         .font(.system(size: 30))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     Spacer()
                                     if !planViewModel.activePlanIsReadOnly {

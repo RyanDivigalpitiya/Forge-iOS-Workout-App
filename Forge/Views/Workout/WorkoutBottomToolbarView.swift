@@ -22,14 +22,11 @@ struct WorkoutBottomToolbarView: View {
 
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
-    private let screenWidth = UIScreen.main.bounds.width
 
     var body: some View {
         VStack {
             Spacer()
-            HStack {
-                Spacer()
-
+            HStack(spacing: 0) {
                 // ADD BUTTON
                 HStack {
                     Button(action: { onAddTapped() }) {
@@ -50,40 +47,37 @@ struct WorkoutBottomToolbarView: View {
                             .environment(\.colorScheme, .dark)
                     }
                 }
-                .frame(width: 0.33 * screenWidth)
+                .frame(maxWidth: .infinity)
 
 
                 // DONE BUTTON
-                HStack {
-                    Button(action: { onDoneTapped() }) {
-                        ZStack {
-                            HStack {
-                                Text("Done")
-                                    .font(.system(size: 20))
-                                    .bold()
-                            }
-                            .frame(width: 75, height: 35)
-                            .background(settings.fgColor)
-                            .foregroundColor(.black)
-                            .cornerRadius(500)
-                            .opacity(isDoneCheckMarkVisible ? 0 : 1)
-                            .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
-
-                            HStack {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 20))
-                                    .bold()
-                            }
-                            .frame(width: 75, height: 35)
-                            .background(settings.fgColor)
-                            .foregroundColor(.black)
-                            .cornerRadius(500)
-                            .opacity(isDoneCheckMarkVisible ? 1 : 0)
+                Button(action: { onDoneTapped() }) {
+                    ZStack {
+                        HStack {
+                            Text("Done")
+                                .font(.system(size: 20))
+                                .bold()
                         }
+                        .frame(width: 75, height: 35)
+                        .background(settings.fgColor)
+                        .foregroundColor(.black)
+                        .cornerRadius(500)
+                        .opacity(isDoneCheckMarkVisible ? 0 : 1)
+                        .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
+
+                        HStack {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20))
+                                .bold()
+                        }
+                        .frame(width: 75, height: 35)
+                        .background(settings.fgColor)
+                        .foregroundColor(.black)
+                        .cornerRadius(500)
+                        .opacity(isDoneCheckMarkVisible ? 1 : 0)
                     }
-                    .foregroundColor(settings.fgColor)
                 }
-                .frame(width: 0.2 * screenWidth)
+                .foregroundColor(settings.fgColor)
 
 
                 // REORDER BUTTON
@@ -107,11 +101,8 @@ struct WorkoutBottomToolbarView: View {
                             .environment(\.colorScheme, .dark)
                     }
                 }
-                .frame(width: 0.33 * screenWidth)
-
-                Spacer()
+                .frame(maxWidth: .infinity)
             }
-            .padding(.bottom, 15)
             .frame(height: bottomToolbarHeight)
             .background(BlurView(style: .systemChromeMaterial))
         }

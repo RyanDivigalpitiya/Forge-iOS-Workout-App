@@ -92,16 +92,21 @@ struct WorkoutWithFriendView: View {
                     .cornerRadius(12)
                 }
 
-                Rectangle()
-                    .fill(GlobalSettings.shared.buttonCircleBgColor)
-                    .frame(width: 30, height: 1)
-                    .padding(.vertical, 6)
+                // Divider + secondary instruction only render on Air-class
+                // and larger (≥414pt). On SE / 17 / 17 Pro the screen feels
+                // too cramped with these visible, so we hide them.
+                if UIScreen.main.bounds.width >= 414 {
+                    Rectangle()
+                        .fill(GlobalSettings.shared.buttonCircleBgColor)
+                        .frame(width: 30, height: 1)
+                        .padding(.vertical, 6)
 
-                Text("or ask a friend to share their link with you")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
-                    .multilineTextAlignment(.center)
+                    Text("or ask a friend to share their link with you")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(GlobalSettings.shared.buttonCircleBgColor)
+                        .multilineTextAlignment(.center)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)

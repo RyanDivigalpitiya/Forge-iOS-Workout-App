@@ -32,6 +32,8 @@ struct StartingCountdownView: View {
                     .fontWeight(.bold)
                     .foregroundColor(settings.fgColor)
                     .opacity(contentOpacity)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
             }
             Button(action: {
@@ -55,6 +57,8 @@ struct StartingCountdownView: View {
                         .foregroundColor(settings.fgColor)
                         .fontWeight(.bold)
                         .shadow(color: settings.fgColor.opacity(0.7), radius: 10, x: 0, y: 0)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 .opacity(contentOpacity)
                 .onAppear {
