@@ -112,12 +112,12 @@ struct WorkoutInProgressView: View {
 
     // Solo → joint share flow state. `inviteFriendSheetActive` presents
     // `WorkoutWithFriendView` so the user sees the feature explainer + Copy /
-    // Share buttons before broadcasting. `profilePromptActive` gates the
-    // name-entry sheet for users who've never used collab before — without a
-    // profile, the joined friend would see a "?" avatar for the host.
+    // Share buttons before broadcasting. The profile-name prompt that gates
+    // first-time collab users now lives inside `WorkoutWithFriendView` —
+    // it's nested as a sheet over the explainer when the user taps Copy /
+    // Share without a saved profile, so they see the feature first and
+    // identify themselves second.
     @State private var inviteFriendSheetActive: Bool = false
-    @State private var profilePromptActive: Bool = false
-    @State private var profileDraftName: String = ""
     
     var body: some View {
         ZStack {
@@ -335,14 +335,16 @@ struct WorkoutInProgressView: View {
                                         .foregroundColor(settings.fgColor)
                                     Spacer()
 
-                                    // Share button — mid-workout invite. Visible only when
-                                    // truly solo (no session exists yet). Once a session
-                                    // is live (.connecting / .waitingForPeer / .paired /
-                                    // .disconnected / .error), the CollabStatusBanner's
-                                    // Re-invite path is the single affordance for sharing
-                                    // the URL — this avoids two redundant share buttons
-                                    // and keeps the joint workout view clean.
-                                    if sessionClient.sessionId == nil {
+                                    // Share button — mid-workout invite. Visible when truly
+                                    // solo (no session exists yet) OR when a friend has
+                                    // cleanly exited mid-session (peerExitInfo set) — at
+                                    // that point the user is effectively solo again and
+                                    // may want to invite someone else. For other live-
+                                    // session states (.connecting / .waitingForPeer /
+                                    // .paired / .disconnected / .error) the
+                                    // CollabStatusBanner's Re-invite path is the single
+                                    // share affordance, avoiding two redundant buttons.
+                                    if sessionClient.sessionId == nil || sessionClient.peerExitInfo != nil {
                                         Button(action: handleShareTap) {
                                             Image(systemName: "person.2.fill")
                                                 .font(.system(size: 20, weight: .semibold))
@@ -500,11 +502,6 @@ struct WorkoutInProgressView: View {
             WorkoutWithFriendView(activeWorkoutPlan: planViewModel.activePlan)
                 .environment(\.colorScheme, .dark)
         }
-        .sheet(isPresented: $profilePromptActive) {
-            profileNamePrompt
-                .presentationDetents([.height(260)])
-                .environment(\.colorScheme, .dark)
-        }
         .onAppear {
             // Broadcast my starting position so the peer's avatar column
             // shows me at the first incomplete set right away.
@@ -656,78 +653,13 @@ struct WorkoutInProgressView: View {
         }
     }
 
-    /// Entry point for the Share button in the top toolbar. The button is
-    /// only visible when `sessionId == nil` (truly solo), so two paths:
-    ///   1. Host has never set a profile → present name prompt first; the
-    ///      prompt's submit handler re-invokes this method once the profile
-    ///      is set, so the friend never sees a "?" avatar for the host.
-    ///   2. Otherwise → present `WorkoutWithFriendView` as a sheet. The
-    ///      sheet's Copy / Share buttons call `startSharedSessionForActiveWorkout`
-    ///      themselves (registering `workoutInProgress` server-side so Stage 7b'
-    ///      auto-routes joiners back into this view) and dismiss back here.
+    /// Entry point for the invite-friend button in the top toolbar.
+    /// Always presents `WorkoutWithFriendView` as a sheet so the user sees
+    /// the feature explainer first. The view itself owns the host-side
+    /// session-creation work AND the first-time profile prompt — we just
+    /// raise the curtain here.
     private func handleShareTap() {
-        if sessionClient.myProfile == nil {
-            profileDraftName = ""
-            profilePromptActive = true
-            return
-        }
         inviteFriendSheetActive = true
-    }
-
-    /// Minimal name-entry sheet shown when the user taps Share without ever
-    /// having used collab. Photo is skipped here — can be added later via
-    /// the normal JoinSessionView flow. On Save we submit the profile and
-    /// re-enter handleShareTap() to continue the share flow.
-    private var profileNamePrompt: some View {
-        VStack(spacing: 20) {
-            Text("Your Name")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding(.top, 30)
-
-            Text("Shown to your friend when they join.")
-                .font(.caption)
-                .foregroundColor(.gray)
-
-            TextField("", text: $profileDraftName, prompt: Text("Required").foregroundColor(.gray))
-                .font(.title3)
-                .foregroundColor(.white)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 14)
-                .background(Color(white: 0.15))
-                .cornerRadius(settings.cornerRadiusMedium)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.done)
-                .padding(.horizontal, 24)
-
-            Button {
-                let trimmed = profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-                sessionClient.submitProfile(Profile(name: trimmed, photoData: nil))
-                profilePromptActive = false
-                // Continue the interrupted share flow now that myProfile is set.
-                DispatchQueue.main.async { handleShareTap() }
-            } label: {
-                Text("Save")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .background(
-                profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? Color.gray.opacity(0.3)
-                    : settings.fgColor
-            )
-            .foregroundColor(.white)
-            .cornerRadius(settings.cornerRadiusMedium)
-            .padding(.horizontal, 24)
-            .disabled(profileDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
     }
 }
 

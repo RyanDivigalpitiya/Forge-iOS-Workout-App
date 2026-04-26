@@ -15,7 +15,12 @@ struct WorkoutWithFriendView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var connectingActive = false
-    @State private var shareURL: ShareableURL?
+    /// Drives both the iOS share sheet and the workout-mode profile prompt
+    /// from a single `.sheet(item:)` modifier. Two separate `.sheet`
+    /// modifiers on the same view silently conflict in SwiftUI (only the
+    /// first attaches), so the prompt and the share sheet are switched on
+    /// case below.
+    @State private var activeSheet: ActiveSheet?
     /// Tracks which gradient rectangles have run their on-appear stagger
     /// animation. Indices 0…5 cascade top-to-bottom inside the collab
     /// preview graphic; each rectangle reads `appearedIndices.contains`
@@ -104,17 +109,27 @@ struct WorkoutWithFriendView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $shareURL) { wrapper in
-            ShareSheet(activityItems: [wrapper.url])
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .profilePrompt:
+                JoinSessionView(onSoloProfileSaved: handleProfilePromptSave)
+                    .environmentObject(sessionClient)
+                    .environmentObject(settings)
+                    .environment(\.colorScheme, .dark)
+            case .share(let wrapper):
+                ShareSheet(activityItems: [wrapper.url])
+            }
         }
-        .onChange(of: shareURL?.id) { oldValue, newValue in
+        .onChange(of: activeSheet) { oldValue, newValue in
             // Workout-mode dismissal: once the user finishes (or cancels)
             // the iOS share sheet, return to the in-progress workout.
-            // ShareableURL isn't Equatable, so we observe its UUID id —
-            // transition from non-nil to nil means the share sheet closed.
-            // The History path leaves dismissal to `connectingActive`'s
-            // navigation push.
-            if oldValue != nil, newValue == nil, activeWorkoutPlan != nil {
+            // Pattern-match so we ONLY dismiss on a `.share → nil`
+            // transition; `.profilePrompt → nil` means the user backed out
+            // of the prompt without saving (they're still on the explainer
+            // and can tap Copy/Share again), and `.profilePrompt → .share`
+            // is the intentional swap during the auto-resume flow.
+            guard activeWorkoutPlan != nil else { return }
+            if case .share = oldValue, newValue == nil {
                 dismiss()
             }
         }
@@ -420,6 +435,7 @@ struct WorkoutWithFriendView: View {
     }
 
     private func generateAndCopy() {
+        if requiresProfilePrompt(for: .copy) { return }
         provisionSession()
         guard let url = sessionClient.shareLinkURL() else { return }
         UIPasteboard.general.string = url.absoluteString
@@ -431,14 +447,30 @@ struct WorkoutWithFriendView: View {
     }
 
     private func generateAndShare() {
+        if requiresProfilePrompt(for: .share) { return }
         provisionSession()
         guard let url = sessionClient.shareLinkURL() else { return }
-        shareURL = ShareableURL(url: url)
+        activeSheet = .share(ShareableURL(url: url))
         // Workout mode defers dismissal until the share sheet itself
-        // closes — see `.onChange(of: shareURL)` in body.
+        // closes — see `.onChange(of: activeSheet)` in body.
         if activeWorkoutPlan == nil {
             connectingActive = true
         }
+    }
+
+    /// Workout-mode gate: if the host hasn't set a profile yet, surface
+    /// `JoinSessionView` (in solo-profile-entry mode) over the explainer
+    /// to collect name + photo before doing the actual copy/share.
+    /// Returns true when the prompt was presented (caller bails; the
+    /// view's `onSoloProfileSaved` closure re-fires the action). History
+    /// mode returns false — its profile collection happens later in the
+    /// pairing flow's own JoinSessionView.
+    private func requiresProfilePrompt(for action: PendingAction) -> Bool {
+        guard activeWorkoutPlan != nil, sessionClient.myProfile == nil else {
+            return false
+        }
+        activeSheet = .profilePrompt(action: action)
+        return true
     }
 
     /// Picks the right session-creation API for the current entry point.
@@ -450,6 +482,57 @@ struct WorkoutWithFriendView: View {
             sessionClient.startSharedSessionForActiveWorkout(plan: plan)
         } else {
             sessionClient.createSession()
+        }
+    }
+
+    // MARK: - Workout-mode profile prompt
+
+    /// Closure passed into `JoinSessionView`'s solo-profile-entry mode.
+    /// Fires AFTER the view has called `sessionClient.submitProfile`, so
+    /// `myProfile` is set by the time we re-enter `generateAndCopy/Share`
+    /// and the profile gate skips. We hop one runloop tick before the
+    /// re-fire so UIKit can finish tearing down the prompt sheet's
+    /// PresentationController; without it, the resumed action's
+    /// sheet-present (Share path) or `dismiss()` (Copy path) collides
+    /// with the in-flight teardown and one of them gets dropped.
+    private func handleProfilePromptSave() {
+        let pending: PendingAction? = {
+            if case .profilePrompt(let action) = activeSheet { return action }
+            return nil
+        }()
+        activeSheet = nil
+        DispatchQueue.main.async {
+            switch pending {
+            case .copy: generateAndCopy()
+            case .share: generateAndShare()
+            case .none: break
+            }
+        }
+    }
+
+    // MARK: - Sheet enum
+
+    private enum PendingAction: String, Equatable {
+        case copy
+        case share
+    }
+
+    private enum ActiveSheet: Identifiable, Equatable {
+        case profilePrompt(action: PendingAction)
+        case share(ShareableURL)
+
+        var id: String {
+            switch self {
+            case .profilePrompt(let action): return "profilePrompt-\(action.rawValue)"
+            case .share(let wrapper): return "share-\(wrapper.id.uuidString)"
+            }
+        }
+
+        // ShareableURL isn't Equatable, so auto-synthesis won't compile.
+        // Compare via the case-identifying string id — sufficient for
+        // SwiftUI's diffing and for our `.onChange` pattern-match.
+        static func == (lhs: ActiveSheet, rhs: ActiveSheet) -> Bool {
+            lhs.id == rhs.id
         }
     }
 }
