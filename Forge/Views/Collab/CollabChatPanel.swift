@@ -200,7 +200,7 @@ struct CollabChatPanel: View {
         HStack(spacing: 4) {
             ForEach(Self.reactionSet, id: \.self) { emoji in
                 Text(emoji)
-                    .font(.system(size: 26))
+                    .font(.system(size: 22))
                     .padding(6)
                     .background(
                         Circle().fill(
@@ -218,9 +218,9 @@ struct CollabChatPanel: View {
                     }
             }
             Image(systemName: "xmark")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.white)
-                .padding(9)
+                .padding(8)
                 .background(Circle().fill(Color.black.opacity(0.55)))
                 .contentShape(Circle())
                 .onTapGesture {
