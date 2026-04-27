@@ -141,11 +141,17 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                     in: sessionId,
                                     except: myId
                                 )
-                            case .sendChat(let text):
+                            case .sendChat(let messageId, let text):
                                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !trimmed.isEmpty else { continue }
                                 await manager.broadcast(
-                                    .peerChat(peerId: myId, text: trimmed, timestamp: Date()),
+                                    .peerChat(peerId: myId, messageId: messageId, text: trimmed, timestamp: Date()),
+                                    in: sessionId,
+                                    except: myId
+                                )
+                            case .setReaction(let messageId, let emoji):
+                                await manager.broadcast(
+                                    .peerReactionChanged(peerId: myId, messageId: messageId, emoji: emoji),
                                     in: sessionId,
                                     except: myId
                                 )

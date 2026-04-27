@@ -116,6 +116,10 @@ struct CollabChatPanel: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    /// iMessage Tapback set. Reaction picker rendered inside the
+    /// `.contextMenu` on each peer bubble.
+    private static let reactionSet = ["❤️", "👍", "👎", "😂", "‼️", "❓"]
+
     @ViewBuilder
     private func chatBubble(entry: ChatEntry) -> some View {
         HStack(spacing: 0) {
@@ -127,7 +131,52 @@ struct CollabChatPanel: View {
                 .padding(.vertical, 8)
                 .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
                 .cornerRadius(14)
+                .overlay(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
+                    reactionBadge(for: entry)
+                }
+                .contextMenu {
+                    if !entry.isMine { reactionMenu(for: entry) }
+                }
             if !entry.isMine { Spacer(minLength: 48) }
+        }
+    }
+
+    /// Reaction picker shown on long-press of a peer bubble. Six emoji + an
+    /// optional Remove row when there's already a reaction to clear. Own
+    /// bubbles get an empty `.contextMenu` body, which SwiftUI treats as
+    /// "no menu" — long-press on own bubbles is a no-op (matches the
+    /// "own messages not reactable" rule).
+    @ViewBuilder
+    private func reactionMenu(for entry: ChatEntry) -> some View {
+        ForEach(Self.reactionSet, id: \.self) { emoji in
+            Button(emoji) {
+                sessionClient.setReaction(messageId: entry.id, emoji: emoji)
+            }
+        }
+        if entry.myReaction != nil {
+            Button("Remove Reaction", role: .destructive) {
+                sessionClient.setReaction(messageId: entry.id, emoji: nil)
+            }
+        }
+    }
+
+    /// Small emoji-on-pill badge, offset to peek over the bubble corner
+    /// iMessage-style. With own-message reactions disabled, at most one
+    /// reaction lives on any bubble: peer's reaction on my message
+    /// (`peerReaction`), or my reaction on peer's message (`myReaction`).
+    /// `.transition` fires inside the spring `withAnimation` in
+    /// `SessionClient.setReaction` and `peerReactionChanged`.
+    @ViewBuilder
+    private func reactionBadge(for entry: ChatEntry) -> some View {
+        let emoji: String? = entry.isMine ? entry.peerReaction : entry.myReaction
+        if let emoji {
+            Text(emoji)
+                .font(.system(size: 14))
+                .padding(4)
+                .background(Circle().fill(Color(white: 0.12)))
+                .overlay(Circle().stroke(Color.black, lineWidth: 1.5))
+                .offset(x: entry.isMine ? -8 : 8, y: 6)
+                .transition(.scale.combined(with: .opacity))
         }
     }
 

@@ -320,10 +320,84 @@ final class SessionClientTests {
     // MARK: - peerChat
 
     @Test func peerChatAppendsWithIsMineFalse() {
-        send(.peerChat(peerId: UUID(), text: "hey", timestamp: Date()))
+        let messageId = UUID()
+        send(.peerChat(peerId: UUID(), messageId: messageId, text: "hey", timestamp: Date()))
         #expect(client.chatEntries.count == 1)
         #expect(client.chatEntries.first?.text == "hey")
         #expect(client.chatEntries.first?.isMine == false)
+        // Sender-supplied messageId becomes the local entry's id so reactions
+        // sent later can address the same row across both phones.
+        #expect(client.chatEntries.first?.id == messageId)
+    }
+
+    // MARK: - reactions
+
+    @Test func peerReactionChangedSetsPeerReaction() {
+        // Reaction lands by messageId — the entry must already exist locally.
+        // Stand one up via peerChat, then apply the reaction.
+        let messageId = UUID()
+        send(.peerChat(peerId: UUID(), messageId: messageId, text: "hey", timestamp: Date()))
+
+        send(.peerReactionChanged(peerId: UUID(), messageId: messageId, emoji: "❤️"))
+        #expect(client.chatEntries.first?.peerReaction == "❤️")
+
+        // Replace: the same field overwrites.
+        send(.peerReactionChanged(peerId: UUID(), messageId: messageId, emoji: "👍"))
+        #expect(client.chatEntries.first?.peerReaction == "👍")
+
+        // Remove: nil emoji clears the field.
+        send(.peerReactionChanged(peerId: UUID(), messageId: messageId, emoji: nil))
+        #expect(client.chatEntries.first?.peerReaction == nil)
+    }
+
+    @Test func peerReactionChangedIgnoresUnknownMessageId() {
+        // Out-of-order delivery: reaction frame for a message we never saw
+        // (or that was cleared on disconnect). Must not insert phantom rows
+        // or crash on a missing index — just drop silently.
+        send(.peerReactionChanged(peerId: UUID(), messageId: UUID(), emoji: "🔥"))
+        #expect(client.chatEntries.isEmpty)
+    }
+
+    @Test func setReactionUpdatesMyReactionLocally() {
+        // Reactor's own bubble path: optimistic local update should patch
+        // myReaction on the matching entry before the wire round-trip.
+        // Use peerChat to seed a known messageId, then react to it.
+        let messageId = UUID()
+        send(.peerChat(peerId: UUID(), messageId: messageId, text: "nice set", timestamp: Date()))
+
+        client.setReaction(messageId: messageId, emoji: "👍")
+        #expect(client.chatEntries.first?.myReaction == "👍")
+
+        client.setReaction(messageId: messageId, emoji: nil)
+        #expect(client.chatEntries.first?.myReaction == nil)
+    }
+
+    @Test func setReactionClientMessageRoundTrips() {
+        // Wire-protocol guard for the new outbound case. If the enum's
+        // associated values ever drift between iOS + server, this fails
+        // before manual smoke.
+        let messageId = UUID()
+        let message = ClientMessage.setReaction(messageId: messageId, emoji: "❤️")
+
+        let data = try! JSONEncoder().encode(message)
+        let decoded = try! JSONDecoder().decode(ClientMessage.self, from: data)
+
+        if case .setReaction(let mid, let emoji) = decoded {
+            #expect(mid == messageId)
+            #expect(emoji == "❤️")
+        } else {
+            Issue.record("Expected .setReaction, got \(decoded)")
+        }
+
+        // Nil-emoji (remove) variant must survive too.
+        let removeMessage = ClientMessage.setReaction(messageId: messageId, emoji: nil)
+        let removeData = try! JSONEncoder().encode(removeMessage)
+        let removeDecoded = try! JSONDecoder().decode(ClientMessage.self, from: removeData)
+        if case .setReaction(_, let emoji) = removeDecoded {
+            #expect(emoji == nil)
+        } else {
+            Issue.record("Expected .setReaction(nil), got \(removeDecoded)")
+        }
     }
 
     // MARK: - peerReadyChanged

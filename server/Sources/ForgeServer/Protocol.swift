@@ -44,7 +44,11 @@ enum ServerMessage: Codable, Sendable {
     case peerReturned(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
-    case peerChat(peerId: UUID, text: String, timestamp: Date)
+    case peerChat(peerId: UUID, messageId: UUID, text: String, timestamp: Date)
+    /// Broadcast when a peer adds, replaces, or removes their reaction on a
+    /// chat bubble. `emoji == nil` is the remove case. Reactions aren't
+    /// persisted server-side (same as chat history) — pure relay.
+    case peerReactionChanged(peerId: UUID, messageId: UUID, emoji: String?)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
@@ -74,7 +78,11 @@ enum ServerMessage: Codable, Sendable {
 enum ClientMessage: Codable, Sendable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
-    case sendChat(text: String)
+    case sendChat(messageId: UUID, text: String)
+    /// Sender adds, replaces, or removes their reaction on a previously-sent
+    /// chat message. `emoji == nil` is the remove case. Server fans out as
+    /// `peerReactionChanged` to other peers.
+    case setReaction(messageId: UUID, emoji: String?)
     case setReady(isReady: Bool)
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)

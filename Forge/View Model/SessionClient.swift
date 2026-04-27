@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import UIKit
 
 struct Profile: Codable, Equatable {
     var name: String
@@ -118,7 +119,11 @@ enum ServerMessage: Codable {
     case peerReturned(peerId: UUID)
     case peerProfileUpdated(peerId: UUID, profile: Profile)
     case planSuggested(peerId: UUID, plan: PlanSnapshot)
-    case peerChat(peerId: UUID, text: String, timestamp: Date)
+    case peerChat(peerId: UUID, messageId: UUID, text: String, timestamp: Date)
+    /// Broadcast when a peer adds, replaces, or removes their reaction on a
+    /// chat message. `emoji == nil` is the remove case. Mirrors server-side
+    /// `ServerMessage.peerReactionChanged`.
+    case peerReactionChanged(peerId: UUID, messageId: UUID, emoji: String?)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
     case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
@@ -133,7 +138,11 @@ enum ServerMessage: Codable {
 enum ClientMessage: Codable {
     case profileUpdate(Profile)
     case suggestPlan(PlanSnapshot)
-    case sendChat(text: String)
+    case sendChat(messageId: UUID, text: String)
+    /// Sender adds, replaces, or removes their reaction on a previously-sent
+    /// chat message. `emoji == nil` is the remove case. Mirrors server-side
+    /// `ClientMessage.setReaction`.
+    case setReaction(messageId: UUID, emoji: String?)
     case setReady(isReady: Bool)
     case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
@@ -220,14 +229,24 @@ struct PeerBreakTimer: Equatable {
     let setIndex: Int
 }
 
-// Local-only — not sent on the wire. Stores an `isMine` flag captured at
-// insertion time so renders survive myId changes across reconnects
-// (my messages stay "mine" even after the server assigns a fresh UUID).
+// `id` is the shared message id — sender mints it once at send time and
+// includes it in the wire `sendChat`; the server forwards it in `peerChat`.
+// Both peers thus key the same chat entry under the same UUID, which lets
+// reactions address a specific message across the wire. `isMine` is captured
+// at insertion time so renders survive myId changes across reconnects.
+//
+// `myReaction` / `peerReaction`: at most one reaction per peer per bubble.
+// With own-message reactions disabled, only one of the two is ever non-nil
+// per entry (peer reacts to my message → peerReaction; I react to peer's
+// message → myReaction). Both fields exist symmetrically anyway so the
+// "no own reactions" rule can later be lifted without a model migration.
 struct ChatEntry: Identifiable, Equatable {
     let id: UUID
     let text: String
     let timestamp: Date
     let isMine: Bool
+    var myReaction: String?
+    var peerReaction: String?
 }
 
 @MainActor
@@ -552,10 +571,25 @@ final class SessionClient: ObservableObject {
     func sendChat(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let messageId = UUID()
         chatEntries.append(
-            ChatEntry(id: UUID(), text: trimmed, timestamp: Date(), isMine: true)
+            ChatEntry(id: messageId, text: trimmed, timestamp: Date(), isMine: true)
         )
-        sendClientMessage(.sendChat(text: trimmed))
+        sendClientMessage(.sendChat(messageId: messageId, text: trimmed))
+    }
+
+    /// Apply a reaction to a previously-sent chat message — add, replace, or
+    /// remove (passing `nil` for `emoji`). Optimistic local update before
+    /// the wire round-trip so the badge appears immediately on the reactor's
+    /// screen; peer learns via `peerReactionChanged`. Wrapped in a spring
+    /// animation so the badge transition fires on both insert and removal.
+    func setReaction(messageId: UUID, emoji: String?) {
+        if let idx = chatEntries.firstIndex(where: { $0.id == messageId }) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                chatEntries[idx].myReaction = emoji
+            }
+        }
+        sendClientMessage(.setReaction(messageId: messageId, emoji: emoji))
     }
 
     func toggleReady() {
@@ -770,10 +804,24 @@ final class SessionClient: ObservableObject {
         case .planSuggested(_, let plan):
             suggestedPlan = plan
 
-        case .peerChat(_, let text, let timestamp):
+        case .peerChat(_, let messageId, let text, let timestamp):
             chatEntries.append(
-                ChatEntry(id: UUID(), text: text, timestamp: timestamp, isMine: false)
+                ChatEntry(id: messageId, text: text, timestamp: timestamp, isMine: false)
             )
+
+        case .peerReactionChanged(_, let messageId, let emoji):
+            // Locate the entry by the shared messageId and patch the peer's
+            // reaction. Wrapped in a spring so the badge animates in/out
+            // symmetrically with the local-set path. Light haptic when a
+            // reaction is added or replaced (not on remove); mirrors
+            // iMessage's soft tap on Tapback receipt.
+            guard let idx = chatEntries.firstIndex(where: { $0.id == messageId }) else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                chatEntries[idx].peerReaction = emoji
+            }
+            if emoji != nil {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
 
         case .peerReadyChanged(let peerId, let isReady):
             peerReady[peerId] = isReady
