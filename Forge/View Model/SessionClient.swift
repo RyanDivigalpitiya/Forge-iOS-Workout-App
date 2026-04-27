@@ -581,13 +581,12 @@ final class SessionClient: ObservableObject {
     /// Apply a reaction to a previously-sent chat message — add, replace, or
     /// remove (passing `nil` for `emoji`). Optimistic local update before
     /// the wire round-trip so the badge appears immediately on the reactor's
-    /// screen; peer learns via `peerReactionChanged`. Wrapped in a spring
-    /// animation so the badge transition fires on both insert and removal.
+    /// screen; peer learns via `peerReactionChanged`. The spring animation
+    /// is driven by the badge view itself via `.animation(value:)` —
+    /// wrapping in `withAnimation` here would be redundant.
     func setReaction(messageId: UUID, emoji: String?) {
         if let idx = chatEntries.firstIndex(where: { $0.id == messageId }) {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                chatEntries[idx].myReaction = emoji
-            }
+            chatEntries[idx].myReaction = emoji
         }
         sendClientMessage(.setReaction(messageId: messageId, emoji: emoji))
     }
@@ -811,14 +810,12 @@ final class SessionClient: ObservableObject {
 
         case .peerReactionChanged(_, let messageId, let emoji):
             // Locate the entry by the shared messageId and patch the peer's
-            // reaction. Wrapped in a spring so the badge animates in/out
-            // symmetrically with the local-set path. Light haptic when a
-            // reaction is added or replaced (not on remove); mirrors
-            // iMessage's soft tap on Tapback receipt.
+            // reaction. The badge view drives its own spring animation via
+            // `.animation(value:)` so no withAnimation wrapper here. Light
+            // haptic when a reaction is added or replaced (not on remove);
+            // mirrors iMessage's soft tap on Tapback receipt.
             guard let idx = chatEntries.firstIndex(where: { $0.id == messageId }) else { return }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                chatEntries[idx].peerReaction = emoji
-            }
+            chatEntries[idx].peerReaction = emoji
             if emoji != nil {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }

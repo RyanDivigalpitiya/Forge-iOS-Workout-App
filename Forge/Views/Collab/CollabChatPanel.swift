@@ -94,10 +94,11 @@ struct CollabChatPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    // Spacing is sized to clear the reaction-badge protrusion
-                    // (badge offsets `y: 14` below the bubble's bottom edge —
-                    // see `reactionBadge`). 14pt clearance + ~2pt air = 16.
-                    LazyVStack(spacing: 16) {
+                    // Reaction-badge protrusion is now reserved INSIDE each
+                    // bubble row via conditional bottom padding (see
+                    // `chatBubble`), so spacing here is just the visual gap
+                    // between rows.
+                    LazyVStack(spacing: 6) {
                         ForEach(sessionClient.chatEntries) { entry in
                             chatBubble(entry: entry)
                                 .id(entry.id)
@@ -133,21 +134,43 @@ struct CollabChatPanel: View {
 
     @ViewBuilder
     private func chatBubble(entry: ChatEntry) -> some View {
+        // Layout-based badge positioning: when a reaction is present, the
+        // bubble takes 14pt of bottom padding so the ZStack's frame
+        // extends far enough for the badge to sit fully within its bounds
+        // (via .bottom alignment, NO vertical offset). This is what lets
+        // `.contextMenu` live on the ZStack — iOS's long-press lift
+        // snapshots the ZStack's natural bounds, so anything inside the
+        // frame (including the badge) gets included in the lift and
+        // scales with the bubble. An earlier approach used .offset(y: 14)
+        // to push the badge below the ZStack, which put it OUTSIDE the
+        // snapshot bounds and caused the badge's bottom to clip during
+        // the lift; moving contextMenu off the ZStack onto just the Text
+        // fixed the clip but stranded the badge in its original layer
+        // (behind the lifted bubble). Layout positioning solves both.
+        let hasReaction = (entry.isMine ? entry.peerReaction : entry.myReaction) != nil
         HStack(spacing: 0) {
             if entry.isMine { Spacer(minLength: 48) }
-            Text(entry.text)
-                .font(.subheadline)
-                .foregroundColor(entry.isMine ? .black : .white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
-                .cornerRadius(14)
-                .overlay(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
-                    reactionBadge(for: entry)
-                }
-                .contextMenu {
-                    if !entry.isMine { reactionMenu(for: entry) }
-                }
+            ZStack(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
+                Text(entry.text)
+                    .font(.subheadline)
+                    .foregroundColor(entry.isMine ? .black : .white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
+                    .cornerRadius(14)
+                    // Conditional padding on the badge side extends the
+                    // ZStack frame just enough to keep the badge fully
+                    // within layout bounds (no offset hacks). The HStack's
+                    // flexible Spacer absorbs the 12pt shift, so the
+                    // bubble's screen position is unchanged.
+                    .padding(.leading, (hasReaction && entry.isMine) ? 12 : 0)
+                    .padding(.trailing, (hasReaction && !entry.isMine) ? 12 : 0)
+                    .padding(.bottom, hasReaction ? 14 : 0)
+                reactionBadge(for: entry)
+            }
+            .contextMenu {
+                if !entry.isMine { reactionMenu(for: entry) }
+            }
             if !entry.isMine { Spacer(minLength: 48) }
         }
     }
@@ -175,8 +198,12 @@ struct CollabChatPanel: View {
     /// iMessage-style. With own-message reactions disabled, at most one
     /// reaction lives on any bubble: peer's reaction on my message
     /// (`peerReaction`), or my reaction on peer's message (`myReaction`).
-    /// `.transition` fires inside the spring `withAnimation` in
-    /// `SessionClient.setReaction` and `peerReactionChanged`.
+    /// Renders instantly on add/remove — earlier scale/opacity animation
+    /// attempts clipped the badge's bottom edge mid-transient regardless
+    /// of which animation primitive drove it (`.transition`, state-driven
+    /// `.scaleEffect`, fixed-frame Circle, `.compositingGroup`); not worth
+    /// chasing further for what's a cosmetic flourish on top of an
+    /// already-snappy interaction.
     @ViewBuilder
     private func reactionBadge(for entry: ChatEntry) -> some View {
         let emoji: String? = entry.isMine ? entry.peerReaction : entry.myReaction
@@ -185,17 +212,11 @@ struct CollabChatPanel: View {
                 .font(.system(size: 14))
                 .padding(4)
                 .background(Circle().fill(Color(white: 0.12)))
-                // Pulled diagonally off the bubble corner so the badge sits
-                // half-outside (clear of text) rather than overlapping the
-                // leftmost / rightmost character's descender. With a 22pt
-                // badge, padding(h:12, v:8) on text, and cornerRadius 14:
-                // x = ±12 keeps the badge's inner edge (10pt inside bubble)
-                // safely left of the text region (which starts 12pt in).
-                // y = 14 puts the badge's top at the text region's bottom
-                // edge — no descender clipping. LazyVStack spacing above
-                // accommodates the +14pt protrusion below the bubble.
-                .offset(x: entry.isMine ? -12 : 12, y: 14)
-                .transition(.scale.combined(with: .opacity))
+            // No offset — badge is fully positioned by ZStack alignment +
+            // the bubble's conditional side/bottom padding (see
+            // `chatBubble`). Keeps the badge's render position INSIDE the
+            // ZStack's layout frame so iOS's contextMenu lift snapshot
+            // includes it without clipping.
         }
     }
 
@@ -212,7 +233,7 @@ struct CollabChatPanel: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(translucentInputBackground ? Color.black.opacity(0.4) : Color(white: 0.15))
-            .cornerRadius(settings.cornerRadiusLarge)
+            .clipShape(Capsule())
 
             Button(action: sendCurrentDraft) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -220,7 +241,7 @@ struct CollabChatPanel: View {
                     .foregroundColor(canSendDraft ? settings.fgColor : .gray.opacity(0.35))
             }
             .disabled(!canSendDraft)
-            .padding(.bottom, 4)
+            .padding(.bottom, 6)
         }
     }
 
