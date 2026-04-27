@@ -31,6 +31,15 @@ struct CollabChatPanel: View {
     /// line and grows as the user types more wrapped lines, capped at
     /// ~5 lines via `.frame(maxHeight:)` on the SwiftUI side.
     @State private var inputHeight: CGFloat = 22
+    /// Custom (non-native) reaction picker state. Holds the entry id of
+    /// the bubble whose picker is currently shown; nil = no picker.
+    /// We drive the long-press + picker ourselves rather than using
+    /// `.contextMenu` because every platform-specific glitch we hit
+    /// (badge clipping, iOS 18 wobble, behind-bubble flash on stamp,
+    /// rounded-corner flicker on dismiss) traces back to iOS's
+    /// system-level lift/dismiss pipeline. Custom picker = single code
+    /// path, no platter, no z-order conflicts.
+    @State private var pickerForEntry: UUID? = nil
 
     private var peerId: UUID? { sessionClient.peerIds.first }
     private var peerProfile: Profile? {
@@ -94,14 +103,12 @@ struct CollabChatPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    // Each row already carries 14pt of always-on bottom
-                    // padding (see `chatBubble`) for the badge slot —
-                    // that doubles as the inter-bubble gap. Stack
-                    // spacing of 0 keeps the visual rhythm reasonable
-                    // (was 6 originally; with always-on padding + 6
-                    // it'd be 20pt between bubbles which reads too
-                    // airy).
-                    LazyVStack(spacing: 0) {
+                    // Spacing 16 clears the badge's `.offset(y: 14)`
+                    // protrusion below each bubble (see `reactionBadge`)
+                    // with 2pt of air. The picker is a sibling of the
+                    // bubble inside the row's VStack, so it lives in
+                    // normal layout flow — no z-index hacks needed.
+                    LazyVStack(spacing: 16) {
                         ForEach(sessionClient.chatEntries) { entry in
                             chatBubble(entry: entry)
                                 .id(entry.id)
@@ -137,81 +144,105 @@ struct CollabChatPanel: View {
 
     @ViewBuilder
     private func chatBubble(entry: ChatEntry) -> some View {
-        // Always-on badge slot reservation. The bubble's wrapping frame
-        // is (W+12) × (H+14) regardless of whether a reaction is set —
-        // 12pt on the badge side, 14pt on the bottom. The badge view is
-        // conditionally rendered (see `reactionBadge`) but its slot is
-        // permanently reserved.
-        //
-        // Earlier we made these padding values conditional on
-        // `hasReaction` so unreacted bubbles stayed tight. iOS 18 then
-        // wobbled the bubble toward the top-leading corner during the
-        // contextMenu's dismiss animation: the receiver's frame was
-        // changing inside the dismiss transition, and iOS 18's dismiss
-        // animates at the system/UIKit layer (outside SwiftUI's
-        // transaction propagation, so `.animation(nil, value:)` and
-        // `.transaction { animation = nil }` couldn't reach it). The
-        // only way to get a clean dismiss on both iOS 18 and 26 is to
-        // hold the receiver's frame constant across the menu's
-        // lifetime. Trade-off: every bubble carries 14pt of empty
-        // bottom space; chat layout is a touch looser than before.
-        HStack(spacing: 0) {
-            if entry.isMine { Spacer(minLength: 48) }
-            ZStack(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
-                Text(entry.text)
-                    .font(.subheadline)
-                    .foregroundColor(entry.isMine ? .black : .white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
-                    .cornerRadius(14)
-                    .padding(.leading, entry.isMine ? 12 : 0)
-                    .padding(.trailing, entry.isMine ? 0 : 12)
-                    .padding(.bottom, 14)
-                reactionBadge(for: entry)
+        // Bubble + (conditional) picker stack vertically. Picker is a
+        // SIBLING of the bubble (not an overlay) so it sits in normal
+        // layout below the bubble — no horizontal overflow, no z-order
+        // games with neighbouring bubbles, and the next message is
+        // naturally pushed down while the picker is open.
+        VStack(alignment: entry.isMine ? .trailing : .leading, spacing: 8) {
+            HStack(spacing: 0) {
+                if entry.isMine { Spacer(minLength: 48) }
+                ZStack(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
+                    Text(entry.text)
+                        .font(.subheadline)
+                        .foregroundColor(entry.isMine ? .black : .white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
+                        .cornerRadius(14)
+                        .onLongPressGesture(minimumDuration: 0.3) {
+                            guard !entry.isMine else { return }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                pickerForEntry = entry.id
+                            }
+                        }
+                    reactionBadge(for: entry)
+                }
+                if !entry.isMine { Spacer(minLength: 48) }
             }
-            .contextMenu {
-                if !entry.isMine { reactionMenu(for: entry) }
+            if pickerForEntry == entry.id {
+                HStack(spacing: 0) {
+                    if entry.isMine { Spacer(minLength: 48) }
+                    reactionPicker(for: entry)
+                    if !entry.isMine { Spacer(minLength: 48) }
+                }
+                .transition(
+                    .scale(
+                        scale: 0.6,
+                        anchor: entry.isMine ? .topTrailing : .topLeading
+                    )
+                    .combined(with: .opacity)
+                )
             }
-            if !entry.isMine { Spacer(minLength: 48) }
         }
     }
 
-    /// Reaction picker shown on long-press of a peer bubble. The six emoji
-    /// are wrapped in a `ControlGroup` with `.controlGroupStyle(.palette)`
-    /// so iOS renders them as a horizontal toolbar-style row instead of a
-    /// vertical stack — same trick iMessage uses for its tapback row above
-    /// the standard menu items. The Remove row stays as a normal vertical
-    /// menu item below the palette. Own bubbles get an empty `.contextMenu`
-    /// body, which SwiftUI treats as "no menu" — long-press on own bubbles
-    /// is a no-op (matches the "own messages not reactable" rule).
+    /// Custom reaction picker. Six emoji + an X dismiss, in a horizontal
+    /// capsule rendered as a SIBLING of the bubble (see `chatBubble`).
+    /// Each emoji is a plain `Text` with `.onTapGesture` instead of a
+    /// `Button` — Buttons (even with `.buttonStyle(.plain)`) inherit
+    /// iOS's foreground tint which absorbs colored emoji glyphs and
+    /// renders them invisible. Tap-targets are the padded glyph itself.
     @ViewBuilder
-    private func reactionMenu(for entry: ChatEntry) -> some View {
-        ControlGroup {
+    private func reactionPicker(for entry: ChatEntry) -> some View {
+        let currentReaction = entry.myReaction
+        HStack(spacing: 4) {
             ForEach(Self.reactionSet, id: \.self) { emoji in
-                Button(emoji) {
-                    sessionClient.setReaction(messageId: entry.id, emoji: emoji)
+                Text(emoji)
+                    .font(.system(size: 26))
+                    .padding(6)
+                    .background(
+                        Circle().fill(
+                            currentReaction == emoji
+                                ? Color.white.opacity(0.18) : Color.clear
+                        )
+                    )
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        let next: String? = (currentReaction == emoji) ? nil : emoji
+                        sessionClient.setReaction(messageId: entry.id, emoji: next)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            pickerForEntry = nil
+                        }
+                    }
+            }
+            Image(systemName: "xmark")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(9)
+                .background(Circle().fill(Color.black.opacity(0.55)))
+                .contentShape(Circle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        pickerForEntry = nil
+                    }
                 }
-            }
+                .padding(.leading, 4)
         }
-        .controlGroupStyle(.palette)
-        if entry.myReaction != nil {
-            Button("Remove Reaction", role: .destructive) {
-                sessionClient.setReaction(messageId: entry.id, emoji: nil)
-            }
-        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.5), radius: 10, y: 3)
     }
 
     /// Small emoji-on-pill badge, offset to peek over the bubble corner
     /// iMessage-style. With own-message reactions disabled, at most one
     /// reaction lives on any bubble: peer's reaction on my message
     /// (`peerReaction`), or my reaction on peer's message (`myReaction`).
-    /// Renders instantly on add/remove — earlier scale/opacity animation
-    /// attempts clipped the badge's bottom edge mid-transient regardless
-    /// of which animation primitive drove it (`.transition`, state-driven
-    /// `.scaleEffect`, fixed-frame Circle, `.compositingGroup`); not worth
-    /// chasing further for what's a cosmetic flourish on top of an
-    /// already-snappy interaction.
+    /// Renders instantly on add/remove — earlier animation attempts all
+    /// clipped or flickered.
     @ViewBuilder
     private func reactionBadge(for entry: ChatEntry) -> some View {
         let emoji: String? = entry.isMine ? entry.peerReaction : entry.myReaction
@@ -220,11 +251,14 @@ struct CollabChatPanel: View {
                 .font(.system(size: 14))
                 .padding(4)
                 .background(Circle().fill(Color(white: 0.12)))
-            // No offset — badge is fully positioned by ZStack alignment +
-            // the bubble's conditional side/bottom padding (see
-            // `chatBubble`). Keeps the badge's render position INSIDE the
-            // ZStack's layout frame so iOS's contextMenu lift snapshot
-            // includes it without clipping.
+                // Pulled diagonally off the bubble corner so the badge
+                // sits half-outside (clear of leftmost/rightmost text).
+                // x = ±12 keeps the badge's inner edge ~10pt inside the
+                // bubble (clear of the 12pt text padding); y = 14 puts
+                // the badge's top right at the text region's bottom
+                // edge — no descender clipping. LazyVStack spacing 16
+                // (set in chatMessagesScroll) clears the protrusion.
+                .offset(x: entry.isMine ? -12 : 12, y: 14)
         }
     }
 
