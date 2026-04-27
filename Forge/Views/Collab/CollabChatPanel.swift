@@ -177,18 +177,24 @@ struct CollabChatPanel: View {
         }
     }
 
-    /// Reaction picker shown on long-press of a peer bubble. Six emoji + an
-    /// optional Remove row when there's already a reaction to clear. Own
-    /// bubbles get an empty `.contextMenu` body, which SwiftUI treats as
-    /// "no menu" — long-press on own bubbles is a no-op (matches the
-    /// "own messages not reactable" rule).
+    /// Reaction picker shown on long-press of a peer bubble. The six emoji
+    /// are wrapped in a `ControlGroup` with `.controlGroupStyle(.palette)`
+    /// so iOS renders them as a horizontal toolbar-style row instead of a
+    /// vertical stack — same trick iMessage uses for its tapback row above
+    /// the standard menu items. The Remove row stays as a normal vertical
+    /// menu item below the palette. Own bubbles get an empty `.contextMenu`
+    /// body, which SwiftUI treats as "no menu" — long-press on own bubbles
+    /// is a no-op (matches the "own messages not reactable" rule).
     @ViewBuilder
     private func reactionMenu(for entry: ChatEntry) -> some View {
-        ForEach(Self.reactionSet, id: \.self) { emoji in
-            Button(emoji) {
-                sessionClient.setReaction(messageId: entry.id, emoji: emoji)
+        ControlGroup {
+            ForEach(Self.reactionSet, id: \.self) { emoji in
+                Button(emoji) {
+                    sessionClient.setReaction(messageId: entry.id, emoji: emoji)
+                }
             }
         }
+        .controlGroupStyle(.palette)
         if entry.myReaction != nil {
             Button("Remove Reaction", role: .destructive) {
                 sessionClient.setReaction(messageId: entry.id, emoji: nil)
