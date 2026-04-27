@@ -94,11 +94,14 @@ struct CollabChatPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    // Reaction-badge protrusion is now reserved INSIDE each
-                    // bubble row via conditional bottom padding (see
-                    // `chatBubble`), so spacing here is just the visual gap
-                    // between rows.
-                    LazyVStack(spacing: 6) {
+                    // Each row already carries 14pt of always-on bottom
+                    // padding (see `chatBubble`) for the badge slot —
+                    // that doubles as the inter-bubble gap. Stack
+                    // spacing of 0 keeps the visual rhythm reasonable
+                    // (was 6 originally; with always-on padding + 6
+                    // it'd be 20pt between bubbles which reads too
+                    // airy).
+                    LazyVStack(spacing: 0) {
                         ForEach(sessionClient.chatEntries) { entry in
                             chatBubble(entry: entry)
                                 .id(entry.id)
@@ -134,20 +137,24 @@ struct CollabChatPanel: View {
 
     @ViewBuilder
     private func chatBubble(entry: ChatEntry) -> some View {
-        // Layout-based badge positioning: when a reaction is present, the
-        // bubble takes 14pt of bottom padding so the ZStack's frame
-        // extends far enough for the badge to sit fully within its bounds
-        // (via .bottom alignment, NO vertical offset). This is what lets
-        // `.contextMenu` live on the ZStack — iOS's long-press lift
-        // snapshots the ZStack's natural bounds, so anything inside the
-        // frame (including the badge) gets included in the lift and
-        // scales with the bubble. An earlier approach used .offset(y: 14)
-        // to push the badge below the ZStack, which put it OUTSIDE the
-        // snapshot bounds and caused the badge's bottom to clip during
-        // the lift; moving contextMenu off the ZStack onto just the Text
-        // fixed the clip but stranded the badge in its original layer
-        // (behind the lifted bubble). Layout positioning solves both.
-        let hasReaction = (entry.isMine ? entry.peerReaction : entry.myReaction) != nil
+        // Always-on badge slot reservation. The bubble's wrapping frame
+        // is (W+12) × (H+14) regardless of whether a reaction is set —
+        // 12pt on the badge side, 14pt on the bottom. The badge view is
+        // conditionally rendered (see `reactionBadge`) but its slot is
+        // permanently reserved.
+        //
+        // Earlier we made these padding values conditional on
+        // `hasReaction` so unreacted bubbles stayed tight. iOS 18 then
+        // wobbled the bubble toward the top-leading corner during the
+        // contextMenu's dismiss animation: the receiver's frame was
+        // changing inside the dismiss transition, and iOS 18's dismiss
+        // animates at the system/UIKit layer (outside SwiftUI's
+        // transaction propagation, so `.animation(nil, value:)` and
+        // `.transaction { animation = nil }` couldn't reach it). The
+        // only way to get a clean dismiss on both iOS 18 and 26 is to
+        // hold the receiver's frame constant across the menu's
+        // lifetime. Trade-off: every bubble carries 14pt of empty
+        // bottom space; chat layout is a touch looser than before.
         HStack(spacing: 0) {
             if entry.isMine { Spacer(minLength: 48) }
             ZStack(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
@@ -158,14 +165,9 @@ struct CollabChatPanel: View {
                     .padding(.vertical, 8)
                     .background(entry.isMine ? settings.fgColor : Color(white: 0.22))
                     .cornerRadius(14)
-                    // Conditional padding on the badge side extends the
-                    // ZStack frame just enough to keep the badge fully
-                    // within layout bounds (no offset hacks). The HStack's
-                    // flexible Spacer absorbs the 12pt shift, so the
-                    // bubble's screen position is unchanged.
-                    .padding(.leading, (hasReaction && entry.isMine) ? 12 : 0)
-                    .padding(.trailing, (hasReaction && !entry.isMine) ? 12 : 0)
-                    .padding(.bottom, hasReaction ? 14 : 0)
+                    .padding(.leading, entry.isMine ? 12 : 0)
+                    .padding(.trailing, entry.isMine ? 0 : 12)
+                    .padding(.bottom, 14)
                 reactionBadge(for: entry)
             }
             .contextMenu {
