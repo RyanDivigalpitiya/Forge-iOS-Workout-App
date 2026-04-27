@@ -142,6 +142,31 @@ struct CollabChatPanel: View {
     /// `.contextMenu` on each peer bubble.
     private static let reactionSet = ["❤️", "👍", "👎", "😂", "‼️", "❓"]
 
+    /// Detects URLs (schemed + bare domains) via `NSDataDetector` and
+    /// attributes them as tappable links. SwiftUI's `Text` renders `.link`
+    /// ranges via the system `OpenURLAction` (default → Safari). Underline
+    /// + bubble-text color keeps the link distinct without clashing with
+    /// any of the six accent themes.
+    private func attributedTextWithLinks(_ text: String, color: Color) -> AttributedString {
+        var attributed = AttributedString(text)
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return attributed
+        }
+        let fullRange = NSRange(location: 0, length: (text as NSString).length)
+        for match in detector.matches(in: text, range: fullRange) {
+            guard let url = match.url,
+                  let stringRange = Range(match.range, in: text),
+                  let lower = AttributedString.Index(stringRange.lowerBound, within: attributed),
+                  let upper = AttributedString.Index(stringRange.upperBound, within: attributed)
+            else { continue }
+            let attrRange = lower..<upper
+            attributed[attrRange].link = url
+            attributed[attrRange].underlineStyle = .single
+            attributed[attrRange].foregroundColor = color
+        }
+        return attributed
+    }
+
     @ViewBuilder
     private func chatBubble(entry: ChatEntry) -> some View {
         // Bubble + (conditional) picker stack vertically. Picker is a
@@ -153,7 +178,7 @@ struct CollabChatPanel: View {
             HStack(spacing: 0) {
                 if entry.isMine { Spacer(minLength: 48) }
                 ZStack(alignment: entry.isMine ? .bottomLeading : .bottomTrailing) {
-                    Text(entry.text)
+                    Text(attributedTextWithLinks(entry.text, color: entry.isMine ? .black : .white))
                         .font(.subheadline)
                         .foregroundColor(entry.isMine ? .black : .white)
                         .padding(.horizontal, 12)
