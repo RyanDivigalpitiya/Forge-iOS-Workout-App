@@ -34,7 +34,7 @@ struct WorkoutChatToolbar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CollabChatPanel(showAvatarHeader: true)
+            CollabChatPanel(showAvatarHeader: true, translucentInputBackground: true)
                 .opacity(chatPanelVisible ? 1 : 0)
                 .padding(.horizontal, 12)
                 .padding(.top, 8)

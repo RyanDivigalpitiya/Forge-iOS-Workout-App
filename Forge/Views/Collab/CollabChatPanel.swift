@@ -17,6 +17,14 @@ struct CollabChatPanel: View {
     @EnvironmentObject var settings: GlobalSettings
 
     var showAvatarHeader: Bool = false
+    /// Mid-workout chat sits over the live workout view (lots of black) and
+    /// inside its own chrome-material blur container. The default opaque
+    /// `Color(white: 0.15)` input background reads as a flat block on top of
+    /// that blur. Setting this `true` swaps in a translucent darker grey
+    /// that lets the underlying blur show through, matching the surrounding
+    /// chrome aesthetic. PlanSuggestionView (no underlying view to blend
+    /// with) keeps the default opaque field.
+    var translucentInputBackground: Bool = false
 
     @State private var chatDraft: String = ""
     /// Driven by `KeyboardPersistentTextView` via a binding. Starts at one
@@ -86,7 +94,10 @@ struct CollabChatPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 6) {
+                    // Spacing is sized to clear the reaction-badge protrusion
+                    // (badge offsets `y: 14` below the bubble's bottom edge —
+                    // see `reactionBadge`). 14pt clearance + ~2pt air = 16.
+                    LazyVStack(spacing: 16) {
                         ForEach(sessionClient.chatEntries) { entry in
                             chatBubble(entry: entry)
                                 .id(entry.id)
@@ -174,8 +185,16 @@ struct CollabChatPanel: View {
                 .font(.system(size: 14))
                 .padding(4)
                 .background(Circle().fill(Color(white: 0.12)))
-                .overlay(Circle().stroke(Color.black, lineWidth: 1.5))
-                .offset(x: entry.isMine ? -8 : 8, y: 6)
+                // Pulled diagonally off the bubble corner so the badge sits
+                // half-outside (clear of text) rather than overlapping the
+                // leftmost / rightmost character's descender. With a 22pt
+                // badge, padding(h:12, v:8) on text, and cornerRadius 14:
+                // x = ±12 keeps the badge's inner edge (10pt inside bubble)
+                // safely left of the text region (which starts 12pt in).
+                // y = 14 puts the badge's top at the text region's bottom
+                // edge — no descender clipping. LazyVStack spacing above
+                // accommodates the +14pt protrusion below the bubble.
+                .offset(x: entry.isMine ? -12 : 12, y: 14)
                 .transition(.scale.combined(with: .opacity))
         }
     }
@@ -192,7 +211,7 @@ struct CollabChatPanel: View {
             .frame(height: min(max(inputHeight, 22), 100))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(white: 0.15))
+            .background(translucentInputBackground ? Color.black.opacity(0.4) : Color(white: 0.15))
             .cornerRadius(settings.cornerRadiusLarge)
 
             Button(action: sendCurrentDraft) {
