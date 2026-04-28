@@ -9,6 +9,13 @@ class PlanViewModel: ObservableObject {
     @Published var activePlanMode: PlanEditorMode
     @Published var activePlanIsReadOnly: Bool = false
 
+    /// One-shot signal for the post-collab-import toast on
+    /// `CompletedWorkoutsView`. Set by `PlanSuggestionView`'s auto-import
+    /// routing branches (no-match silent import; lineage-divergence
+    /// "save updated copy" path); the destination view reads, displays
+    /// briefly, and clears.
+    @Published var lastAutoImportedPlanName: String? = nil
+
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -152,6 +159,37 @@ extension PlanViewModel {
             seen.insert(workoutPlans[index].id)
         }
         if changed { savePlans() }
+    }
+
+    /// Result of `findMatch(forFingerprint:lineageId:)`. Drives Phase C
+    /// same-plan-detection routing in `PlanSuggestionView`.
+    enum PlanMatchResult {
+        /// Local plan structurally identical to the wire snapshot
+        /// (fingerprints coincide). Use silently — no UI prompt; preserves
+        /// receiver's weights/reps and progress history.
+        case fingerprintMatch(WorkoutPlan, index: Int)
+        /// Local plan shares lineage with the wire snapshot but has
+        /// diverged structurally (lineageIds match, fingerprints differ).
+        /// Caller surfaces a divergence affordance to the user.
+        case lineageMatch(WorkoutPlan, index: Int)
+        /// No local plan matches by either dimension. Caller auto-imports.
+        case none
+    }
+
+    /// Phase C same-plan detection. Fingerprint match takes priority over
+    /// lineage match; if a fingerprint hit exists we return it even when a
+    /// different plan also shares lineage, because identical structure is
+    /// the stronger "same plan" signal.
+    func findMatch(forFingerprint fp: String?, lineageId lid: UUID?) -> PlanMatchResult {
+        if let fp,
+           let idx = workoutPlans.firstIndex(where: { $0.fingerprint == fp }) {
+            return .fingerprintMatch(workoutPlans[idx], index: idx)
+        }
+        if let lid,
+           let idx = workoutPlans.firstIndex(where: { $0.lineageId == lid }) {
+            return .lineageMatch(workoutPlans[idx], index: idx)
+        }
+        return .none
     }
 
     private func uniqueName(for proposed: String) -> String {

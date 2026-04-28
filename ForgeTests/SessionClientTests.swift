@@ -267,17 +267,19 @@ final class SessionClientTests {
     // MARK: - peerSetCompletion
 
     @Test func peerSetCompletionAddThenRemove() {
-        let exerciseId = UUID()
-        let key = PeerSetKey(exerciseId: exerciseId, setIndex: 1)
+        // Phase C: keying changed from exerciseId (UUID) to exerciseIndex
+        // (Int) — positional encoding so each peer can use their own local
+        // plan with their own UUIDs.
+        let key = PeerSetKey(exerciseIndex: 2, setIndex: 1)
 
         send(.peerSetCompletion(
-            peerId: UUID(), exerciseId: exerciseId,
+            peerId: UUID(), exerciseIndex: 2,
             setIndex: 1, completed: true
         ))
         #expect(client.peerCompletedSets.contains(key))
 
         send(.peerSetCompletion(
-            peerId: UUID(), exerciseId: exerciseId,
+            peerId: UUID(), exerciseIndex: 2,
             setIndex: 1, completed: false
         ))
         #expect(!client.peerCompletedSets.contains(key))
@@ -509,5 +511,64 @@ final class SessionClientTests {
         } else {
             Issue.record("Expected .setWorkoutInProgress(nil), got \(clearDecoded)")
         }
+    }
+
+    // MARK: - Phase C: PlanSnapshot identity-field plumbing
+
+    @Test func planSnapshotWireRoundTripPreservesIdentityFields() {
+        let lineage = UUID()
+        let fingerprint = "abc123def456"
+        let snapshot = PlanSnapshot(
+            id: UUID(),
+            name: "Push Day",
+            exercises: [
+                ExerciseSnapshot(id: UUID(), name: "Bench Press", sets: [
+                    SetSnapshot(weight: 100, reps: 10, tillFailure: false)
+                ])
+            ],
+            lineageId: lineage,
+            fingerprint: fingerprint
+        )
+
+        let data = try! JSONEncoder().encode(snapshot)
+        let decoded = try! JSONDecoder().decode(PlanSnapshot.self, from: data)
+
+        #expect(decoded.lineageId == lineage)
+        #expect(decoded.fingerprint == fingerprint)
+    }
+
+    @Test func planSnapshotFromWorkoutPlanCarriesIdentityFields() {
+        // Phase A initializers mint lineageId + fingerprint on every
+        // WorkoutPlan creation. PlanSnapshot(from:) must propagate both
+        // so the wire view of B's plan matches its local identity.
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let plan = WorkoutPlan(name: "Push Day", exercises: [exercise])
+
+        let snapshot = PlanSnapshot(from: plan)
+
+        #expect(snapshot.lineageId == plan.lineageId)
+        #expect(snapshot.fingerprint == plan.fingerprint)
+        #expect(snapshot.fingerprint != nil)   // initializer should have computed it
+    }
+
+    @Test func toWorkoutPlanPreservesLineageAndFingerprint() {
+        // Round-trip: WorkoutPlan → PlanSnapshot → WorkoutPlan should
+        // preserve both identity fields. Critical for the auto-import
+        // path: B's library entry inherits A's lineage so future
+        // collab sessions fingerprint-match.
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let original = WorkoutPlan(name: "Push Day", exercises: [exercise])
+
+        let snapshot = PlanSnapshot(from: original)
+        let materialized = snapshot.toWorkoutPlan()
+
+        #expect(materialized.lineageId == original.lineageId)
+        #expect(materialized.fingerprint == original.fingerprint)
     }
 }

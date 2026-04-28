@@ -9,6 +9,12 @@ struct PlanSuggestionView: View {
     @State private var showEndSessionConfirm = false
     @State private var currentPlanId: UUID?
     @State private var suggestedPaneScale: CGFloat = 1.0
+    /// Drives the divergence prompt sheet (Phase C). Non-nil whenever the
+    /// match-and-route logic detects a `lineageMatch` (lineageId hits but
+    /// fingerprints differ) — i.e. B and A both have plans descended from
+    /// the same source but B's structure has drifted. Cleared on user
+    /// action or sheet dismiss.
+    @State private var divergenceContext: DivergenceContext?
     /// Tracks the iOS keyboard visibility (NotificationCenter-driven) so the
     /// "DISMISS" label in the indicator row can grey out when there's nothing
     /// to dismiss.
@@ -63,6 +69,31 @@ struct PlanSuggestionView: View {
                     .environment(\.colorScheme, .dark)
             }
         }
+        .sheet(item: $divergenceContext) { ctx in
+            DivergenceSheet(
+                context: ctx,
+                onUseFriendsThisSession: {
+                    // Ephemeral: read-only snapshot path with sentinel
+                    // index. B's library untouched. Set sync works because
+                    // B is using A's structure for this session.
+                    planViewModel.activePlan = ctx.snapshot.toWorkoutPlan()
+                    planViewModel.activePlanIndex = -1
+                    divergenceContext = nil
+                    activeCover = .workoutInProgress
+                },
+                onSaveAndUseFriends: {
+                    // Persistent: import as new plan (auto-suffixed name,
+                    // friend's lineageId preserved); becomes active. Future
+                    // collab sessions fingerprint-match the new copy. B may
+                    // end up with two plans sharing lineageId — the original
+                    // diverged one and the new copy — and can manually
+                    // delete the old via SelectPlanView.
+                    autoImportAndRoute(snapshot: ctx.snapshot)
+                    divergenceContext = nil
+                }
+            )
+            .environment(\.colorScheme, .dark)
+        }
         .onChange(of: activeCover) { old, new in
             // Detect editor dismissal — reset read-only flag and re-broadcast
             // the current suggestion if it matches a plan that may have been
@@ -112,13 +143,59 @@ struct PlanSuggestionView: View {
     private func resolveCoverState() {
         guard activeCover != .workoutInProgress else { return }
         if let inProgress = sessionClient.workoutInProgress {
-            planViewModel.activePlan = inProgress.toWorkoutPlan()
-            activeCover = .workoutInProgress
+            routeIntoActiveWorkout(snapshot: inProgress)
         } else if sessionClient.startWorkoutSignal != nil,
                   let suggested = sessionClient.suggestedPlan {
-            planViewModel.activePlan = suggested.toWorkoutPlan()
-            activeCover = .workoutInProgress
+            routeIntoActiveWorkout(snapshot: suggested)
         }
+    }
+
+    /// Phase C match-and-route. For every transition into the active
+    /// workout cover (re-joiner welcome OR Ready), we run the snapshot
+    /// through `findMatch` and pick one of three branches:
+    /// - `fingerprintMatch`: silent reuse of B's local plan.
+    /// - `lineageMatch`: surface the divergence sheet; defer cover
+    ///   transition until the user picks an option.
+    /// - `none`: auto-import the snapshot, set the freshly-imported
+    ///   plan as active, and surface the post-workout toast on
+    ///   `CompletedWorkoutsView` via `lastAutoImportedPlanName`.
+    private func routeIntoActiveWorkout(snapshot: PlanSnapshot) {
+        let match = planViewModel.findMatch(
+            forFingerprint: snapshot.fingerprint,
+            lineageId: snapshot.lineageId
+        )
+        switch match {
+        case .fingerprintMatch(let local, let idx):
+            planViewModel.activePlan = local
+            planViewModel.activePlanIndex = idx
+            activeCover = .workoutInProgress
+
+        case .lineageMatch(let local, _):
+            divergenceContext = DivergenceContext(
+                snapshot: snapshot,
+                localPlan: local
+            )
+
+        case .none:
+            autoImportAndRoute(snapshot: snapshot)
+        }
+    }
+
+    /// Imports the snapshot via existing `importPlan` machinery (which
+    /// regenerates plan/exercise/set UUIDs, strips completion state, and
+    /// auto-suffixes the name on collision; preserves `lineageId`). The
+    /// imported plan lands at the end of `workoutPlans` and becomes the
+    /// active plan with a valid index. This branch is the natural
+    /// successor to the "stale activePlanIndex" overwrite bug — by
+    /// always producing a real index, the destructive write at
+    /// `WorkoutInProgressView.finishWorkout` becomes safe.
+    private func autoImportAndRoute(snapshot: PlanSnapshot) {
+        planViewModel.importPlan(snapshot.toWorkoutPlan())
+        let importedIndex = planViewModel.workoutPlans.count - 1
+        planViewModel.activePlan = planViewModel.workoutPlans[importedIndex]
+        planViewModel.activePlanIndex = importedIndex
+        planViewModel.lastAutoImportedPlanName = planViewModel.activePlan.name
+        activeCover = .workoutInProgress
     }
 
     private func openPreview(ownPlan: WorkoutPlan) {
@@ -131,14 +208,18 @@ struct PlanSuggestionView: View {
     }
 
     private func openPreview(snapshot: PlanSnapshot) {
-        // Always open read-only from the Suggested pane. The pane renders a
-        // frozen moment-in-time PlanSnapshot from the wire; matching it to
-        // a local plan by id (or even id+name) isn't reliable — two phones
-        // can share a plan-id via an earlier AirDrop of a .forgeplan, or
-        // the local copy may have diverged from what's actually suggested.
-        // If the user wants to edit their own plan, they tap PREVIEW on
-        // the carousel card instead, which goes through openPreview(ownPlan:)
-        // and opens editable mode unconditionally.
+        // Phase C: if B already has a structurally-identical plan, route
+        // preview to B's own editable copy so they see their own
+        // weights/reps. Otherwise fall through to the existing read-only
+        // snapshot preview (covers both lineageMatch and none branches —
+        // divergence is handled at Ready time, not at preview).
+        if case .fingerprintMatch(let local, _) = planViewModel.findMatch(
+            forFingerprint: snapshot.fingerprint,
+            lineageId: snapshot.lineageId
+        ) {
+            openPreview(ownPlan: local)
+            return
+        }
         planViewModel.activePlan = snapshot.toWorkoutPlan()
         planViewModel.activePlanIndex = -1      // sentinel: not in workoutPlans
         planViewModel.activePlanMode = .preview

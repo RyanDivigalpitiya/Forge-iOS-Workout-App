@@ -26,6 +26,15 @@ struct PlanSnapshot: Codable, Sendable, Equatable {
     let id: UUID
     let name: String
     let exercises: [ExerciseSnapshot]
+    /// Stable identity preserved through imports. Receiver uses this to
+    /// recognize "descended from the same source" plans even after edits
+    /// have made the structures (and therefore fingerprints) diverge.
+    let lineageId: UUID?
+    /// SHA-256 over ordered (lowercased+trimmed exerciseName, setCount)
+    /// pairs. Defines structural equality for same-plan detection. Receiver
+    /// matches against local plans' fingerprints to decide whether to use
+    /// its own copy (preserving local weights/reps) or import the snapshot.
+    let fingerprint: String?
 }
 
 enum ServerMessage: Codable, Sendable {
@@ -51,7 +60,12 @@ enum ServerMessage: Codable, Sendable {
     case peerReactionChanged(peerId: UUID, messageId: UUID, emoji: String?)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
-    case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
+    /// Set-completion sync uses positional indices, not exercise UUIDs,
+    /// because Phase C same-plan detection means each peer may be working
+    /// out from their own local plan with their own UUIDs. Both peers'
+    /// plans have identical structure (fingerprint match), so positional
+    /// indexing addresses the same logical exercise on both phones.
+    case peerSetCompletion(peerId: UUID, exerciseIndex: Int, setIndex: Int, completed: Bool)
     case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
     /// Broadcast when a peer taps "Join Session →" (the explicit profile
@@ -84,7 +98,7 @@ enum ClientMessage: Codable, Sendable {
     /// `peerReactionChanged` to other peers.
     case setReaction(messageId: UUID, emoji: String?)
     case setReady(isReady: Bool)
-    case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
+    case setCompletion(exerciseIndex: Int, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case breakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int)
     /// Host-only write for the solo → joint promotion flow. The iOS host

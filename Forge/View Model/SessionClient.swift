@@ -29,11 +29,22 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
     let id: UUID
     let name: String
     let exercises: [ExerciseSnapshot]
+    /// Stable identity preserved through imports — receiver matches against
+    /// local plans' lineageIds to detect "descended from same source" even
+    /// after structural divergence.
+    let lineageId: UUID?
+    /// SHA-256 over ordered (lowercased+trimmed exerciseName, setCount)
+    /// pairs. Defines structural equality for same-plan detection. Receiver
+    /// matches against local plans' fingerprints to decide whether to use
+    /// its own copy (preserving local weights/reps) or import the snapshot.
+    let fingerprint: String?
 
-    init(id: UUID, name: String, exercises: [ExerciseSnapshot]) {
+    init(id: UUID, name: String, exercises: [ExerciseSnapshot], lineageId: UUID? = nil, fingerprint: String? = nil) {
         self.id = id
         self.name = name
         self.exercises = exercises
+        self.lineageId = lineageId
+        self.fingerprint = fingerprint
     }
 
     init(from plan: WorkoutPlan) {
@@ -52,6 +63,8 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
                 }
             )
         }
+        self.lineageId = plan.lineageId
+        self.fingerprint = plan.fingerprint
     }
 
     // Mirrors PlanViewModel.calculateWorkoutDuration(for:) but operates on the
@@ -76,11 +89,13 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
 }
 
 extension PlanSnapshot {
-    // Materialises the wire snapshot into a live WorkoutPlan value type for
-    // feeding into PlanEditorView in read-only preview mode. UUIDs are
-    // freshly generated — this temporary plan is never inserted into
-    // planViewModel.workoutPlans, so identity doesn't need to match the
-    // snapshot's ids.
+    // Materialises the wire snapshot into a live WorkoutPlan for the
+    // read-only preview path AND the auto-import-on-no-match path
+    // (post-Phase-C). For preview, UUID preservation no longer matters
+    // because joint-mode set sync is positional, not UUID-keyed. For
+    // auto-import via PlanViewModel.importPlan, the import path
+    // regenerates plan/exercise/set UUIDs anyway. Preserving them here
+    // keeps the read-only preview consistent with the wire view.
     func toWorkoutPlan() -> WorkoutPlan {
         let mappedExercises: [Exercise] = exercises.map { ex in
             var exercise = Exercise(
@@ -94,14 +109,19 @@ extension PlanSnapshot {
                     )
                 }
             )
-            // Preserve the wire snapshot's UUID so both phones address the
-            // same exercise by the same id during the joint workout (set
-            // completion sync in Stage 6a keys off this).
             exercise.id = ex.id
             return exercise
         }
         var plan = WorkoutPlan(name: name, exercises: mappedExercises)
         plan.id = id
+        // Preserve identity fields so the imported / preview plan can be
+        // matched by future PlanViewModel.findMatch calls. The didSet on
+        // exercises ran during init() and produced a fingerprint matching
+        // the wire content; we still overwrite from the wire to be exact
+        // (e.g. if a future client sends a fingerprint computed from a
+        // different normalization).
+        plan.lineageId = lineageId
+        plan.fingerprint = fingerprint
         return plan
     }
 }
@@ -126,7 +146,11 @@ enum ServerMessage: Codable {
     case peerReactionChanged(peerId: UUID, messageId: UUID, emoji: String?)
     case peerReadyChanged(peerId: UUID, isReady: Bool)
     case startWorkout
-    case peerSetCompletion(peerId: UUID, exerciseId: UUID, setIndex: Int, completed: Bool)
+    /// Set-completion sync uses positional indices, not exercise UUIDs:
+    /// each peer may be working from their own local plan with their own
+    /// UUIDs (Phase C same-plan detection), so positional addressing is
+    /// the only encoding that works across both phones.
+    case peerSetCompletion(peerId: UUID, exerciseIndex: Int, setIndex: Int, completed: Bool)
     case peerPositionUpdated(peerId: UUID, exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case peerBreakTimerChanged(peerId: UUID, endDate: Date?, exerciseIndex: Int, setIndex: Int)
     case peerProfileSubmitted(peerId: UUID)
@@ -144,7 +168,7 @@ enum ClientMessage: Codable {
     /// `ClientMessage.setReaction`.
     case setReaction(messageId: UUID, emoji: String?)
     case setReady(isReady: Bool)
-    case setCompletion(exerciseId: UUID, setIndex: Int, completed: Bool)
+    case setCompletion(exerciseIndex: Int, setIndex: Int, completed: Bool)
     case positionUpdate(exerciseIndex: Int, setIndex: Int, isResting: Bool)
     case breakTimerUpdate(endDate: Date?, exerciseIndex: Int, setIndex: Int)
     /// Host-only write for the solo → joint promotion flow. Sent right
@@ -202,11 +226,14 @@ struct PeerExitInfo: Equatable, Identifiable {
     }
 }
 
-/// Identifies a specific set in the joint workout. Used as a Hashable key
-/// so SessionClient.peerCompletedSets can be a Swift.Set and SwiftUI views
-/// can query membership in O(1) while rendering set rows.
+/// Identifies a specific set in the joint workout positionally. Phase C
+/// switched from UUID-keyed to index-keyed because each peer may use their
+/// own local plan (with their own UUIDs) when fingerprints match — the only
+/// stable cross-phone identity for "the same set" is positional. Used as a
+/// Hashable key so SessionClient.peerCompletedSets can be a Swift.Set and
+/// SwiftUI views can query membership in O(1) while rendering set rows.
 struct PeerSetKey: Hashable, Codable {
-    let exerciseId: UUID
+    let exerciseIndex: Int
     let setIndex: Int
 }
 
@@ -601,9 +628,9 @@ final class SessionClient: ObservableObject {
         sendClientMessage(.setReady(isReady: isReady))
     }
 
-    func sendSetCompletion(exerciseId: UUID, setIndex: Int, completed: Bool) {
+    func sendSetCompletion(exerciseIndex: Int, setIndex: Int, completed: Bool) {
         sendClientMessage(
-            .setCompletion(exerciseId: exerciseId, setIndex: setIndex, completed: completed)
+            .setCompletion(exerciseIndex: exerciseIndex, setIndex: setIndex, completed: completed)
         )
     }
 
@@ -826,8 +853,8 @@ final class SessionClient: ObservableObject {
         case .startWorkout:
             startWorkoutSignal = UUID()
 
-        case .peerSetCompletion(_, let exerciseId, let setIndex, let completed):
-            let key = PeerSetKey(exerciseId: exerciseId, setIndex: setIndex)
+        case .peerSetCompletion(_, let exerciseIndex, let setIndex, let completed):
+            let key = PeerSetKey(exerciseIndex: exerciseIndex, setIndex: setIndex)
             if completed {
                 peerCompletedSets.insert(key)
             } else {

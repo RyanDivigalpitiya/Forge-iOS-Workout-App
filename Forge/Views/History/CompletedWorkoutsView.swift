@@ -142,6 +142,32 @@ struct CompletedWorkoutsView: View {
         .environmentObject(sessionClient)
         .background(.black)
         .accentColor(settings.fgColor)
+        // Phase C: surface auto-imported plan name set by
+        // PlanSuggestionView's no-match / save-and-use-friends paths.
+        // Capsule overlay matches CollabStatusBanner's idiom — sits at
+        // the top, ~4s auto-dismiss, no user interaction.
+        .overlay(alignment: .top) {
+            if let name = planViewModel.lastAutoImportedPlanName {
+                Text("Saved \"\(name)\" to your plans")
+                    .font(.callout.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule().fill(settings.darkGray)
+                    )
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .onChange(of: planViewModel.lastAutoImportedPlanName) { _, newValue in
+            guard newValue != nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                withAnimation(.easeOut(duration: settings.animationStandard)) {
+                    planViewModel.lastAutoImportedPlanName = nil
+                }
+            }
+        }
         .onAppear{
             completedWorkoutsViewModel.isSelectPlanViewActive = false
         }

@@ -230,7 +230,7 @@ struct WorkoutInProgressView: View {
                                                     // just a status mirror.
                                                     if sessionClient.isPaired {
                                                         peerCompletionCircle(
-                                                            exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
+                                                            exerciseIndex: exerciseIndex,
                                                             setIndex: setIndex
                                                         )
                                                     }
@@ -739,7 +739,7 @@ struct WorkoutInProgressView: View {
             let isNowCompleted = planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
             if sessionClient.isPaired {
                 sessionClient.sendSetCompletion(
-                    exerciseId: planViewModel.activePlan.exercises[exerciseIndex].id,
+                    exerciseIndex: exerciseIndex,
                     setIndex: setIndex,
                     completed: isNowCompleted
                 )
@@ -815,10 +815,10 @@ struct WorkoutInProgressView: View {
 
         sessionClient.sendPositionUpdate(myPosition)
 
-        for exercise in planViewModel.activePlan.exercises {
+        for (exerciseIndex, exercise) in planViewModel.activePlan.exercises.enumerated() {
             for (setIndex, set) in exercise.sets.enumerated() where set.completed {
                 sessionClient.sendSetCompletion(
-                    exerciseId: exercise.id,
+                    exerciseIndex: exerciseIndex,
                     setIndex: setIndex,
                     completed: true
                 )
@@ -1364,9 +1364,9 @@ extension WorkoutInProgressView {
     }
 
     @ViewBuilder
-    private func peerCompletionCircle(exerciseId: UUID, setIndex: Int) -> some View {
+    private func peerCompletionCircle(exerciseIndex: Int, setIndex: Int) -> some View {
         let completed = sessionClient.peerCompletedSets.contains(
-            PeerSetKey(exerciseId: exerciseId, setIndex: setIndex)
+            PeerSetKey(exerciseIndex: exerciseIndex, setIndex: setIndex)
         )
         if completed {
             ZStack {

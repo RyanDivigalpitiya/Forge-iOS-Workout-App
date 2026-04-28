@@ -173,11 +173,11 @@ func buildApplication(hostname: String, port: Int) async throws -> some Applicat
                                         except: nil
                                     )
                                 }
-                            case .setCompletion(let exerciseId, let setIndex, let completed):
+                            case .setCompletion(let exerciseIndex, let setIndex, let completed):
                                 await manager.broadcast(
                                     .peerSetCompletion(
                                         peerId: myId,
-                                        exerciseId: exerciseId,
+                                        exerciseIndex: exerciseIndex,
                                         setIndex: setIndex,
                                         completed: completed
                                     ),

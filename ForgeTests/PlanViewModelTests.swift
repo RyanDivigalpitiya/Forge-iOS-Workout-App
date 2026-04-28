@@ -316,6 +316,113 @@ final class PlanViewModelTests {
         #expect(blobAfterFirst == blobAfterSecond)
     }
 
+    // MARK: - findMatch (Phase C same-plan detection)
+
+    @Test func findMatchReturnsFingerprintMatchWhenFingerprintCoincides() {
+        let bench = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let plan = WorkoutPlan(name: "Push Day", exercises: [bench])
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+
+        // Suggester sends a different name + lineageId, but identical
+        // structure → fingerprint coincides because it's content-derived.
+        let suggesterFingerprint = WorkoutPlan.computeFingerprint(for: [bench])
+        let result = vm.findMatch(forFingerprint: suggesterFingerprint, lineageId: UUID())
+
+        guard case .fingerprintMatch(let matched, let idx) = result else {
+            Issue.record("Expected .fingerprintMatch, got \(result)")
+            return
+        }
+        #expect(matched.id == plan.id)
+        #expect(idx == 0)
+    }
+
+    @Test func findMatchReturnsLineageMatchWhenOnlyLineageCoincides() {
+        let lineage = UUID()
+        var plan = WorkoutPlan(
+            name: "Push Day",
+            exercises: [Exercise(
+                name: "Bench Press",
+                sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+            )]
+        )
+        plan.lineageId = lineage
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+
+        // Different fingerprint (different exercise count) but same lineage.
+        let result = vm.findMatch(
+            forFingerprint: "different-fingerprint",
+            lineageId: lineage
+        )
+
+        guard case .lineageMatch(let matched, let idx) = result else {
+            Issue.record("Expected .lineageMatch, got \(result)")
+            return
+        }
+        #expect(matched.id == plan.id)
+        #expect(idx == 0)
+    }
+
+    @Test func findMatchReturnsNoneWhenNeitherCoincides() {
+        let plan = WorkoutPlan(
+            name: "Push Day",
+            exercises: [Exercise(
+                name: "Bench Press",
+                sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+            )]
+        )
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+
+        let result = vm.findMatch(
+            forFingerprint: "totally-different-hash",
+            lineageId: UUID()
+        )
+
+        guard case .none = result else {
+            Issue.record("Expected .none, got \(result)")
+            return
+        }
+    }
+
+    @Test func findMatchPrioritizesFingerprintOverLineage() {
+        // Seed two plans:
+        // - planA: lineage L_A, structure F1
+        // - planB: lineage L_B, structure F2 (different from F1)
+        // Then query with fingerprint=F2 and lineageId=L_A. The prioritization
+        // rule says: fingerprint match wins, even though lineage matches a
+        // different plan.
+        let benchExercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let benchAndCurl = [
+            benchExercise,
+            Exercise(
+                name: "Bicep Curl",
+                sets: [Forge.Set(weight: 30, reps: 12, tillFailure: false, completed: false)]
+            )
+        ]
+        var planA = WorkoutPlan(name: "Push Day A", exercises: [benchExercise])
+        planA.lineageId = UUID()
+        var planB = WorkoutPlan(name: "Push Day B", exercises: benchAndCurl)
+        planB.lineageId = UUID()
+        let vm = PlanViewModel(mockPlans: [planA, planB], userDefaults: testDefaults)
+
+        let result = vm.findMatch(
+            forFingerprint: planB.fingerprint,
+            lineageId: planA.lineageId
+        )
+
+        guard case .fingerprintMatch(let matched, let idx) = result else {
+            Issue.record("Expected .fingerprintMatch (priority over lineage), got \(result)")
+            return
+        }
+        #expect(matched.id == planB.id)
+        #expect(idx == 1)
+    }
+
     @Test func roundTripPreservesLineageAndFingerprint() {
         let exercise = Exercise(
             name: "Bench Press",
