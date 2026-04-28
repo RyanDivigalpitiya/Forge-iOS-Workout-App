@@ -37,7 +37,7 @@ All ViewModels are `ObservableObject` with `@Published`.
 
 ## Data Models (`Forge/Data Model/`)
 
-- `WorkoutPlan` → `[Exercise]` → `[Set]` (weight, reps, tillFailure, completed). All `Identifiable + Codable` with UUIDs.
+- `WorkoutPlan` → `[Exercise]` → `[Set]` (weight, reps, tillFailure, completed). All `Identifiable + Codable` with UUIDs. `WorkoutPlan` also carries `lineageId: UUID?` (stable identity preserved through imports — `importPlan` propagates the source's; future collab auto-import will too) and `fingerprint: String?` (SHA-256 over ordered `(lowercased trimmed exerciseName, setCount)` pairs via `WorkoutPlan.computeFingerprint(for:)`; auto-refreshed via `exercises.didSet`; defines structural equality for "same plan" matching). Both optional for backward-compat decode of legacy blobs and historical `CompletedWorkout.workout` snapshots; one-shot `migrateLineageAndFingerprintIfNeeded()` in `PlanViewModel.init()` backfills live records.
 - `CompletedWorkout` — date, elapsed time, completion %, optional `caloriesBurned: Double?`.
 - `Exercise.sets` `didSet` auto-computes `areSetsUnique` and `completed`.
 - `EditorMode.swift` — `PlanEditorMode`/`ExerciseEditorMode`/`ReorderDeleteMode` enums.
@@ -206,7 +206,7 @@ Boolean `@Published` flags on ViewModels (e.g. `isSelectPlanViewActive`) + `Navi
 
 - **Framework:** Swift Testing (`import Testing`, `@Test`, `#expect`). Not XCTest.
 - **Target:** `ForgeTests/`. `PBXFileSystemSynchronizedRootGroup`.
-- **Suites:** `ExerciseTests` (8), `PlanViewModelTests` (16), `CompletedWorkoutsViewModelTests` (13), `ValidationTests` (10), `SessionClientTests` (20) — 68 cases.
+- **Suites:** `ExerciseTests` (8), `PlanViewModelTests` (24), `CompletedWorkoutsViewModelTests` (13), `ValidationTests` (10), `WorkoutPlanFingerprintTests` (12), `SessionClientTests` (20) — 87 cases.
 - **Persistence isolation:** test classes touching persistence are `final class` (init/deinit = setUp/tearDown). Each gets its own `UserDefaults(suiteName: "ForgeTests.\(UUID().uuidString)")`, removes domain in `deinit`.
 - **Mock data:** `Forge/View Model/MockData.swift` exposes `mockWorkoutPlans` + `mockCompletedWorkouts` as module-internal globals. Tests use `@testable import Forge`. `CompletedWorkoutsViewModel`'s Preview-only mock init no longer reaches into mock globals.
 

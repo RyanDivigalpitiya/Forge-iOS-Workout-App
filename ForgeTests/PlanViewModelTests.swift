@@ -211,4 +211,125 @@ final class PlanViewModelTests {
         let reloaded = PlanViewModel(userDefaults: testDefaults)
         #expect(reloaded.workoutPlans.first?.name == "Shared")
     }
+
+    @Test func importPlanPreservesIncomingLineageId() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        var incoming = WorkoutPlan(name: "Shared", exercises: [])
+        let originalLineage = UUID()
+        incoming.lineageId = originalLineage
+
+        vm.importPlan(incoming)
+
+        #expect(vm.workoutPlans.first?.lineageId == originalLineage)
+    }
+
+    @Test func importPlanMintsLineageIdWhenIncomingHasNone() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        var incoming = WorkoutPlan(name: "Shared", exercises: [])
+        incoming.lineageId = nil
+
+        vm.importPlan(incoming)
+
+        #expect(vm.workoutPlans.first?.lineageId != nil)
+    }
+
+    @Test func importPlanRefreshesFingerprintToMatchSanitizedStructure() {
+        let vm = PlanViewModel(mockPlans: [], userDefaults: testDefaults)
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let plan = WorkoutPlan(name: "Shared", exercises: [exercise])
+        let expectedFingerprint = WorkoutPlan.computeFingerprint(for: [exercise])
+
+        vm.importPlan(plan)
+
+        #expect(vm.workoutPlans.first?.fingerprint == expectedFingerprint)
+    }
+
+    // MARK: - Migration (lineageId / fingerprint backfill)
+
+    /// Test-only mirror used to encode plan blobs that lack the new identity
+    /// fields, simulating data persisted by an older app version. Decoding
+    /// back into the real `WorkoutPlan` (which has optional fields) leaves
+    /// both nil — exactly the state the migration handles.
+    private struct LegacyPlanBlob: Encodable {
+        let id: UUID
+        let name: String
+        let exercises: [Exercise]
+        let lastCompleted: Date?
+    }
+
+    private func seedLegacyPlans(_ plans: [LegacyPlanBlob]) {
+        let data = try! JSONEncoder().encode(plans)
+        testDefaults.set(data, forKey: "workoutPlans")
+    }
+
+    @Test func migrationBackfillsLineageIdAndFingerprintOnLoad() {
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        seedLegacyPlans([
+            LegacyPlanBlob(id: UUID(), name: "Push Day", exercises: [exercise], lastCompleted: nil),
+            LegacyPlanBlob(id: UUID(), name: "Pull Day", exercises: [exercise], lastCompleted: nil),
+        ])
+
+        let vm = PlanViewModel(userDefaults: testDefaults)
+
+        #expect(vm.workoutPlans.count == 2)
+        for plan in vm.workoutPlans {
+            #expect(plan.lineageId != nil)
+            #expect(plan.fingerprint != nil)
+            // Each migrated plan's fingerprint should match what
+            // computeFingerprint produces for its exercises — proves the
+            // migration ran refreshFingerprint, not just defaulted to "".
+            #expect(plan.fingerprint == WorkoutPlan.computeFingerprint(for: plan.exercises))
+        }
+        // Each plan gets its own freshly-minted lineageId (no accidental
+        // shared-pointer issue).
+        #expect(vm.workoutPlans[0].lineageId != vm.workoutPlans[1].lineageId)
+    }
+
+    @Test func migrationIsIdempotent() {
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        seedLegacyPlans([
+            LegacyPlanBlob(id: UUID(), name: "Push Day", exercises: [exercise], lastCompleted: nil),
+        ])
+
+        // First load → migration runs, persists.
+        let vm1 = PlanViewModel(userDefaults: testDefaults)
+        let firstLineage = vm1.workoutPlans[0].lineageId
+        let firstFingerprint = vm1.workoutPlans[0].fingerprint
+        let blobAfterFirst = testDefaults.data(forKey: "workoutPlans")
+
+        // Second load → all fields already present, migration should detect
+        // no work to do; UserDefaults blob byte-identical.
+        let vm2 = PlanViewModel(userDefaults: testDefaults)
+        let blobAfterSecond = testDefaults.data(forKey: "workoutPlans")
+
+        #expect(vm2.workoutPlans[0].lineageId == firstLineage)
+        #expect(vm2.workoutPlans[0].fingerprint == firstFingerprint)
+        #expect(blobAfterFirst == blobAfterSecond)
+    }
+
+    @Test func roundTripPreservesLineageAndFingerprint() {
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        let plan = WorkoutPlan(name: "Shared", exercises: [exercise])
+        let originalLineage = plan.lineageId
+        let originalFingerprint = plan.fingerprint
+
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+        vm.savePlans()
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+
+        #expect(reloaded.workoutPlans[0].lineageId == originalLineage)
+        #expect(reloaded.workoutPlans[0].fingerprint == originalFingerprint)
+    }
 }

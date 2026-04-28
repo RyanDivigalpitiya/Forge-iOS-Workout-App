@@ -19,6 +19,7 @@ class PlanViewModel: ObservableObject {
         self.activePlanMode = .add
         self.workoutPlans = loadPlans()
         dedupePlanIdsIfNeeded()
+        migrateLineageAndFingerprintIfNeeded()
     }
 
     init(mockPlans: [WorkoutPlan], userDefaults: UserDefaults = .standard) {
@@ -97,6 +98,12 @@ extension PlanViewModel {
         var sanitized = plan
         sanitized.id = UUID()
         sanitized.lastCompleted = nil
+        // Preserve incoming lineageId so future collab matches recognize this
+        // plan as descended from the same source. Mint fresh only if absent
+        // (e.g. .forgeplan files exported before this field existed).
+        if sanitized.lineageId == nil {
+            sanitized.lineageId = UUID()
+        }
         for exerciseIndex in sanitized.exercises.indices {
             sanitized.exercises[exerciseIndex].id = UUID()
             var clearedSets = sanitized.exercises[exerciseIndex].sets
@@ -107,8 +114,27 @@ extension PlanViewModel {
             sanitized.exercises[exerciseIndex].sets = clearedSets
         }
         sanitized.name = uniqueName(for: sanitized.name)
+        sanitized.refreshFingerprint()
         workoutPlans.append(sanitized)
         savePlans()
+    }
+
+    // One-shot backfill for plans loaded from UserDefaults that predate the
+    // lineageId / fingerprint fields. Idempotent — saves only if any plan
+    // changed, so subsequent launches are no-ops.
+    private func migrateLineageAndFingerprintIfNeeded() {
+        var changed = false
+        for index in workoutPlans.indices {
+            if workoutPlans[index].lineageId == nil {
+                workoutPlans[index].lineageId = UUID()
+                changed = true
+            }
+            if workoutPlans[index].fingerprint == nil {
+                workoutPlans[index].refreshFingerprint()
+                changed = true
+            }
+        }
+        if changed { savePlans() }
     }
 
     // Retroactive cleanup for users who already have duplicate plan UUIDs in
