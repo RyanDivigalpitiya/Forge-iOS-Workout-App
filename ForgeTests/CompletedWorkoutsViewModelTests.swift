@@ -148,4 +148,142 @@ final class CompletedWorkoutsViewModelTests {
         let reloaded = CompletedWorkoutsViewModel(userDefaults: testDefaults)
         #expect(reloaded.completedWorkouts.count == 2)
     }
+
+    // MARK: - Progress series (Phase B)
+
+    /// Builds a `CompletedWorkout` with the given completion date and an
+    /// exercise list described as `[(UUID, [(weight, reps, completed)])]`.
+    /// Keeps test bodies focused on the assertion, not the construction.
+    private func makeWorkout(
+        date: Date,
+        exercises: [(UUID, [(weight: Float, reps: Int, completed: Bool)])]
+    ) -> CompletedWorkout {
+        let exercises = exercises.map { (exId, sets) -> Exercise in
+            let setObjs = sets.map {
+                Forge.Set(weight: $0.weight, reps: $0.reps, tillFailure: false, completed: $0.completed)
+            }
+            var ex = Exercise(name: "Bench Press", sets: setObjs)
+            ex.id = exId
+            return ex
+        }
+        let plan = WorkoutPlan(name: "Test Plan", exercises: exercises)
+        return CompletedWorkout(
+            date: date,
+            workout: plan,
+            elapsedTime: 0,
+            completion: "100%"
+        )
+    }
+
+    private func date(daysAgo: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+    }
+
+    @Test func progressSeriesIncludesAllWorkoutsContainingExercise() {
+        let exId = UUID()
+        let workouts = [
+            makeWorkout(date: date(daysAgo: 10), exercises: [(exId, [(weight: 100, reps: 10, completed: true)])]),
+            makeWorkout(date: date(daysAgo: 5),  exercises: [(exId, [(weight: 110, reps: 8,  completed: true)])])
+        ]
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: workouts, userDefaults: testDefaults)
+
+        let series = vm.progressSeries(forExerciseId: exId, metric: .weight)
+        #expect(series.count == 2)
+        // Sorted ascending by date — older value first.
+        #expect(series[0].value == 100)
+        #expect(series[1].value == 110)
+    }
+
+    @Test func progressSeriesIgnoresWorkoutsWithoutExerciseUuid() {
+        let exA = UUID()
+        let exB = UUID()
+        let workout = makeWorkout(
+            date: date(daysAgo: 1),
+            exercises: [(exA, [(weight: 100, reps: 10, completed: true)])]
+        )
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        #expect(vm.progressSeries(forExerciseId: exB, metric: .weight).isEmpty)
+    }
+
+    @Test func progressSeriesUsesMaxValueForHeterogeneousSets() {
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            (weight: 100, reps: 10, completed: true),
+            (weight: 120, reps: 6,  completed: true),
+            (weight: 80,  reps: 12, completed: true),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        #expect(vm.progressSeries(forExerciseId: exId, metric: .weight).first?.value == 120)
+        #expect(vm.progressSeries(forExerciseId: exId, metric: .reps).first?.value == 12)
+    }
+
+    @Test func progressSeriesIgnoresIncompleteSets() {
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            // Skipped — should not raise the max.
+            (weight: 200, reps: 8,  completed: false),
+            (weight: 100, reps: 10, completed: true),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        let series = vm.progressSeries(forExerciseId: exId, metric: .weight)
+        #expect(series.first?.value == 100)
+    }
+
+    @Test func progressSeriesDropsWorkoutsWithExerciseButNoCompletedSets() {
+        // Exercise was logged in the workout but every set was skipped —
+        // the workout should be omitted entirely, not graphed as zero.
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            (weight: 100, reps: 10, completed: false),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        #expect(vm.progressSeries(forExerciseId: exId, metric: .weight).isEmpty)
+    }
+
+    // MARK: - PRs
+
+    @Test func weightPRReturnsHighestWeightedCompletedSet() {
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            (weight: 100, reps: 10, completed: true),
+            (weight: 150, reps: 5,  completed: true),
+            // Heaviest set, but not completed → must be ignored.
+            (weight: 200, reps: 3,  completed: false),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        let pr = vm.weightPR(forExerciseId: exId)
+        #expect(pr?.weight == 150)
+        #expect(pr?.reps == 5)
+    }
+
+    @Test func repsPRReturnsHighestRepCompletedSet() {
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            (weight: 100, reps: 10, completed: true),
+            (weight: 80,  reps: 15, completed: true),
+            // Highest reps, but not completed → must be ignored.
+            (weight: 60,  reps: 30, completed: false),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        let pr = vm.repsPR(forExerciseId: exId)
+        #expect(pr?.weight == 80)
+        #expect(pr?.reps == 15)
+    }
+
+    @Test func prsReturnNilWhenNoCompletedSetsAcrossHistory() {
+        let exId = UUID()
+        let workout = makeWorkout(date: date(daysAgo: 1), exercises: [(exId, [
+            (weight: 100, reps: 10, completed: false),
+        ])])
+        let vm = CompletedWorkoutsViewModel(mockCompletedWorkouts: [workout], userDefaults: testDefaults)
+
+        #expect(vm.weightPR(forExerciseId: exId) == nil)
+        #expect(vm.repsPR(forExerciseId: exId) == nil)
+    }
 }

@@ -1,5 +1,13 @@
 import Foundation
 
+/// Selector axis for the per-exercise progress chart in `HistoryView`'s
+/// Full History tab. Top-level so views can reference it without
+/// qualification.
+enum ProgressMetric {
+    case weight
+    case reps
+}
+
 class CompletedWorkoutsViewModel: ObservableObject {
 
     @Published var completedWorkouts: [CompletedWorkout]
@@ -100,6 +108,78 @@ extension CompletedWorkoutsViewModel {
         // remove items at actual indices
         completedWorkouts.remove(atOffsets: IndexSet(actualIndices))
         saveCompletedWorkouts()
+    }
+}
+
+// MARK: - Progress History (Phase B)
+
+extension CompletedWorkoutsViewModel {
+
+    /// One data point per CompletedWorkout that contains this exercise's
+    /// UUID, sorted by date ascending. Each point reports the max value
+    /// among COMPLETED sets — incomplete sets are excluded so progress
+    /// reflects what was actually performed (matches "Fail Loud, Never
+    /// Fake" — don't count phantom data). Workouts where the exercise
+    /// exists but every set is incomplete are dropped entirely (not
+    /// zero-valued).
+    func progressSeries(
+        forExerciseId exerciseId: UUID,
+        metric: ProgressMetric
+    ) -> [(date: Date, value: Double)] {
+        var points: [(Date, Double)] = []
+        for workout in completedWorkouts {
+            guard let exercise = workout.workout.exercises.first(where: { $0.id == exerciseId }) else {
+                continue
+            }
+            let completedSets = exercise.sets.filter { $0.completed }
+            guard !completedSets.isEmpty else { continue }
+            let value: Double
+            switch metric {
+            case .weight:
+                value = Double(completedSets.map { $0.weight }.max() ?? 0)
+            case .reps:
+                value = Double(completedSets.map { $0.reps }.max() ?? 0)
+            }
+            points.append((workout.dateCompleted, value))
+        }
+        return points
+            .sorted(by: { $0.0 < $1.0 })
+            .map { (date: $0.0, value: $0.1) }
+    }
+
+    /// The completed set with the highest weight ever logged for this
+    /// exercise. Tied weights — first encountered wins. Returns nil if
+    /// no completed sets exist anywhere across history.
+    func weightPR(forExerciseId exerciseId: UUID) -> (weight: Float, reps: Int)? {
+        var best: (weight: Float, reps: Int)? = nil
+        for workout in completedWorkouts {
+            guard let exercise = workout.workout.exercises.first(where: { $0.id == exerciseId }) else {
+                continue
+            }
+            for set in exercise.sets where set.completed {
+                if best == nil || set.weight > best!.weight {
+                    best = (set.weight, set.reps)
+                }
+            }
+        }
+        return best
+    }
+
+    /// The completed set with the highest rep count ever logged for this
+    /// exercise. Same tie-breaking + nil semantics as `weightPR`.
+    func repsPR(forExerciseId exerciseId: UUID) -> (weight: Float, reps: Int)? {
+        var best: (weight: Float, reps: Int)? = nil
+        for workout in completedWorkouts {
+            guard let exercise = workout.workout.exercises.first(where: { $0.id == exerciseId }) else {
+                continue
+            }
+            for set in exercise.sets where set.completed {
+                if best == nil || set.reps > best!.reps {
+                    best = (set.weight, set.reps)
+                }
+            }
+        }
+        return best
     }
 }
 
