@@ -122,6 +122,7 @@ extension PlanViewModel {
         }
         sanitized.name = uniqueName(for: sanitized.name)
         sanitized.refreshFingerprint()
+        Log.debug("[importPlan] storing \"\(sanitized.name)\" fp=\(sanitized.fingerprint?.prefix(12) ?? "nil") lid=\(sanitized.lineageId?.uuidString.prefix(8) ?? "nil") (incoming had fp=\(plan.fingerprint?.prefix(12) ?? "nil") lid=\(plan.lineageId?.uuidString.prefix(8) ?? "nil"))")
         workoutPlans.append(sanitized)
         savePlans()
     }
@@ -181,14 +182,22 @@ extension PlanViewModel {
     /// different plan also shares lineage, because identical structure is
     /// the stronger "same plan" signal.
     func findMatch(forFingerprint fp: String?, lineageId lid: UUID?) -> PlanMatchResult {
+        Log.debug("[findMatch] incoming fp=\(fp?.prefix(12) ?? "nil") lid=\(lid?.uuidString.prefix(8) ?? "nil")")
+        Log.debug("[findMatch] local library (\(workoutPlans.count)):")
+        for (i, p) in workoutPlans.enumerated() {
+            Log.debug("[findMatch]   [\(i)] \"\(p.name)\" fp=\(p.fingerprint?.prefix(12) ?? "nil") lid=\(p.lineageId?.uuidString.prefix(8) ?? "nil")")
+        }
         if let fp,
            let idx = workoutPlans.firstIndex(where: { $0.fingerprint == fp }) {
+            Log.debug("[findMatch] -> fingerprintMatch at idx \(idx) (\"\(workoutPlans[idx].name)\")")
             return .fingerprintMatch(workoutPlans[idx], index: idx)
         }
         if let lid,
            let idx = workoutPlans.firstIndex(where: { $0.lineageId == lid }) {
+            Log.debug("[findMatch] -> lineageMatch at idx \(idx) (\"\(workoutPlans[idx].name)\")")
             return .lineageMatch(workoutPlans[idx], index: idx)
         }
+        Log.debug("[findMatch] -> none (will auto-import)")
         return .none
     }
 
