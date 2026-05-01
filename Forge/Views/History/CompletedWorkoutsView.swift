@@ -14,6 +14,24 @@ struct CompletedWorkoutsView: View {
     @State private var workoutWithFriendActive = false
     @State private var joinerConnectingActive = false
 
+    /// Tracks which row indices have run their on-appear stagger
+    /// (mirrors `WorkoutWithFriendView`'s cascade). Rows render at
+    /// opacity 0 + .offset(x: 24) until their index lands here.
+    /// Re-driven from `.onAppear` so the cascade replays every time
+    /// the user navigates back (back from SelectPlanView, dismiss
+    /// from WorkoutInProgressView's flow, etc.).
+    @State private var appearedRowIndices: Swift.Set<Int> = []
+    /// Holds the in-flight cascade so a re-entry (rapid nav-back during
+    /// the previous cascade) can cancel before starting fresh.
+    @State private var rowCascadeTask: Task<Void, Never>?
+    /// Set true when the cascade loop completes. Any row whose index
+    /// arrives AFTER the cascade has finished (e.g. a workout completion
+    /// whose @Published append lands after the navigation pop has
+    /// already triggered .onAppear) renders at final state instead of
+    /// getting stuck invisible. Reset to false at the start of every
+    /// new cascade so the next nav-back re-animates everything.
+    @State private var rowCascadeFinished = false
+
     @EnvironmentObject var settings: GlobalSettings
 
     @Environment(\.scenePhase) private var scenePhase
@@ -24,7 +42,9 @@ struct CompletedWorkoutsView: View {
         NavigationStack {
             List {
                 ForEach(completedWorkoutsViewModel.completedWorkouts.indices.reversed(), id: \.self) { completedWorkoutIndex in
-                    
+
+                    let isAppeared = rowCascadeFinished || appearedRowIndices.contains(completedWorkoutIndex)
+
                     Button(action: {
                         completedWorkoutsViewModel.activePlan = completedWorkoutsViewModel.completedWorkouts[completedWorkoutIndex]
                         historyViewIsPresented = true
@@ -38,15 +58,15 @@ struct CompletedWorkoutsView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding(.bottom, 2)
-                            
-                            
+
+
                             Text(completedWorkout.workout.name)
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(settings.fgColor)
                                 .padding(.top, 3)
                                 .padding(.bottom, 9)
-                            
+
                             HStack {
                                 Image(systemName: "clock.fill")
                                     .resizable()
@@ -66,7 +86,8 @@ struct CompletedWorkoutsView: View {
                             .padding(.bottom, 2)
                         }
                         .padding(.vertical, 12)
-
+                        .opacity(isAppeared ? 1 : 0)
+                        .offset(x: isAppeared ? 0 : 24)
                     }
                 }
                 .onDelete(perform: completedWorkoutsViewModel.deleteCompletedWorkouts)
@@ -170,6 +191,17 @@ struct CompletedWorkoutsView: View {
         }
         .onAppear{
             completedWorkoutsViewModel.isSelectPlanViewActive = false
+            triggerRowCascade()
+        }
+        // `.onAppear` on a NavigationStack root only reliably fires on
+        // initial mount — it does NOT fire on subsequent nav-pops back
+        // into this view. Watch the navigation/sheet flags instead so
+        // the cascade replays whenever a destination/modal dismisses
+        // and the user lands back on the History list.
+        .onChange(of: anyDestinationOrModalActive) { wasActive, isActive in
+            if wasActive && !isActive {
+                triggerRowCascade()
+            }
         }
         .onOpenURL { url in
             handleIncomingURL(url)
@@ -208,6 +240,57 @@ struct CompletedWorkoutsView: View {
                 workoutWithFriendActive = false
                 joinerConnectingActive = false
             }
+        }
+    }
+
+    /// Single rolled-up boolean covering every navigation/sheet target
+    /// reachable from this view. `.onChange` watches it and re-runs the
+    /// row cascade on every true→false transition (i.e. whenever the
+    /// user pops/dismisses back to the History list). Reading the
+    /// `@EnvironmentObject` flag inside makes the computed value
+    /// reactive to model changes.
+    private var anyDestinationOrModalActive: Bool {
+        historyViewIsPresented
+            || settingsViewIsPresented
+            || workoutWithFriendActive
+            || joinerConnectingActive
+            || completedWorkoutsViewModel.isSelectPlanViewActive
+    }
+
+    /// Replays the staggered fade + slide-from-right cascade across every
+    /// visible row. Called from `.onAppear` (initial mount) and from
+    /// `.onChange` of `anyDestinationOrModalActive` (every nav-back).
+    /// Cancels any in-flight cascade first so rapid re-entries don't
+    /// double-animate. Resetting `appearedRowIndices` snaps rows to
+    /// their initial state — the snap is masked by the navigation
+    /// transition that brought us here.
+    ///
+    /// The loop re-reads `completedWorkouts.indices` on every iteration
+    /// rather than snapshotting once, so a row that gets appended mid-
+    /// cascade (e.g. a workout-finish whose @Published mutation lands
+    /// just after `.onAppear` fires) still gets picked up and animated
+    /// in. The `rowCascadeFinished` flag covers the post-cascade case:
+    /// rows added after the loop ends snap to final state via the
+    /// `isAppeared` short-circuit instead of getting stuck invisible.
+    private func triggerRowCascade() {
+        rowCascadeTask?.cancel()
+        appearedRowIndices = []
+        rowCascadeFinished = false
+        rowCascadeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(80))
+            while !Task.isCancelled {
+                let allIndicesNewestFirst = Array(
+                    completedWorkoutsViewModel.completedWorkouts.indices.reversed()
+                )
+                guard let nextIndex = allIndicesNewestFirst.first(where: {
+                    !appearedRowIndices.contains($0)
+                }) else { break }
+                withAnimation(.easeOut(duration: 0.7)) {
+                    _ = appearedRowIndices.insert(nextIndex)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            rowCascadeFinished = true
         }
     }
 
