@@ -15,6 +15,22 @@ struct SelectPlanView: View {
     @State private var planToDeleteIndex: Int? = nil
     @State private var showDeleteConfirmation = false
 
+    /// Plan IDs whose row has played the on-appear stagger (mirrors
+    /// `CompletedWorkoutsView`'s cascade pattern). Rows render at
+    /// opacity 0 + .offset(y: 24) — sliding up from below — until the
+    /// id lands here.
+    @State private var appearedPlanIds: Swift.Set<UUID> = []
+    /// In-flight cascade so a re-entry (rapid back-and-forth between
+    /// SelectPlanView and a presented cover) can cancel before
+    /// starting a fresh run.
+    @State private var planRowCascadeTask: Task<Void, Never>?
+    /// Set true when the cascade loop completes. Any plan added AFTER
+    /// the cascade finishes (e.g. saved from PlanEditor while we
+    /// already finished animating) renders at final state via the
+    /// `isAppeared` short-circuit. Reset to false on every new
+    /// cascade.
+    @State private var planRowCascadeFinished = false
+
     @EnvironmentObject var settings: GlobalSettings
     let bgColor = GlobalSettings.shared.bgColor // background colour
     let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight // Bottom Toolbar Height
@@ -24,6 +40,7 @@ struct SelectPlanView: View {
             List {
                 ForEach(planViewModel.workoutPlans) { plan in
                   if let index = planViewModel.workoutPlans.firstIndex(where: { $0.id == plan.id }) {
+                    let isAppeared = planRowCascadeFinished || appearedPlanIds.contains(plan.id)
                     HStack(spacing:0){
                         VStack {
                             VStack {
@@ -120,6 +137,8 @@ struct SelectPlanView: View {
                     .padding(.leading)
                     .background(bgColor)
                     .cornerRadius(15)
+                    .opacity(isAppeared ? 1 : 0)
+                    .offset(y: isAppeared ? 0 : 24)
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         ShareLink(
                             item: plan,
@@ -235,6 +254,52 @@ struct SelectPlanView: View {
         .navigationBarTitle(Text("Select Plan"))
         .navigationBarTitleTextColor(settings.fgColor)
         .ignoresSafeArea(.all, edges: .bottom)
+        .onAppear {
+            triggerPlanRowCascade()
+        }
+        // `.onAppear` only fires on initial push; .fullScreenCover
+        // dismissals don't unmount this view. Watch the cover flags
+        // so the cascade replays whenever the user lands back here
+        // from PlanEditor or WorkoutInProgressView.
+        .onChange(of: anyChildCoverActive) { wasActive, isActive in
+            if wasActive && !isActive {
+                triggerPlanRowCascade()
+            }
+        }
+    }
+
+    /// Rolled-up presentation flag — true while any fullScreenCover
+    /// launched from this view is on screen. Watched by `.onChange`
+    /// to detect "user just returned to SelectPlanView."
+    private var anyChildCoverActive: Bool {
+        planEditorIsPresented || workoutInProgressViewPresented
+    }
+
+    /// Replays the staggered fade + slide-up-from-below cascade across
+    /// every visible plan row. Same timing as `WorkoutWithFriendView`'s
+    /// cascade (80ms initial settle, 0.7s easeOut per row, 80ms inter-
+    /// row delay). The loop re-reads `workoutPlans` each iteration so
+    /// a plan saved from PlanEditor mid-cascade still gets picked up
+    /// and animated. `planRowCascadeFinished` covers the post-cascade
+    /// case so late additions render visible instead of stuck blank.
+    private func triggerPlanRowCascade() {
+        planRowCascadeTask?.cancel()
+        appearedPlanIds = []
+        planRowCascadeFinished = false
+        planRowCascadeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(80))
+            while !Task.isCancelled {
+                let allIdsTopFirst = planViewModel.workoutPlans.map(\.id)
+                guard let nextId = allIdsTopFirst.first(where: {
+                    !appearedPlanIds.contains($0)
+                }) else { break }
+                withAnimation(.easeOut(duration: 0.7)) {
+                    _ = appearedPlanIds.insert(nextId)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            planRowCascadeFinished = true
+        }
     }
 }
 
