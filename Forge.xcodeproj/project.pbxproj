@@ -35,6 +35,11 @@
 		F1F8509F2A4958890093EE01 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F8509E2A4958890093EE01 /* BlurView.swift */; };
 		FC000000000000000000AA02 /* SessionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA01 /* SessionClient.swift */; };
 		FC000000000000000000AA03 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000AA04 /* Log.swift */; };
+		FCB0DE000000000000BA0001 /* BodyWeightEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0DE000000000000BA0002 /* BodyWeightEntry.swift */; };
+		FCB0DE000000000000BA0003 /* BodyWeightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0DE000000000000BA0004 /* BodyWeightViewModel.swift */; };
+		FCB0DE000000000000BA0005 /* WeightUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0DE000000000000BA0006 /* WeightUnit.swift */; };
+		FCB0DE000000000000BA0007 /* ProgressPhotoEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0DE000000000000BA0008 /* ProgressPhotoEntry.swift */; };
+		FCB0DE000000000000BA0009 /* ProgressPhotosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0DE000000000000BA000A /* ProgressPhotosViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -120,6 +125,11 @@
 		F1F8509E2A4958890093EE01 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 		FC000000000000000000AA01 /* SessionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionClient.swift; sourceTree = "<group>"; };
 		FC000000000000000000AA04 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		FCB0DE000000000000BA0002 /* BodyWeightEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightEntry.swift; sourceTree = "<group>"; };
+		FCB0DE000000000000BA0004 /* BodyWeightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightViewModel.swift; sourceTree = "<group>"; };
+		FCB0DE000000000000BA0006 /* WeightUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightUnit.swift; sourceTree = "<group>"; };
+		FCB0DE000000000000BA0008 /* ProgressPhotoEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotoEntry.swift; sourceTree = "<group>"; };
+		FCB0DE000000000000BA000A /* ProgressPhotosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotosViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -239,6 +249,9 @@
 				F1F850932A494DFD0093EE01 /* PlanViewModel.swift */,
 				F14E94752A4BD288008155FA /* ExerciseViewModel.swift */,
 				F1F8508B2A493BD90093EE01 /* CompletedWorkoutsViewModel.swift */,
+				FCB0DE000000000000BA0004 /* BodyWeightViewModel.swift */,
+				FCB0DE000000000000BA0006 /* WeightUnit.swift */,
+				FCB0DE000000000000BA000A /* ProgressPhotosViewModel.swift */,
 				C100000C2B0000000000AA07 /* Validation.swift */,
 				C10000102B0000000000AA0B /* WorkoutHealthManager.swift */,
 				C10000122B0000000000AA0C /* PhoneSessionManager.swift */,
@@ -256,6 +269,8 @@
 				F1F850802A4925470093EE01 /* Exercise.swift */,
 				F1F850822A4926AF0093EE01 /* WorkoutPlan.swift */,
 				F1F8508D2A493C460093EE01 /* CompletedWorkout.swift */,
+				FCB0DE000000000000BA0002 /* BodyWeightEntry.swift */,
+				FCB0DE000000000000BA0008 /* ProgressPhotoEntry.swift */,
 				C10000002B0000000000AA01 /* EditorMode.swift */,
 				C100000E2B0000000000AA08 /* WorkoutActivityAttributes.swift */,
 				F10F00012F8579A300FAE979 /* PlanTransferType.swift */,
@@ -493,6 +508,11 @@
 				F10F00022F8579A300FAE979 /* PlanTransferType.swift in Sources */,
 				FC000000000000000000AA02 /* SessionClient.swift in Sources */,
 				FC000000000000000000AA03 /* Log.swift in Sources */,
+				FCB0DE000000000000BA0001 /* BodyWeightEntry.swift in Sources */,
+				FCB0DE000000000000BA0003 /* BodyWeightViewModel.swift in Sources */,
+				FCB0DE000000000000BA0005 /* WeightUnit.swift in Sources */,
+				FCB0DE000000000000BA0007 /* ProgressPhotoEntry.swift in Sources */,
+				FCB0DE000000000000BA0009 /* ProgressPhotosViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

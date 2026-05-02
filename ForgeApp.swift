@@ -29,6 +29,8 @@ struct ForgeApp: App {
                 .environmentObject(CompletedWorkoutsViewModel())
                 .environmentObject(PlanViewModel())
                 .environmentObject(ExerciseViewModel())
+                .environmentObject(BodyWeightViewModel())
+                .environmentObject(ProgressPhotosViewModel())
                 .environmentObject(healthManager)
                 .environmentObject(GlobalSettings.shared)
                 .environment(\.colorScheme, .dark)

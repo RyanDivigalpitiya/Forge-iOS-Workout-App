@@ -25,49 +25,63 @@ struct HistoryView: View {
         var id: Self { self }
     }
 
+    private enum HistoryRootTab: CaseIterable, Identifiable {
+        case history, weight, photos
+        var id: Self { self }
+        var label: String {
+            switch self {
+            case .history: return "History"
+            case .weight: return "Weight"
+            case .photos: return "Photos"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .history: return "clock.arrow.circlepath"
+            case .weight: return "scalemass"
+            case .photos: return "photo.on.rectangle.angled"
+            }
+        }
+    }
+
     @State private var selectedTab: HistoryTab = .mostRecent
+    @State private var selectedRootTab: HistoryRootTab = .history
 
     var body: some View {
 
         let completedWorkout = completedWorkoutsViewModel.activePlan
 
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    header(for: completedWorkout)
-                    statsRow(for: completedWorkout)
-                    tabPicker
-                        .padding(.horizontal, 30)
-                        .padding(.top, 12)
-                        .padding(.bottom, 4)
-                    Group {
-                        switch selectedTab {
-                        case .mostRecent:
-                            mostRecentTab(for: completedWorkout)
-                        case .fullHistory:
-                            FullHistoryTab(workout: completedWorkout)
+            Group {
+                switch selectedRootTab {
+                case .history:
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            header(for: completedWorkout)
+                            statsRow(for: completedWorkout)
+                            tabPicker
+                                .padding(.horizontal, 30)
+                                .padding(.top, 12)
+                                .padding(.bottom, 4)
+                            Group {
+                                switch selectedTab {
+                                case .mostRecent:
+                                    mostRecentTab(for: completedWorkout)
+                                case .fullHistory:
+                                    FullHistoryTab(workout: completedWorkout)
+                                }
+                            }
                         }
                     }
+                case .weight:
+                    WeightHistoryView()
+                case .photos:
+                    ProgressPhotosView()
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Image(systemName: "chevron.down")
-                                .resizable()
-                                .frame(width: 15, height: 9)
-                                .padding(.trailing, 3)
-                            Text("Dismiss")
-                        }
-                    }
-                    .padding(5)
-                    .padding(.horizontal, 10)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(settings.fgColor)
+                ToolbarItem(placement: .bottomBar) {
+                    rootTabBar
                 }
             }
         }
@@ -159,6 +173,57 @@ struct HistoryView: View {
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    private var rootTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(HistoryRootTab.allCases) { tab in
+                Button {
+                    selectedRootTab = tab
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 20, weight: .semibold))
+                        Text(tab.label)
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(selectedRootTab == tab ? settings.fgColor : darkGray)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Button {
+                dismiss()
+            } label: {
+                VStack(spacing: 3) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 20, weight: .semibold))
+                    Text("Dismiss")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(settings.fgColor)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func rootTabPlaceholder(title: String, subtitle: String) -> some View {
+        VStack(spacing: 6) {
+            Spacer()
+            Text(title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+            Text(subtitle)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(darkGray)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

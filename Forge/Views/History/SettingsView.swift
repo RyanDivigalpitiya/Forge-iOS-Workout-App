@@ -92,6 +92,26 @@ struct SettingsView: View {
             }
 
             Section {
+                NavigationLink {
+                    WeightHistoryView()
+                } label: {
+                    Label("Weight History", systemImage: "scalemass")
+                        .foregroundColor(.white)
+                }
+                .listRowBackground(GlobalSettings.shared.bgColor)
+
+                NavigationLink {
+                    ProgressPhotosView()
+                } label: {
+                    Label("Progress Photos", systemImage: "photo.on.rectangle.angled")
+                        .foregroundColor(.white)
+                }
+                .listRowBackground(GlobalSettings.shared.bgColor)
+            } header: {
+                Text("Progress Tracking")
+            }
+
+            Section {
                 HStack(spacing: 0) {
                     ForEach(ColorTheme.allCases, id: \.self) { theme in
                         Button {
