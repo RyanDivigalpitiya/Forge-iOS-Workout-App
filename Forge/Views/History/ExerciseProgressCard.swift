@@ -113,11 +113,26 @@ struct ExerciseProgressCard: View {
         } else {
             Chart {
                 ForEach(series.indices, id: \.self) { i in
+                    AreaMark(
+                        x: .value("Date", series[i].date),
+                        y: .value(yAxisLabel, series[i].value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [settings.fgColor.opacity(0.35), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .interpolationMethod(.monotone)
+                }
+                ForEach(series.indices, id: \.self) { i in
                     LineMark(
                         x: .value("Date", series[i].date),
                         y: .value(yAxisLabel, series[i].value)
                     )
                     .foregroundStyle(settings.fgColor)
+                    .interpolationMethod(.monotone)
                     .symbol(Circle())
                 }
             }
