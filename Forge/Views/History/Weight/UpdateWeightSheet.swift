@@ -16,9 +16,9 @@ struct UpdateWeightSheet: View {
     private let weightStep: Double = 0.5
 
     private let buttonPlusMinusIconSize: CGFloat = 15
-    private let buttonPlusMinusWidth: CGFloat = 140
     private let buttonPlusMinusHeight: CGFloat = 32
     private let buttonPlusMinusSize: CGFloat = 5
+    private let buttonPlusMinusGap: CGFloat = 14
     private let wheelSelectorSize: CGFloat = 180
     private let fontTitleSize: CGFloat = 28
 
@@ -103,8 +103,9 @@ struct UpdateWeightSheet: View {
                 .frame(maxHeight: wheelSelectorSize)
                 .frame(width: 200)
 
-                // ± buttons (copy of HomogeneousSetPicker pattern)
-                HStack {
+                // ± buttons (copy of HomogeneousSetPicker pattern, with
+                // symmetric horizontal spacing around both glyphs).
+                HStack(spacing: buttonPlusMinusGap) {
                     Button {
                         if weightLbs > minWeight {
                             weightLbs = roundToStep(weightLbs - weightStep)
@@ -133,7 +134,8 @@ struct UpdateWeightSheet: View {
                             .padding(buttonPlusMinusSize)
                     }
                 }
-                .frame(width: buttonPlusMinusWidth, height: buttonPlusMinusHeight)
+                .padding(.horizontal, buttonPlusMinusGap)
+                .frame(height: buttonPlusMinusHeight)
                 .background(settings.fgColor)
                 .cornerRadius(settings.cornerRadiusSmall)
             }
@@ -141,7 +143,6 @@ struct UpdateWeightSheet: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black)
         .presentationDetents([.height(380)])
         .presentationDragIndicator(.hidden)
         .onAppear {

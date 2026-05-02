@@ -234,12 +234,14 @@ struct SettingsView: View {
 }
 
 struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
+    @MainActor static var previews: some View {
         NavigationStack {
             SettingsView()
                 .environmentObject(GlobalSettings.shared)
                 .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
                 .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+                .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
+                .environmentObject(makeMockProgressPhotosVM())
                 .environmentObject(SessionClient())
                 .preferredColorScheme(.dark)
         }

@@ -9,6 +9,8 @@ struct CompletedWorkoutsView: View {
 
     @State private var historyViewIsPresented = false
     @State private var settingsViewIsPresented = false
+    @State private var weightTrackingActive = false
+    @State private var progressPhotosActive = false
 
     @StateObject private var sessionClient = SessionClient()
     @State private var workoutWithFriendActive = false
@@ -110,10 +112,25 @@ struct CompletedWorkoutsView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        settingsViewIsPresented = true
+                    Menu {
+                        Button {
+                            weightTrackingActive = true
+                        } label: {
+                            Label("Weight Tracking", systemImage: "scalemass")
+                        }
+                        Button {
+                            progressPhotosActive = true
+                        } label: {
+                            Label("Progress Photos", systemImage: "photo.on.rectangle.angled")
+                        }
+                        Divider()
+                        Button {
+                            settingsViewIsPresented = true
+                        } label: {
+                            Label("Settings", systemImage: "gearshape")
+                        }
                     } label: {
-                        Image(systemName: "gearshape.fill")
+                        Image(systemName: "ellipsis")
                             .foregroundColor(settings.fgColor)
                     }
                 }
@@ -141,6 +158,16 @@ struct CompletedWorkoutsView: View {
             }
             .navigationDestination(isPresented: $settingsViewIsPresented) {
                 SettingsView()
+            }
+            .navigationDestination(isPresented: $weightTrackingActive) {
+                WeightHistoryView()
+                    .navigationTitle("Weight Tracking")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .navigationDestination(isPresented: $progressPhotosActive) {
+                ProgressPhotosView()
+                    .navigationTitle("Progress Photos")
+                    .navigationBarTitleDisplayMode(.inline)
             }
             .navigationDestination(isPresented: $workoutWithFriendActive) {
                 WorkoutWithFriendView()
@@ -374,10 +401,12 @@ private func updateNavigationBars(in view: UIView, color: UIColor) {
 
 
 struct CompletedWorkoutsView_Previews: PreviewProvider {
-    static var previews: some View {
+    @MainActor static var previews: some View {
         CompletedWorkoutsView()
             .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+            .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
+            .environmentObject(makeMockProgressPhotosVM())
             .environmentObject(GlobalSettings.shared)
             .preferredColorScheme(.dark)
     }

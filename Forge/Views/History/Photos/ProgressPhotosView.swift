@@ -22,11 +22,13 @@ struct ProgressPhotosView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
         .safeAreaInset(edge: .bottom) {
-            addEntryButton
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
-                .background(.black)
+            HStack {
+                Spacer()
+                addEntryButton
+                Spacer()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
         .sheet(isPresented: $showAddSheet) {
             AddProgressPhotosSheet()
@@ -99,16 +101,18 @@ struct ProgressPhotosView: View {
             showAddSheet = true
         } label: {
             HStack {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .bold))
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .frame(width: 18, height: 18)
+                    .padding(.trailing, 3)
                 Text("Add Entry")
-                    .font(.system(size: 17, weight: .bold))
             }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(settings.fgColor)
-            .cornerRadius(settings.cornerRadiusMedium)
+            .font(.headline)
+            .fontWeight(.bold)
+            .foregroundColor(settings.fgColor)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(.regularMaterial, in: Capsule())
         }
     }
 }
@@ -215,59 +219,9 @@ private struct EntryCard: View {
     }
 }
 
-// MARK: - Preview helpers
-
-#if DEBUG
-private func makePreviewImage(_ color: UIColor, label: String) -> UIImage {
-    let size = CGSize(width: 400, height: 500)
-    return UIGraphicsImageRenderer(size: size).image { ctx in
-        color.setFill()
-        ctx.fill(CGRect(origin: .zero, size: size))
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 60, weight: .bold),
-            .foregroundColor: UIColor.white
-        ]
-        let textSize = label.size(withAttributes: attributes)
-        let origin = CGPoint(
-            x: (size.width - textSize.width) / 2,
-            y: (size.height - textSize.height) / 2
-        )
-        label.draw(at: origin, withAttributes: attributes)
-    }
-}
-
-private func makePopulatedPhotosVM() -> ProgressPhotosViewModel {
-    let dir = FileManager.default.temporaryDirectory
-        .appendingPathComponent("ForgePreviewPhotos.\(UUID().uuidString)", isDirectory: true)
-    let suite = UserDefaults(suiteName: "ForgePreview.\(UUID().uuidString)")!
-    let vm = ProgressPhotosViewModel(userDefaults: suite, photosDirectory: dir)
-    let day: TimeInterval = 86_400
-    let now = Date()
-    vm.addEntry(
-        date: now,
-        front: makePreviewImage(.systemRed, label: "F"),
-        side: makePreviewImage(.systemBlue, label: "S"),
-        back: makePreviewImage(.systemGreen, label: "B")
-    )
-    vm.addEntry(
-        date: now.addingTimeInterval(-7 * day),
-        front: makePreviewImage(.systemOrange, label: "F"),
-        side: nil,
-        back: makePreviewImage(.systemPurple, label: "B")
-    )
-    vm.addEntry(
-        date: now.addingTimeInterval(-30 * day),
-        front: makePreviewImage(.systemTeal, label: "F"),
-        side: nil,
-        back: nil
-    )
-    return vm
-}
-#endif
-
 #Preview("Populated") {
     ProgressPhotosView()
-        .environmentObject(makePopulatedPhotosVM())
+        .environmentObject(makeMockProgressPhotosVM())
         .environmentObject(GlobalSettings.shared)
         .preferredColorScheme(.dark)
 }

@@ -24,11 +24,13 @@ struct WeightHistoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
         .safeAreaInset(edge: .bottom) {
-            updateWeightButton
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
-                .background(.black)
+            HStack {
+                Spacer()
+                updateWeightButton
+                Spacer()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
     }
 
@@ -144,16 +146,18 @@ struct WeightHistoryView: View {
             showUpdateWeightSheet = true
         } label: {
             HStack {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .bold))
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .frame(width: 18, height: 18)
+                    .padding(.trailing, 3)
                 Text("Update Weight")
-                    .font(.system(size: 17, weight: .bold))
             }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(settings.fgColor)
-            .cornerRadius(settings.cornerRadiusMedium)
+            .font(.headline)
+            .fontWeight(.bold)
+            .foregroundColor(settings.fgColor)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(.regularMaterial, in: Capsule())
         }
         .sheet(isPresented: $showUpdateWeightSheet) {
             UpdateWeightSheet()
@@ -185,17 +189,8 @@ struct WeightHistoryView: View {
 }
 
 #Preview("Populated") {
-    let now = Date()
-    let day: TimeInterval = 86_400
-    let vm = BodyWeightViewModel(mockEntries: [
-        BodyWeightEntry(date: now, weightLbs: 175.5),
-        BodyWeightEntry(date: now.addingTimeInterval(-3 * day), weightLbs: 174.0),
-        BodyWeightEntry(date: now.addingTimeInterval(-9 * day), weightLbs: 172.5),
-        BodyWeightEntry(date: now.addingTimeInterval(-21 * day), weightLbs: 170.0),
-        BodyWeightEntry(date: now.addingTimeInterval(-45 * day), weightLbs: 168.0),
-    ])
-    return WeightHistoryView()
-        .environmentObject(vm)
+    WeightHistoryView()
+        .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
         .environmentObject(GlobalSettings.shared)
         .preferredColorScheme(.dark)
 }
