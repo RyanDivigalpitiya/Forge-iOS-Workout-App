@@ -8,9 +8,9 @@ struct WeightHistoryView: View {
     @State private var showUpdateWeightSheet = false
 
     private let darkGray = GlobalSettings.shared.darkGray
-    private let nodeSize: CGFloat = 14
+    private let nodeSize: CGFloat = 10
+    private let diffDotSize: CGFloat = 5
     private let connectorWidth: CGFloat = 1
-    private let connectorSegmentHeight: CGFloat = 18
     private let timelineColumnWidth: CGFloat = 28
 
     var body: some View {
@@ -81,24 +81,19 @@ struct WeightHistoryView: View {
 
     @ViewBuilder
     private func entryRow(entry: BodyWeightEntry, isFirst: Bool, isLast: Bool) -> some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Text(daysAgoLabel(for: entry.date))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 90, alignment: .trailing)
 
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(isFirst ? Color.clear : darkGray)
-                    .frame(width: connectorWidth, height: connectorSegmentHeight)
-                Circle()
+            timelineColumn(
+                isFirst: isFirst,
+                isLast: isLast,
+                node: Circle()
                     .fill(settings.fgColor)
                     .frame(width: nodeSize, height: nodeSize)
-                Rectangle()
-                    .fill(isLast ? Color.clear : darkGray)
-                    .frame(width: connectorWidth, height: connectorSegmentHeight)
-            }
-            .frame(width: timelineColumnWidth)
+            )
 
             HStack(spacing: 6) {
                 Text(WeightUnit.formatLbs(entry.weightLbs))
@@ -109,23 +104,24 @@ struct WeightHistoryView: View {
                     .foregroundColor(darkGray)
                 Spacer()
             }
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     @ViewBuilder
     private func netDiffRow(delta: Double) -> some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Color.clear
                 .frame(width: 90, height: 1)
 
-            VStack(spacing: 0) {
-                Rectangle().fill(darkGray).frame(width: connectorWidth, height: 12)
-                Circle().fill(darkGray).frame(width: 6, height: 6).padding(.vertical, 6)
-                Rectangle().fill(darkGray).frame(width: connectorWidth, height: 12)
-            }
-            .frame(width: timelineColumnWidth)
-            .padding(.vertical, 4)
+            timelineColumn(
+                isFirst: false,
+                isLast: false,
+                node: Circle()
+                    .fill(darkGray)
+                    .frame(width: diffDotSize, height: diffDotSize)
+            )
 
             HStack(spacing: 4) {
                 Image(systemName: delta > 0 ? "arrow.up" : (delta < 0 ? "arrow.down" : "minus"))
@@ -135,8 +131,35 @@ struct WeightHistoryView: View {
                 Spacer()
             }
             .foregroundColor(darkGray)
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Connector column: vertical line above the node, the node itself,
+    /// vertical line below. Each line segment uses `maxHeight: .infinity`
+    /// so it stretches to fill the row's height — that's how adjacent
+    /// rows' segments meet edge-to-edge with no gap, forming a single
+    /// continuous line through the timeline.
+    @ViewBuilder
+    private func timelineColumn<Node: View>(
+        isFirst: Bool,
+        isLast: Bool,
+        node: Node
+    ) -> some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(isFirst ? Color.clear : darkGray)
+                .frame(width: connectorWidth)
+                .frame(maxHeight: .infinity)
+            node
+                .padding(.vertical, 8)
+            Rectangle()
+                .fill(isLast ? Color.clear : darkGray)
+                .frame(width: connectorWidth)
+                .frame(maxHeight: .infinity)
+        }
+        .frame(width: timelineColumnWidth)
     }
 
     // MARK: - Update Weight button
