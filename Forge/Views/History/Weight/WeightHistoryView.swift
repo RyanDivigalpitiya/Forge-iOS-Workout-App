@@ -5,7 +5,7 @@ struct WeightHistoryView: View {
     @EnvironmentObject var bodyWeight: BodyWeightViewModel
     @EnvironmentObject var settings: GlobalSettings
 
-    @State private var showUpdateWeightSheet = false
+    @State private var sheetTarget: WeightSheetTarget?
 
     private let darkGray = GlobalSettings.shared.darkGray
     private let nodeSize: CGFloat = 10
@@ -31,6 +31,19 @@ struct WeightHistoryView: View {
             }
             .padding(.top, 4)
             .padding(.bottom, 12)
+        }
+        .sheet(item: $sheetTarget) { target in
+            Group {
+                switch target {
+                case .new:
+                    UpdateWeightSheet()
+                case .edit(let entry):
+                    UpdateWeightSheet(editingEntry: entry)
+                }
+            }
+            .environmentObject(bodyWeight)
+            .environmentObject(settings)
+            .environment(\.colorScheme, .dark)
         }
     }
 
@@ -60,11 +73,18 @@ struct WeightHistoryView: View {
             LazyVStack(spacing: 0) {
                 Spacer().frame(height: 20)
                 ForEach(Array(bodyWeight.entries.enumerated()), id: \.element.id) { index, entry in
-                    entryRow(
-                        entry: entry,
-                        isFirst: index == 0,
-                        isLast: index == bodyWeight.entries.count - 1
-                    )
+                    Button {
+                        sheetTarget = .edit(entry)
+                    } label: {
+                        entryRow(
+                            entry: entry,
+                            isFirst: index == 0,
+                            isLast: index == bodyWeight.entries.count - 1
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
                     if index < bodyWeight.entries.count - 1 {
                         let later = bodyWeight.entries[index]
                         let earlier = bodyWeight.entries[index + 1]
@@ -166,7 +186,7 @@ struct WeightHistoryView: View {
 
     private var updateWeightButton: some View {
         Button {
-            showUpdateWeightSheet = true
+            sheetTarget = .new
         } label: {
             HStack {
                 Image(systemName: "plus.circle.fill")
@@ -181,12 +201,6 @@ struct WeightHistoryView: View {
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
             .background(.regularMaterial, in: Capsule())
-        }
-        .sheet(isPresented: $showUpdateWeightSheet) {
-            UpdateWeightSheet()
-                .environmentObject(bodyWeight)
-                .environmentObject(settings)
-                .environment(\.colorScheme, .dark)
         }
     }
 
@@ -208,6 +222,22 @@ struct WeightHistoryView: View {
             return formatter.string(from: date)
         }
         return ""
+    }
+}
+
+/// Drives the Update Weight sheet. `.new` creates a fresh entry; `.edit`
+/// targets a specific row for in-place edit + delete. Identifiable so it
+/// can drive `.sheet(item:)` — SwiftUI rebuilds the sheet when the case
+/// changes, which guarantees the wheel re-initialises to the right row.
+enum WeightSheetTarget: Identifiable {
+    case new
+    case edit(BodyWeightEntry)
+
+    var id: String {
+        switch self {
+        case .new: return "new"
+        case .edit(let entry): return entry.id.uuidString
+        }
     }
 }
 

@@ -32,6 +32,16 @@ class BodyWeightViewModel: ObservableObject {
         saveEntries()
     }
 
+    /// Update an existing entry's weight (date is preserved). Silently
+    /// no-ops if `id` doesn't match a stored entry — the UI guards entry
+    /// presence before invoking.
+    func updateEntry(id: UUID, weightLbs: Double) {
+        guard let index = entries.firstIndex(where: { $0.id == id }) else { return }
+        let existing = entries[index]
+        entries[index] = BodyWeightEntry(id: existing.id, date: existing.date, weightLbs: weightLbs)
+        saveEntries()
+    }
+
     /// Difference (in lbs) from `earlier` to `later`. Positive = gained weight.
     func netDifference(from earlier: BodyWeightEntry, to later: BodyWeightEntry) -> Double {
         later.weightLbs - earlier.weightLbs

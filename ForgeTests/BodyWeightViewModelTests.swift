@@ -67,6 +67,34 @@ final class BodyWeightViewModelTests {
         #expect(reloaded.entries.isEmpty)
     }
 
+    // MARK: - update
+
+    @Test func updateEntryReplacesWeightAndPreservesIdAndDate() {
+        let vm = BodyWeightViewModel(userDefaults: testDefaults)
+        let original = vm.addEntry(weightLbs: 170, date: Date(timeIntervalSince1970: 5_000))
+        vm.updateEntry(id: original.id, weightLbs: 175.5)
+        #expect(vm.entries.count == 1)
+        let updated = vm.entries[0]
+        #expect(updated.id == original.id)
+        #expect(updated.date == original.date)
+        #expect(updated.weightLbs == 175.5)
+    }
+
+    @Test func updateEntryPersistsAcrossReload() {
+        let vm = BodyWeightViewModel(userDefaults: testDefaults)
+        let original = vm.addEntry(weightLbs: 160)
+        vm.updateEntry(id: original.id, weightLbs: 162.0)
+        let reloaded = BodyWeightViewModel(userDefaults: testDefaults)
+        #expect(reloaded.entries.first?.weightLbs == 162.0)
+    }
+
+    @Test func updateEntryWithUnknownIdNoOps() {
+        let vm = BodyWeightViewModel(userDefaults: testDefaults)
+        let original = vm.addEntry(weightLbs: 170)
+        vm.updateEntry(id: UUID(), weightLbs: 999)
+        #expect(vm.entries == [original])
+    }
+
     // MARK: - net difference
 
     @Test func netDifferencePositiveGain() {
