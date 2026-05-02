@@ -240,8 +240,8 @@ struct HistoryView: View {
 
 struct HistoryView_Previews: PreviewProvider {
     static var previews: some View {
-        let completedWorkoutsVM = CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts)
-        completedWorkoutsVM.activePlan = completedWorkout2
+        let completedWorkoutsVM = CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkoutsLong)
+        completedWorkoutsVM.activePlan = completedWorkout1
         return HistoryView()
             .environmentObject(completedWorkoutsVM)
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))

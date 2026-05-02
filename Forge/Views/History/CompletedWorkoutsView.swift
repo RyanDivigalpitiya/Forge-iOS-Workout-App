@@ -116,7 +116,7 @@ struct CompletedWorkoutsView: View {
                         Button {
                             weightTrackingActive = true
                         } label: {
-                            Label("Weight Tracking", systemImage: "scalemass")
+                            Label("Body Weight", systemImage: "scalemass")
                         }
                         Button {
                             progressPhotosActive = true
@@ -403,7 +403,7 @@ private func updateNavigationBars(in view: UIView, color: UIColor) {
 struct CompletedWorkoutsView_Previews: PreviewProvider {
     @MainActor static var previews: some View {
         CompletedWorkoutsView()
-            .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+            .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkoutsLong))
             .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
             .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
             .environmentObject(makeMockProgressPhotosVM())

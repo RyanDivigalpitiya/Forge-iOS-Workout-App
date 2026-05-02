@@ -50,6 +50,134 @@ let completedWorkout3 = CompletedWorkout(date: Date().addingTimeInterval(-2 * 24
 let mockWorkoutPlans = [workoutPlan1,workoutPlan2,workoutPlan3]
 let mockCompletedWorkouts = [completedWorkout1,completedWorkout2,completedWorkout3]
 
+// MARK: - Long-form completed-workout history (preview canvas)
+//
+// `mockCompletedWorkouts` above stays at three entries because the test
+// suite hard-codes that count. This separate, longer array layers ~36
+// historical sessions on top — twelve per plan, set values trending
+// upward over six months — so the Full History tab's per-exercise
+// progress chart has enough signal to be visually meaningful when
+// previewed in the Xcode canvas.
+//
+// Per-session exercises preserve the base plan's exercise UUIDs
+// (struct copy keeps `id`); only `sets` are overridden with the
+// progressed values. That stable id-lineage is exactly what
+// `progressSeries(forExerciseId:)`, `weightPR`, and `repsPR` look up.
+
+private func progressedSession(
+    daysAgo: Int,
+    basePlan: WorkoutPlan,
+    setsByExercise: [[Set]],
+    elapsedTime: TimeInterval = 1800,
+    completion: String = "100%",
+    calories: Double? = 280
+) -> CompletedWorkout {
+    var newExercises: [Exercise] = []
+    for (i, baseEx) in basePlan.exercises.enumerated() {
+        var copy = baseEx
+        if i < setsByExercise.count {
+            copy.sets = setsByExercise[i]
+        }
+        newExercises.append(copy)
+    }
+    let date = Date().addingTimeInterval(-Double(daysAgo) * 86_400)
+    let snapshot = WorkoutPlan(name: basePlan.name, exercises: newExercises, lastCompleted: date)
+    return CompletedWorkout(
+        date: date,
+        workout: snapshot,
+        elapsedTime: elapsedTime,
+        completion: completion,
+        caloriesBurned: calories
+    )
+}
+
+private func uniformSets(weight: Float, reps: Int, count: Int, completed: Bool = true) -> [Set] {
+    Array(
+        repeating: Set(weight: weight, reps: reps, tillFailure: false, completed: completed),
+        count: count
+    )
+}
+
+// Twelve evenly-spaced sessions per plan: 180 → 15 days ago.
+private let progressionDayOffsets: [Int] = Array(stride(from: 180, through: 15, by: -15))
+
+private let plan1History: [CompletedWorkout] = progressionDayOffsets.enumerated().map { i, daysAgo in
+    let w = Double(i)
+    // Bicep Curls (4 sets): 25 → 44 lb, 12 → 9 reps
+    let bicepWeight = Float(25 + Int(w * 1.8))
+    let bicepReps   = max(9, 12 - Int(w / 3))
+    // Pull Ups (3 sets): bodyweight, 5 → 10 reps
+    let pullupReps  = 5 + Int(w * 0.5)
+    // Back Rows (3 sets): 100 → 133 lb, 12 → 10 reps
+    let rowWeight   = Float(100 + Int(w * 3.0))
+    let rowReps     = max(10, 12 - Int(w / 6))
+    return progressedSession(
+        daysAgo: daysAgo,
+        basePlan: workoutPlan1,
+        setsByExercise: [
+            uniformSets(weight: bicepWeight, reps: bicepReps,  count: 4),
+            uniformSets(weight: 0,           reps: pullupReps, count: 3),
+            uniformSets(weight: rowWeight,   reps: rowReps,    count: 3),
+        ],
+        elapsedTime: 1800 + TimeInterval(i * 30),
+        completion: (i == 4 || i == 9) ? "85%" : "100%",
+        calories: 270 + Double(i) * 4
+    )
+}
+
+private let plan2History: [CompletedWorkout] = progressionDayOffsets.enumerated().map { i, daysAgo in
+    let w = Double(i)
+    // Bench Press (3 sets): 135 → 206 lb, 8 → 5 reps
+    let benchWeight = Float(135 + Int(w * 6.5))
+    let benchReps   = max(5, 8 - Int(w / 4))
+    // Tricep Extensions (3 sets): 30 → 55 lb, 12 → 10 reps
+    let triceWeight = Float(30 + Int(w * 2.3))
+    let triceReps   = max(10, 12 - Int(w / 6))
+    // Chest Flies (3 sets): 25 → 44 lb, 12 → 10 reps
+    let flyWeight   = Float(25 + Int(w * 1.8))
+    let flyReps     = max(10, 12 - Int(w / 6))
+    return progressedSession(
+        daysAgo: max(0, daysAgo - 5),
+        basePlan: workoutPlan2,
+        setsByExercise: [
+            uniformSets(weight: benchWeight, reps: benchReps, count: 3),
+            uniformSets(weight: triceWeight, reps: triceReps, count: 3),
+            uniformSets(weight: flyWeight,   reps: flyReps,   count: 3),
+        ],
+        elapsedTime: 2000 + TimeInterval(i * 40),
+        completion: (i == 2 || i == 8) ? "90%" : "100%",
+        calories: 300 + Double(i) * 5
+    )
+}
+
+private let plan3History: [CompletedWorkout] = progressionDayOffsets.enumerated().map { i, daysAgo in
+    let w = Double(i)
+    // Elbow Chicken Flies (4 sets): 10 → 25 lb, 15 → 13 reps
+    let chWeight = Float(10 + Int(w * 1.4))
+    let chReps   = max(13, 15 - Int(w / 4))
+    // Shoulder Flies (4 sets): 12 → 26 lb, 12 → 10 reps
+    let sfWeight = Float(12 + Int(w * 1.4))
+    let sfReps   = max(10, 12 - Int(w / 6))
+    // Shoulder Press (4 sets): 75 → 124 lb, 10 → 8 reps
+    let spWeight = Float(75 + Int(w * 4.5))
+    let spReps   = max(8, 10 - Int(w / 6))
+    return progressedSession(
+        daysAgo: max(0, daysAgo - 10),
+        basePlan: workoutPlan3,
+        setsByExercise: [
+            uniformSets(weight: chWeight, reps: chReps, count: 4),
+            uniformSets(weight: sfWeight, reps: sfReps, count: 4),
+            uniformSets(weight: spWeight, reps: spReps, count: 4),
+        ],
+        elapsedTime: 1700 + TimeInterval(i * 25),
+        completion: (i == 1 || i == 7 || i == 10) ? "80%" : "100%",
+        calories: 260 + Double(i) * 4
+    )
+}
+
+let mockCompletedWorkoutsLong: [CompletedWorkout] =
+    mockCompletedWorkouts + plan1History + plan2History + plan3History
+
 // MARK: - Body weight mock data
 
 private let dayInSeconds: TimeInterval = 86_400
