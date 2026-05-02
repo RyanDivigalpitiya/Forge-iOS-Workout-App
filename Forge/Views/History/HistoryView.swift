@@ -32,23 +32,26 @@ struct HistoryView: View {
         let completedWorkout = completedWorkoutsViewModel.activePlan
 
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    header(for: completedWorkout)
-                    statsRow(for: completedWorkout)
-                    tabPicker
-                        .padding(.horizontal, 30)
-                        .padding(.top, 12)
-                        .padding(.bottom, 4)
-                    Group {
-                        switch selectedTab {
-                        case .mostRecent:
-                            mostRecentTab(for: completedWorkout)
-                        case .fullHistory:
-                            FullHistoryTab(workout: completedWorkout)
-                        }
+            VStack(spacing: 0) {
+                header(for: completedWorkout)
+                statsRow(for: completedWorkout)
+                tabPicker
+                    .padding(.horizontal, 30)
+                    .padding(.top, 12)
+                    .padding(.bottom, 4)
+                TabView(selection: $selectedTab) {
+                    ScrollView {
+                        mostRecentTab(for: completedWorkout)
                     }
+                    .tag(HistoryTab.mostRecent)
+
+                    ScrollView {
+                        FullHistoryTab(workout: completedWorkout)
+                    }
+                    .tag(HistoryTab.fullHistory)
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(.easeInOut(duration: 0.25), value: selectedTab)
             }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
