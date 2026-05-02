@@ -127,7 +127,7 @@ struct HistoryView: View {
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: 0) {
                     Text("\(percent)%")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: percent == 100 ? 16 : 18, weight: .bold))
                         .foregroundColor(.white)
                     Text("Finished")
                         .font(.system(size: 9, weight: .bold))
