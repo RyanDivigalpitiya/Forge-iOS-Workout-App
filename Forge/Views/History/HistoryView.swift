@@ -51,6 +51,7 @@ struct HistoryView: View {
                     .tag(HistoryTab.fullHistory)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .ignoresSafeArea(.container, edges: .bottom)
                 .animation(.easeInOut(duration: 0.25), value: selectedTab)
             }
             .toolbar {
