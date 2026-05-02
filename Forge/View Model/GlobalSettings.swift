@@ -36,6 +36,16 @@ class GlobalSettings: ObservableObject {
     @Published var colorTheme: ColorTheme = .red
     var fgColor: Color { colorTheme.color }
 
+    // Display unit for every weight in the app (body weight, lifted
+    // weights, PRs, charts). Storage stays in lb regardless — this is a
+    // pure display preference. Default lb (no Locale autodetect in v1).
+    @Published var weightUnit: WeightUnit = .lb
+
+    // User's height in cm — feeds the BMI parenthetical in WeightHistoryView.
+    // Nil = unset → BMI falls back to opposite-unit weight string.
+    // Local-only; never broadcast to collab peers.
+    @Published var heightCm: Double? = nil
+
     // Background
     let bgColor = Color(red: 22/255, green: 22/255, blue: 22/255)
 
@@ -83,10 +93,34 @@ class GlobalSettings: ObservableObject {
            let theme = ColorTheme(rawValue: raw) {
             _colorTheme = Published(initialValue: theme)
         }
+        if let raw = UserDefaults.standard.string(forKey: "weightUnit"),
+           let unit = WeightUnit(rawValue: raw) {
+            _weightUnit = Published(initialValue: unit)
+        }
+        // `object(forKey:)` returns nil if the key was removed — that's
+        // the "unset" state we want to round-trip cleanly when the user
+        // clears their height.
+        if let cm = UserDefaults.standard.object(forKey: "heightCm") as? Double {
+            _heightCm = Published(initialValue: cm)
+        }
         cancellables.append($colorTheme
             .dropFirst()
             .sink { theme in
                 UserDefaults.standard.set(theme.rawValue, forKey: "colorTheme")
+            })
+        cancellables.append($weightUnit
+            .dropFirst()
+            .sink { unit in
+                UserDefaults.standard.set(unit.rawValue, forKey: "weightUnit")
+            })
+        cancellables.append($heightCm
+            .dropFirst()
+            .sink { cm in
+                if let cm {
+                    UserDefaults.standard.set(cm, forKey: "heightCm")
+                } else {
+                    UserDefaults.standard.removeObject(forKey: "heightCm")
+                }
             })
     }
 }

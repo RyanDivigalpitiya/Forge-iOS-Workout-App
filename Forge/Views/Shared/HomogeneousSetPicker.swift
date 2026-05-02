@@ -2,6 +2,13 @@ import SwiftUI
 
 /// Three-column wheel picker for editing a homogeneous exercise (all sets identical):
 /// sets count × weight × reps. Each column has its own +/- buttons.
+///
+/// Weight is **stored** as Int lb regardless of the active display unit. In
+/// kg mode the wheel renders kg-native steps (2.5 kg / matches gym-plate
+/// increments); each kg step's `tag` is its rounded-Int lb equivalent, so
+/// selection writes back to the lb-typed binding cleanly. Round-tripping a
+/// stored value across a unit toggle is slightly lossy (≤ ~1 lb) — accepted
+/// per the unit-toggle plan.
 struct HomogeneousSetPicker: View {
 
     @Binding var sets: Int
@@ -27,8 +34,45 @@ struct HomogeneousSetPicker: View {
     private let wheelSelectorSize: CGFloat = 150
 
     private var setsRange: [Int] { Array((minSets...maxSets).reversed()) }
-    private var weightRange: [Int] { Array(stride(from: maxWeight, through: minWeight, by: -weightStep)) }
     private var repsRange: [Int] { Array((minReps...maxReps).reversed()) }
+
+    private var weightOptions: [WeightWheelOption] {
+        WeightWheelOption.options(
+            unit: settings.weightUnit,
+            minLb: minWeight,
+            maxLb: maxWeight,
+            stepLb: weightStep
+        )
+    }
+
+    /// Snaps `weight` (in lb) to the closest option for the active unit.
+    /// In lb mode this is a no-op when `weight` is already a step multiple;
+    /// in kg mode it locks the wheel to a kg-step row even though storage
+    /// stays in lb.
+    private var snappedSelection: Int {
+        WeightWheelOption.snap(lb: weight, to: weightOptions)
+    }
+
+    private var weightSelection: Binding<Int> {
+        Binding(
+            get: { snappedSelection },
+            set: { weight = $0 }
+        )
+    }
+
+    private func decrementWeight() {
+        if let next = WeightWheelOption.adjacent(below: snappedSelection, in: weightOptions) {
+            weight = next
+            feedbackGenerator.impactOccurred()
+        }
+    }
+
+    private func incrementWeight() {
+        if let next = WeightWheelOption.adjacent(above: snappedSelection, in: weightOptions) {
+            weight = next
+            feedbackGenerator.impactOccurred()
+        }
+    }
 
     var body: some View {
         HStack {
@@ -92,11 +136,11 @@ struct HomogeneousSetPicker: View {
 
             // WEIGHT SELECTOR
             VStack {
-                Picker(selection: $weight, label: Text("Weight")) {
-                    ForEach(weightRange, id: \.self) { value in
-                        Text("\(value) lbs")
+                Picker(selection: weightSelection, label: Text("Weight")) {
+                    ForEach(weightOptions, id: \.lbStorage) { opt in
+                        Text(opt.display)
                             .foregroundColor(settings.fgColor)
-                            .tag(value)
+                            .tag(opt.lbStorage)
                     }
                 }
                 .pickerStyle(WheelPickerStyle())
@@ -105,12 +149,7 @@ struct HomogeneousSetPicker: View {
 
                 HStack() {
                     // DECREMENT
-                    Button(action: {
-                        if weight > minWeight {
-                            weight -= weightStep
-                            feedbackGenerator.impactOccurred()
-                        }
-                    }) {
+                    Button(action: { decrementWeight() }) {
                         Image(systemName: "minus")
                             .foregroundColor(.black)
                             .font(.system(size: buttonPlusMinusIconSize))
@@ -121,12 +160,7 @@ struct HomogeneousSetPicker: View {
                     Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
 
                     // INCREMENT
-                    Button(action: {
-                        if weight < maxWeight {
-                            weight += weightStep
-                            feedbackGenerator.impactOccurred()
-                        }
-                    }) {
+                    Button(action: { incrementWeight() }) {
                         Image(systemName: "plus")
                             .foregroundColor(.black)
                             .font(.system(size: buttonPlusMinusIconSize))
@@ -196,5 +230,78 @@ struct HomogeneousSetPicker: View {
                 .cornerRadius(settings.cornerRadiusSmall)
             }
         }
+    }
+}
+
+/// One row of an exercise weight wheel, factored out so `HomogeneousSetPicker`
+/// and `HeterogeneousSetEditor` share the unit-aware option generation +
+/// snapping logic.
+struct WeightWheelOption {
+    /// What the picker stores in its `Binding<Int>` (always lb).
+    let lbStorage: Int
+    /// User-facing label, e.g. "100 lbs" or "45 kg" / "2.5 kg".
+    let display: String
+
+    /// Build the wheel's option list for the active unit. Options are
+    /// returned in descending order to match the existing wheel layout
+    /// (heaviest at the top of the list, which the picker reverses
+    /// vertically for the wheel UI).
+    static func options(unit: WeightUnit, minLb: Int, maxLb: Int, stepLb: Int) -> [WeightWheelOption] {
+        switch unit {
+        case .lb:
+            return stride(from: maxLb, through: minLb, by: -stepLb).map {
+                WeightWheelOption(lbStorage: $0, display: "\($0) lbs")
+            }
+        case .kg:
+            // Keep the lb bounds intact; iterate kg-native steps within the
+            // span and project each to its rounded-Int lb storage value.
+            // 2.5-kg steps yield distinct lb integers across the entire
+            // [-100, 500] lb range, so option tags stay unique.
+            let kgStep = 2.5
+            let minKg = (Double(minLb) / WeightUnit.lbsPerKg / kgStep).rounded(.up) * kgStep
+            let maxKg = (Double(maxLb) / WeightUnit.lbsPerKg / kgStep).rounded(.down) * kgStep
+            var values: [Double] = []
+            var v = maxKg
+            while v >= minKg - 0.0001 {
+                values.append(v)
+                v -= kgStep
+            }
+            return values.map { kg in
+                let lb = Int((kg * WeightUnit.lbsPerKg).rounded())
+                return WeightWheelOption(lbStorage: lb, display: kgLabel(kg))
+            }
+        }
+    }
+
+    /// Find the option whose stored lb value is closest to the supplied lb.
+    /// Used to align the wheel with a stored value that wasn't authored in
+    /// the active unit (e.g. 7 lb stored, kg mode → snaps to nearest 2.5-kg
+    /// row's lb int).
+    static func snap(lb: Int, to options: [WeightWheelOption]) -> Int {
+        guard !options.isEmpty else { return lb }
+        return options.min(by: { abs($0.lbStorage - lb) < abs($1.lbStorage - lb) })?.lbStorage ?? lb
+    }
+
+    /// Step "down" in user-unit (one row toward smaller weight). Returns
+    /// nil at the lower bound. Options are descending, so the next-smaller
+    /// row is at index + 1.
+    static func adjacent(below current: Int, in options: [WeightWheelOption]) -> Int? {
+        guard let idx = options.firstIndex(where: { $0.lbStorage == current }),
+              idx + 1 < options.count else { return nil }
+        return options[idx + 1].lbStorage
+    }
+
+    /// Step "up" in user-unit. Returns nil at the upper bound.
+    static func adjacent(above current: Int, in options: [WeightWheelOption]) -> Int? {
+        guard let idx = options.firstIndex(where: { $0.lbStorage == current }),
+              idx - 1 >= 0 else { return nil }
+        return options[idx - 1].lbStorage
+    }
+
+    private static func kgLabel(_ kg: Double) -> String {
+        if kg.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(kg)) kg"
+        }
+        return String(format: "%.1f kg", kg)
     }
 }

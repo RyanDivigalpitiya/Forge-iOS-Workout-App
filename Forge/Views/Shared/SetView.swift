@@ -101,13 +101,14 @@ struct SetView: View {
                     .opacity(isCompleted ? 0.5 : 1)
 
                 if let weight, let reps {
+                    let weightString = WeightUnit.formatWeight(lbs: Double(weight), in: settings.weightUnit)
                     if isCollabActive {
                         let detail: String = tillFailure
-                            ? "\(Int(weight)) lb x Until Failure"
-                            : "\(Int(weight)) lb x \(reps) rep\(reps == 1 ? "" : "s")"
+                            ? "\(weightString) x Until Failure"
+                            : "\(weightString) x \(reps) rep\(reps == 1 ? "" : "s")"
                         collabChip(detail, isCompleted: isCompleted)
                     } else {
-                        Text("\(Int(weight)) lb")
+                        Text(weightString)
                             .foregroundColor(.white)
                             .padding(.trailing, setsSpacing)
                         Image(systemName: "xmark")

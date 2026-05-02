@@ -6,9 +6,10 @@ struct WeightHistoryView: View {
     @EnvironmentObject var settings: GlobalSettings
 
     @State private var sheetTarget: WeightSheetTarget?
+    @State private var showHeightSheet = false
 
     private let darkGray = GlobalSettings.shared.darkGray
-    private let nodeSize: CGFloat = 10
+    private let nodeSize: CGFloat = 8
     private let diffDotSize: CGFloat = 5
     private let connectorWidth: CGFloat = 1
     private let timelineColumnWidth: CGFloat = 28
@@ -45,6 +46,21 @@ struct WeightHistoryView: View {
             .environmentObject(settings)
             .environment(\.colorScheme, .dark)
         }
+        .sheet(isPresented: $showHeightSheet) {
+            EditHeightSheet()
+                .environmentObject(settings)
+                .environment(\.colorScheme, .dark)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showHeightSheet = true
+                } label: {
+                    Image(systemName: "ruler")
+                        .foregroundColor(settings.fgColor)
+                }
+            }
+        }
     }
 
     // MARK: - Empty state
@@ -61,6 +77,23 @@ struct WeightHistoryView: View {
             Text("Tap Update Weight to log your first entry.")
                 .font(.system(size: 13))
                 .foregroundColor(darkGray)
+            if settings.heightCm == nil {
+                Button {
+                    showHeightSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "ruler")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Add height for BMI")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundColor(settings.fgColor)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                }
+                .padding(.top, 8)
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -104,7 +137,7 @@ struct WeightHistoryView: View {
         HStack(alignment: .center, spacing: 12) {
             Text(daysAgoLabel(for: entry.date))
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(isFirst ? .white : darkGray)
                 .frame(width: 90, alignment: .trailing)
 
             timelineColumn(
@@ -116,17 +149,49 @@ struct WeightHistoryView: View {
             )
 
             HStack(spacing: 6) {
-                Text(WeightUnit.formatLbs(entry.weightLbs))
+                Text(WeightUnit.formatWeight(lbs: entry.weightLbs, in: settings.weightUnit))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(settings.fgColor)
-                Text("(\(WeightUnit.formatKg(entry.weightLbs)))")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(darkGray)
+                parentheticalView(for: entry)
                 Spacer()
             }
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Wraps the parenthetical (BMI: XX.X) / (alt-unit) in a button when
+    /// no height is set — tapping any row's parenthetical doubles as a
+    /// shortcut to add height. When height is set the parenthetical is a
+    /// plain Text (the row's tap area still opens edit-weight, so we don't
+    /// want to compete with that gesture).
+    @ViewBuilder
+    private func parentheticalView(for entry: BodyWeightEntry) -> some View {
+        let label = "(\(parentheticalLabel(for: entry)))"
+        if settings.heightCm == nil {
+            Button {
+                showHeightSheet = true
+            } label: {
+                Text(label)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(darkGray)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+        } else {
+            Text(label)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(darkGray)
+        }
+    }
+
+    /// BMI when height is set, otherwise the weight rendered in the
+    /// opposite unit (e.g. "175 lb" → "(79.4 kg)" when no height).
+    private func parentheticalLabel(for entry: BodyWeightEntry) -> String {
+        if let bmi = WeightUnit.formatBmi(weightLbs: entry.weightLbs, heightCm: settings.heightCm) {
+            return bmi
+        }
+        return WeightUnit.formatWeight(lbs: entry.weightLbs, in: settings.weightUnit.alternate)
     }
 
     @ViewBuilder
@@ -146,7 +211,7 @@ struct WeightHistoryView: View {
             HStack(spacing: 4) {
                 Image(systemName: delta > 0 ? "arrow.up" : (delta < 0 ? "arrow.down" : "minus"))
                     .font(.system(size: 11, weight: .bold))
-                Text(WeightUnit.formatDiffLbs(delta))
+                Text(WeightUnit.formatDiffWeight(deltaLbs: delta, in: settings.weightUnit))
                     .font(.system(size: 13, weight: .bold))
                 Spacer()
             }

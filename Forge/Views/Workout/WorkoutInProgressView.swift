@@ -1134,9 +1134,10 @@ extension WorkoutInProgressView {
             for (index, set) in exercise.sets.enumerated() {
                 if !set.completed {
                     let setLabel = "Set \(index + 1)"
+                    let weightString = WeightUnit.formatWeight(lbs: Double(set.weight), in: settings.weightUnit)
                     let detail = set.tillFailure
                         ? "Until Failure"
-                        : "\(Int(set.weight)) lb x \(set.reps) rep\(set.reps == 1 ? "" : "s")"
+                        : "\(weightString) x \(set.reps) rep\(set.reps == 1 ? "" : "s")"
                     return (exercise.name, "\(setLabel)  →  \(detail)")
                 }
             }

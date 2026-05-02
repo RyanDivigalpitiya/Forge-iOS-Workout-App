@@ -34,10 +34,6 @@ struct UpdateWeightSheet: View {
     private let darkGray = GlobalSettings.shared.editorDarkGray
     private let buttonCircleBgColor = GlobalSettings.shared.buttonCircleBgColor
 
-    private let minWeight: Double = 50.0
-    private let maxWeight: Double = 500.0
-    private let weightStep: Double = 0.5
-
     private let buttonPlusMinusIconSize: CGFloat = 15
     private let buttonPlusMinusHeight: CGFloat = 32
     private let buttonPlusMinusSize: CGFloat = 5
@@ -53,15 +49,62 @@ struct UpdateWeightSheet: View {
 
     private var title: String { isEditing ? "Edit Weight" : "Update Weight" }
 
+    /// Wheel bounds + step expressed in the *current* display unit. The
+    /// kg ranges roughly mirror the lb ones (50 lb ≈ 22.7 kg, 500 lb ≈
+    /// 226.8 kg) but snap to clean kg-native step boundaries.
+    private var wheelMin: Double {
+        switch settings.weightUnit {
+        case .lb: return 50
+        case .kg: return 22
+        }
+    }
+    private var wheelMax: Double {
+        switch settings.weightUnit {
+        case .lb: return 500
+        case .kg: return 230
+        }
+    }
+    private var wheelStep: Double {
+        switch settings.weightUnit {
+        case .lb: return 0.5
+        case .kg: return 0.25
+        }
+    }
+
     private var weightRange: [Double] {
-        let step = weightStep
         var values: [Double] = []
-        var v = maxWeight
-        while v >= minWeight - 0.0001 {
+        var v = wheelMax
+        while v >= wheelMin - 0.0001 {
             values.append(v)
-            v -= step
+            v -= wheelStep
         }
         return values
+    }
+
+    /// Wheel selection: round-tripped through lb storage, but exposed
+    /// to the wheel in the current display unit. Setting through this
+    /// binding is the authoritative way the wheel updates `weightLbs`.
+    private var wheelSelection: Binding<Double> {
+        Binding(
+            get: { roundToStep(userUnitValue(weightLbs)) },
+            set: { newUnitValue in
+                weightLbs = lbsValue(newUnitValue)
+            }
+        )
+    }
+
+    private func userUnitValue(_ lbs: Double) -> Double {
+        switch settings.weightUnit {
+        case .lb: return lbs
+        case .kg: return WeightUnit.lbsToKg(lbs)
+        }
+    }
+
+    private func lbsValue(_ unitValue: Double) -> Double {
+        switch settings.weightUnit {
+        case .lb: return unitValue
+        case .kg: return WeightUnit.kgToLbs(unitValue)
+        }
     }
 
     var body: some View {
@@ -126,23 +169,23 @@ struct UpdateWeightSheet: View {
                 // (e.g. 175.23). Wheel and ± below overwrite this with
                 // step-aligned values; typing here overrides them.
                 HStack(spacing: 8) {
-                    TextField("", text: $weightText)
+                    TextField("0", text: $weightText)
                         .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(.center)
                         .font(.system(size: 34, weight: .bold))
                         .foregroundColor(settings.fgColor)
                         .focused($weightFieldFocused)
-                        .frame(width: 140)
-                    Text("lbs")
+                        .fixedSize(horizontal: true, vertical: false)
+                    Text(settings.weightUnit.pluralLabel)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(darkGray)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 4)
 
-                Picker(selection: $weightLbs, label: Text("Weight")) {
+                Picker(selection: wheelSelection, label: Text("Weight")) {
                     ForEach(weightRange, id: \.self) { value in
-                        Text(WeightUnit.formatLbs(value))
+                        Text("\(formatForField(value)) \(settings.weightUnit.shortLabel)")
                             .foregroundColor(settings.fgColor)
                             .tag(value)
                     }
@@ -154,8 +197,9 @@ struct UpdateWeightSheet: View {
                 // symmetric horizontal spacing around both glyphs).
                 HStack(spacing: buttonPlusMinusGap) {
                     Button {
-                        if weightLbs > minWeight {
-                            weightLbs = roundToStep(weightLbs - weightStep)
+                        let current = userUnitValue(weightLbs)
+                        if current > wheelMin {
+                            weightLbs = lbsValue(roundToStep(current - wheelStep))
                             feedbackGenerator.impactOccurred()
                         }
                     } label: {
@@ -169,8 +213,9 @@ struct UpdateWeightSheet: View {
                     Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
 
                     Button {
-                        if weightLbs < maxWeight {
-                            weightLbs = roundToStep(weightLbs + weightStep)
+                        let current = userUnitValue(weightLbs)
+                        if current < wheelMax {
+                            weightLbs = lbsValue(roundToStep(current + wheelStep))
                             feedbackGenerator.impactOccurred()
                         }
                     } label: {
@@ -229,26 +274,34 @@ struct UpdateWeightSheet: View {
         .onAppear {
             let initial = initialWeight()
             weightLbs = initial
-            weightText = formatForField(initial)
+            weightText = formatForField(userUnitValue(initial))
         }
         .onChange(of: weightLbs) { _, newValue in
-            // Wheel scroll or ± tap → reflect step-aligned value in field.
-            // Guard against the loop where text-driven changes already
-            // produced this same number.
-            if Double(weightText) != newValue {
-                weightText = formatForField(newValue)
+            // Wheel scroll or ± tap → reflect step-aligned value in
+            // field. Compare in user-unit so the loop guard is
+            // accurate after a unit toggle.
+            let inUnit = userUnitValue(newValue)
+            if Double(weightText) != inUnit {
+                weightText = formatForField(inUnit)
             }
         }
         .onChange(of: weightText) { _, newText in
-            // User typing → push parsed value into weightLbs. Skip update
-            // mid-edit (empty / partial / out-of-range) so the wheel
-            // doesn't jump to nonsense before the user finishes typing.
+            // User typing → parse as user-unit, convert to lb, push into
+            // weightLbs. Skip update mid-edit (empty / partial /
+            // out-of-range) so the wheel doesn't jump to nonsense.
             guard let parsed = Double(newText),
-                  parsed >= minWeight,
-                  parsed <= maxWeight,
-                  parsed != weightLbs
+                  parsed >= wheelMin,
+                  parsed <= wheelMax
             else { return }
-            weightLbs = parsed
+            let asLbs = lbsValue(parsed)
+            if abs(asLbs - weightLbs) > 0.001 {
+                weightLbs = asLbs
+            }
+        }
+        .onChange(of: settings.weightUnit) { _, _ in
+            // Unit toggle → re-render the text field in the new unit
+            // without changing weightLbs (the source of truth).
+            weightText = formatForField(userUnitValue(weightLbs))
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -284,17 +337,18 @@ struct UpdateWeightSheet: View {
 
     private func initialWeight() -> Double {
         if let editingEntry {
-            return roundToStep(editingEntry.weightLbs)
+            return editingEntry.weightLbs
         }
         if let latest = bodyWeight.entries.first {
-            return roundToStep(latest.weightLbs)
+            return latest.weightLbs
         }
         return 175.0
     }
 
-    private func roundToStep(_ value: Double) -> Double {
-        let step = weightStep
-        return (value / step).rounded() * step
+    /// Snap a *user-unit* value to the wheel's step grid (0.5 lb / 0.25 kg).
+    private func roundToStep(_ unitValue: Double) -> Double {
+        let step = wheelStep
+        return (unitValue / step).rounded() * step
     }
 
     /// Bare numeric string for the text field. Strips a trailing ".0"

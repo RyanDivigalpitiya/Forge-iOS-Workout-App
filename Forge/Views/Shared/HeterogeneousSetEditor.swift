@@ -30,6 +30,26 @@ struct HeterogeneousSetEditor: View {
     private let buttonPlusMinusHeight: CGFloat = 30
     private let buttonPlusMinusSize: CGFloat = 5
 
+    /// Wheel options for the active unit. Recomputed on every body eval —
+    /// the array is only ~120 entries and is needed for snap + step in the
+    /// ± button handlers.
+    private var currentOptions: [WeightWheelOption] {
+        WeightWheelOption.options(
+            unit: settings.weightUnit,
+            minLb: minWeight,
+            maxLb: maxWeight,
+            stepLb: weightStep
+        )
+    }
+
+    /// Display label for a stored lb value in the active unit. Snaps to
+    /// the nearest wheel option so the on-screen number always matches the
+    /// row the wheel/± buttons would land on after the next interaction.
+    private func weightLabel(for lb: Int) -> String {
+        let snapped = WeightWheelOption.snap(lb: lb, to: currentOptions)
+        return currentOptions.first { $0.lbStorage == snapped }?.display ?? "\(lb) lbs"
+    }
+
     var body: some View {
         VStack {
             ForEach(weights.indices, id: \.self) { setIndex in
@@ -70,17 +90,20 @@ struct HeterogeneousSetEditor: View {
 
                         // WEIGHT LABEL + PLUS/MINUS BUTTONS
                         VStack {
-                            Text("\(weights[setIndex]) lbs")
+                            Text(weightLabel(for: weights[setIndex]))
                                 .foregroundColor(.white)
                                 .fontWeight(.bold)
                                 .font(.system(size: fontSize))
                                 .frame(width: 100)
 
                             HStack() {
-                                // DECREMENT
+                                // DECREMENT — step "down" in the active unit
+                                // (5 lb in lb mode, 2.5 kg in kg mode).
                                 Button(action: {
-                                    if weights[setIndex] > minWeight {
-                                        weights[setIndex] -= weightStep
+                                    let opts = currentOptions
+                                    let snapped = WeightWheelOption.snap(lb: weights[setIndex], to: opts)
+                                    if let next = WeightWheelOption.adjacent(below: snapped, in: opts) {
+                                        weights[setIndex] = next
                                         feedbackGenerator.impactOccurred()
                                     }
                                 }) {
@@ -95,8 +118,10 @@ struct HeterogeneousSetEditor: View {
 
                                 // INCREMENT
                                 Button(action: {
-                                    if weights[setIndex] < maxWeight {
-                                        weights[setIndex] += weightStep
+                                    let opts = currentOptions
+                                    let snapped = WeightWheelOption.snap(lb: weights[setIndex], to: opts)
+                                    if let next = WeightWheelOption.adjacent(above: snapped, in: opts) {
+                                        weights[setIndex] = next
                                         feedbackGenerator.impactOccurred()
                                     }
                                 }) {

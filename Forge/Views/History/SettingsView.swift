@@ -1,4 +1,4 @@
-import SwiftUI
+ximport SwiftUI
 import PhotosUI
 import UIKit
 
@@ -17,6 +17,15 @@ struct SettingsView: View {
     @State private var profilePhotoItem: PhotosPickerItem? = nil
     @State private var showClearProfileConfirm: Bool = false
 
+    // Local mirrors of the persisted height. Saved via `saveHeight()` →
+    // `settings.heightCm`. Two-field (ft/in) when weightUnit is lb,
+    // single (cm) when kg — fields are kept in sync with whatever the
+    // current preference is, so toggling units mid-edit doesn't lose
+    // the typed value.
+    @State private var heightFeetText: String = ""
+    @State private var heightInchesText: String = ""
+    @State private var heightCmText: String = ""
+
     private var profileTrimmedName: String {
         profileName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -27,6 +36,32 @@ struct SettingsView: View {
         let nameChanged = profileTrimmedName != savedName
         let photoChanged = profilePhotoData != savedPhoto
         return (nameChanged || photoChanged) && !profileTrimmedName.isEmpty
+    }
+
+    /// Parses the active height field(s) into cm. Returns nil if the
+    /// fields are empty or invalid (so the Save button stays disabled).
+    private var heightDraftCm: Double? {
+        switch settings.weightUnit {
+        case .lb:
+            guard let feet = Int(heightFeetText), feet >= 0 else { return nil }
+            let inches = Double(heightInchesText) ?? 0
+            let cm = WeightUnit.feetInchesToCm(feet: feet, inches: inches)
+            return cm > 0 ? cm : nil
+        case .kg:
+            guard let cm = Double(heightCmText), cm > 0 else { return nil }
+            return cm
+        }
+    }
+
+    private var heightHasUnsavedChanges: Bool {
+        guard let draft = heightDraftCm else { return false }
+        if let saved = settings.heightCm {
+            // 0.1 cm tolerance — round-trip via ft/in conversion can
+            // drift fractions of a millimetre and we don't want a
+            // permanently-active Save button after a successful save.
+            return abs(draft - saved) > 0.1
+        }
+        return true
     }
 
     var body: some View {
@@ -109,6 +144,39 @@ struct SettingsView: View {
                 .listRowBackground(GlobalSettings.shared.bgColor)
             } header: {
                 Text("Progress Tracking")
+            }
+
+            Section {
+                Picker("", selection: $settings.weightUnit) {
+                    Text("Pounds (lb)").tag(WeightUnit.lb)
+                    Text("Kilograms (kg)").tag(WeightUnit.kg)
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(GlobalSettings.shared.bgColor)
+            } header: {
+                Text("Units")
+            } footer: {
+                Text("Applies to body weight and exercise weights everywhere in the app.")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            }
+
+            Section {
+                heightInputRow
+                    .listRowBackground(GlobalSettings.shared.bgColor)
+
+                if settings.heightCm != nil {
+                    Button(role: .destructive) {
+                        clearHeight()
+                    } label: {
+                        Text("Clear Height")
+                    }
+                    .listRowBackground(GlobalSettings.shared.bgColor)
+                }
+            } header: {
+                Text("Personal Metrics")
+            } footer: {
+                Text("Height is used to compute your BMI on the body weight log.")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
             }
 
             Section {
@@ -200,6 +268,13 @@ struct SettingsView: View {
             if profilePhotoData == nil {
                 profilePhotoData = sessionClient.myProfile?.photoData
             }
+            hydrateHeightFields()
+        }
+        .onChange(of: settings.weightUnit) { _, _ in
+            // When the user toggles units, re-derive the alternate input
+            // fields from the saved height so the new mode shows the
+            // same value (not a stale or empty draft).
+            hydrateHeightFields()
         }
         .onChange(of: profilePhotoItem) { _, newItem in
             Task {
@@ -225,6 +300,93 @@ struct SettingsView: View {
         sessionClient.submitProfile(Profile(name: trimmed, photoData: profilePhotoData))
     }
 
+    @ViewBuilder
+    private var heightInputRow: some View {
+        HStack(spacing: 10) {
+            switch settings.weightUnit {
+            case .lb:
+                TextField("Feet", text: $heightFeetText)
+                    .keyboardType(.numberPad)
+                    .frame(width: 50)
+                    .multilineTextAlignment(.center)
+                Text("ft")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+                TextField("Inches", text: $heightInchesText)
+                    .keyboardType(.decimalPad)
+                    .frame(width: 60)
+                    .multilineTextAlignment(.center)
+                Text("in")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            case .kg:
+                TextField("Centimeters", text: $heightCmText)
+                    .keyboardType(.decimalPad)
+                    .frame(width: 100)
+                    .multilineTextAlignment(.center)
+                Text("cm")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            }
+            Spacer()
+            Button {
+                saveHeight()
+            } label: {
+                Text("Save")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(heightHasUnsavedChanges ? settings.fgColor : Color.gray.opacity(0.3))
+                    .cornerRadius(settings.cornerRadiusMedium)
+            }
+            .buttonStyle(.borderless)
+            .disabled(!heightHasUnsavedChanges)
+        }
+        .foregroundColor(.white)
+    }
+
+    private func saveHeight() {
+        guard let cm = heightDraftCm else { return }
+        settings.heightCm = cm
+        // Re-derive the field text from the just-saved value so any
+        // rounding (e.g. 5 ft 11.0 in → 180.34 cm → "180.3 cm") is
+        // reflected immediately rather than waiting for next appear.
+        hydrateHeightFields()
+    }
+
+    private func clearHeight() {
+        settings.heightCm = nil
+        heightFeetText = ""
+        heightInchesText = ""
+        heightCmText = ""
+    }
+
+    private func hydrateHeightFields() {
+        guard let cm = settings.heightCm else {
+            heightFeetText = ""
+            heightInchesText = ""
+            heightCmText = ""
+            return
+        }
+        let split = WeightUnit.cmToFeetInches(cm)
+        heightFeetText = String(split.feet)
+        heightInchesText = formatInchesField(split.inches)
+        heightCmText = formatCmField(cm)
+    }
+
+    private func formatInchesField(_ inches: Double) -> String {
+        if inches.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(inches))
+        }
+        return String(format: "%.1f", inches)
+    }
+
+    private func formatCmField(_ cm: Double) -> String {
+        if cm.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(cm))
+        }
+        return String(format: "%.1f", cm)
+    }
+
     private func clearProfile() {
         sessionClient.clearProfile()
         profileName = ""
@@ -235,15 +397,18 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     @MainActor static var previews: some View {
+        // Env objects attached to the NavigationStack so they propagate
+        // to NavigationLink destinations in the canvas. (When attached
+        // inside the stack, Xcode previews don't carry them across push.)
         NavigationStack {
             SettingsView()
-                .environmentObject(GlobalSettings.shared)
-                .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
-                .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
-                .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
-                .environmentObject(makeMockProgressPhotosVM())
-                .environmentObject(SessionClient())
-                .preferredColorScheme(.dark)
         }
+        .environmentObject(GlobalSettings.shared)
+        .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+        .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+        .environmentObject(BodyWeightViewModel(mockEntries: mockBodyWeightEntries))
+        .environmentObject(makeMockProgressPhotosVM())
+        .environmentObject(SessionClient())
+        .preferredColorScheme(.dark)
     }
 }

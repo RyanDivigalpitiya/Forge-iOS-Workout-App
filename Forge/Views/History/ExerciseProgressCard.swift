@@ -64,10 +64,10 @@ struct ExerciseProgressCard: View {
                 .foregroundColor(settings.darkGray)
             if let pair {
                 HStack(spacing: 0) {
-                    Text(formatWeight(pair.weight))
+                    Text(formatWeightNumber(pair.weight))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(accentOn == .weight ? settings.fgColor : .white)
-                    Text(" lb × ")
+                    Text(" \(settings.weightUnit.shortLabel) × ")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white.opacity(0.6))
                     Text("\(pair.reps)")
@@ -111,11 +111,14 @@ struct ExerciseProgressCard: View {
                 .foregroundColor(.white.opacity(0.5))
                 .frame(maxWidth: .infinity, minHeight: 140)
         } else {
+            // Y-values for the weight metric are stored in lb. Convert at
+            // render time so the chart's y-axis matches the active unit.
+            let displayValues: [Double] = series.map { displayValue(for: $0.value) }
             Chart {
                 ForEach(series.indices, id: \.self) { i in
                     AreaMark(
                         x: .value("Date", series[i].date),
-                        y: .value(yAxisLabel, series[i].value)
+                        y: .value(yAxisLabel, displayValues[i])
                     )
                     .foregroundStyle(
                         LinearGradient(
@@ -129,7 +132,7 @@ struct ExerciseProgressCard: View {
                 ForEach(series.indices, id: \.self) { i in
                     LineMark(
                         x: .value("Date", series[i].date),
-                        y: .value(yAxisLabel, series[i].value)
+                        y: .value(yAxisLabel, displayValues[i])
                     )
                     .foregroundStyle(settings.fgColor)
                     .interpolationMethod(.monotone)
@@ -154,12 +157,31 @@ struct ExerciseProgressCard: View {
     }
 
     private var yAxisLabel: String {
-        metric == .weight ? "Weight (lb)" : "Reps"
+        metric == .weight ? "Weight (\(settings.weightUnit.shortLabel))" : "Reps"
     }
 
-    private func formatWeight(_ w: Float) -> String {
-        w.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(w))"
-            : String(format: "%.1f", w)
+    /// Convert a raw progress-series value to its display unit. Reps pass
+    /// through; weight values (stored in lb) get unit-converted.
+    private func displayValue(for raw: Double) -> Double {
+        guard metric == .weight else { return raw }
+        switch settings.weightUnit {
+        case .lb: return raw
+        case .kg: return WeightUnit.lbsToKg(raw)
+        }
+    }
+
+    /// PR badge weight number (no unit suffix — caller appends shortLabel).
+    /// Strips trailing ".0" for whole numbers, otherwise one decimal place.
+    private func formatWeightNumber(_ w: Float) -> String {
+        let inUnit: Double
+        switch settings.weightUnit {
+        case .lb: inUnit = Double(w)
+        case .kg: inUnit = WeightUnit.lbsToKg(Double(w))
+        }
+        let rounded = (inUnit * 10).rounded() / 10
+        if rounded == rounded.rounded() {
+            return "\(Int(rounded))"
+        }
+        return String(format: "%.1f", rounded)
     }
 }
