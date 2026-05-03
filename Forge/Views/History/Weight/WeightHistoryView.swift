@@ -113,33 +113,43 @@ struct WeightHistoryView: View {
     // MARK: - Timeline
 
     private var timeline: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                Spacer().frame(height: 20)
-                ForEach(Array(bodyWeight.entries.enumerated()), id: \.element.id) { index, entry in
-                    Button {
-                        sheetTarget = .edit(entry)
-                    } label: {
-                        entryRow(
-                            entry: entry,
-                            isFirst: index == 0,
-                            isLast: index == bodyWeight.entries.count - 1
-                        )
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+        // GeometryReader lets us anchor the entries column vertically:
+        // - When the column is shorter than the viewport, `frame(minHeight:
+        //   proxy.size.height, alignment: .center)` centers it vertically.
+        // - Once the column overflows the viewport, the inner VStack grows
+        //   beyond minHeight and the ScrollView scrolls naturally with the
+        //   newest (top) entry pinned to the top edge.
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    Spacer().frame(height: 20)
+                    ForEach(Array(bodyWeight.entries.enumerated()), id: \.element.id) { index, entry in
+                        Button {
+                            sheetTarget = .edit(entry)
+                        } label: {
+                            entryRow(
+                                entry: entry,
+                                isFirst: index == 0,
+                                isLast: index == bodyWeight.entries.count - 1
+                            )
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
 
-                    if index < bodyWeight.entries.count - 1 {
-                        let later = bodyWeight.entries[index]
-                        let earlier = bodyWeight.entries[index + 1]
-                        netDiffRow(
-                            delta: bodyWeight.netDifference(from: earlier, to: later)
-                        )
+                        if index < bodyWeight.entries.count - 1 {
+                            let later = bodyWeight.entries[index]
+                            let earlier = bodyWeight.entries[index + 1]
+                            netDiffRow(
+                                delta: bodyWeight.netDifference(from: earlier, to: later)
+                            )
+                        }
                     }
+                    Spacer().frame(height: 20)
                 }
-                Spacer().frame(height: 20)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: proxy.size.height, alignment: .center)
             }
-            .padding(.horizontal, 20)
         }
     }
 
