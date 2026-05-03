@@ -108,6 +108,10 @@ struct UpdateWeightSheet: View {
     }
 
     var body: some View {
+        // ScrollView wrapper mirrors the gap-free top-toolbar layout from
+        // ExerciseEditorView. Scrolling is disabled because the detent is
+        // sized to the inner content (no overflow to scroll).
+        ScrollView {
         VStack(spacing: 0) {
 
             // TOP TOOLBAR — X | title | up-arrow (mirrors ExerciseEditorView)
@@ -158,7 +162,7 @@ struct UpdateWeightSheet: View {
                 }
                 .frame(width: 0.2 * screenWidth)
             }
-            .padding(.top, 18)
+            .padding(.top, 20)
 
             Spacer().frame(height: 10)
 
@@ -177,7 +181,7 @@ struct UpdateWeightSheet: View {
                         .focused($weightFieldFocused)
                         .fixedSize(horizontal: true, vertical: false)
                     Text(settings.weightUnit.pluralLabel)
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 34, weight: .bold))
                         .foregroundColor(darkGray)
                 }
                 .frame(maxWidth: .infinity)
@@ -248,7 +252,6 @@ struct UpdateWeightSheet: View {
             Spacer().frame(height: 16)
         }
         .frame(maxWidth: .infinity)
-        .fixedSize(horizontal: false, vertical: true)
         .background(
             GeometryReader { geo in
                 Color.clear.preference(
@@ -257,6 +260,8 @@ struct UpdateWeightSheet: View {
                 )
             }
         )
+        } // end ScrollView
+        .scrollDisabled(true)
         .onPreferenceChange(SheetContentHeightKey.self) { newHeight in
             // Discard garbage values from incomplete layout passes
             // (sometimes SwiftUI emits a 0 before the first real

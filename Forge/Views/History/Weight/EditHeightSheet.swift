@@ -20,7 +20,7 @@ struct EditHeightSheet: View {
     @State private var feetText: String = ""
     @State private var inchesText: String = ""
     @State private var cmText: String = ""
-    @State private var measuredContentHeight: CGFloat = 320
+    @State private var measuredContentHeight: CGFloat = 220
 
     @FocusState private var focusedField: Field?
     private enum Field { case feet, inches, cm }
@@ -58,6 +58,12 @@ struct EditHeightSheet: View {
     private var canSave: Bool { draftCm != nil && hasUnsavedChanges }
 
     var body: some View {
+        // ScrollView wrapper mirrors the gap-free top-toolbar layout from
+        // ExerciseEditorView. Scrolling is disabled because the detent is
+        // sized to the inner content (no overflow to scroll). The
+        // GeometryReader background still measures inner content height
+        // for the dynamic detent.
+        ScrollView {
         VStack(spacing: 0) {
 
             // TOP TOOLBAR — X | title | up-arrow (matches UpdateWeightSheet)
@@ -108,7 +114,7 @@ struct EditHeightSheet: View {
                 }
                 .frame(width: 0.2 * screenWidth)
             }
-            .padding(.top, 18)
+            .padding(.top, 20)
 
             Spacer().frame(height: 24)
 
@@ -140,7 +146,6 @@ struct EditHeightSheet: View {
             Spacer().frame(height: 20)
         }
         .frame(maxWidth: .infinity)
-        .fixedSize(horizontal: false, vertical: true)
         .background(
             GeometryReader { geo in
                 Color.clear.preference(
@@ -149,9 +154,14 @@ struct EditHeightSheet: View {
                 )
             }
         )
+        } // end ScrollView
+        .scrollDisabled(true)
         .onPreferenceChange(SheetContentHeightKey.self) { newHeight in
+            // Sanity floor: 120pt is well below this sheet's smallest
+            // realistic layout (~180pt with no Clear button). Anything
+            // smaller is a spurious pre-layout reading.
             let rounded = newHeight.rounded()
-            guard rounded > 200 else { return }
+            guard rounded > 120 else { return }
             if abs(rounded - measuredContentHeight) > 1 {
                 measuredContentHeight = rounded
             }
@@ -190,19 +200,39 @@ struct EditHeightSheet: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(settings.fgColor)
                     .focused($focusedField, equals: .feet)
-                    .frame(width: 60)
+                    .frame(width: 40)
+                    .onChange(of: feetText) { _, newValue in
+                        // Single-digit cap (0-9) — realistic human heights
+                        // never exceed 9 ft, and the field is sized for one
+                        // glyph.
+                        if newValue.count > 1 {
+                            feetText = String(newValue.prefix(1))
+                        }
+                    }
                 Text("ft")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(darkGray)
                 TextField("0", text: $inchesText)
-                    .keyboardType(.decimalPad)
+                    .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(settings.fgColor)
                     .focused($focusedField, equals: .inches)
-                    .frame(width: 80)
+                    .frame(width: 60)
+                    .onChange(of: inchesText) { _, newValue in
+                        // Allow 0-12 (single digit, plus 10/11/12). Reject
+                        // anything else by truncating back to the previous
+                        // valid prefix.
+                        if newValue.isEmpty { return }
+                        if let n = Int(newValue), (0...12).contains(n) { return }
+                        if newValue.count > 1 {
+                            inchesText = String(newValue.prefix(newValue.count - 1))
+                        } else {
+                            inchesText = ""
+                        }
+                    }
                 Text("in")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(darkGray)
             case .kg:
                 TextField("0", text: $cmText)
@@ -213,7 +243,7 @@ struct EditHeightSheet: View {
                     .focused($focusedField, equals: .cm)
                     .frame(width: 120)
                 Text("cm")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(darkGray)
             }
         }

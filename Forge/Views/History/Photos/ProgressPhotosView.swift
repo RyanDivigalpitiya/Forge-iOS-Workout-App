@@ -21,14 +21,27 @@ struct ProgressPhotosView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Spacer()
-                addEntryButton
-                Spacer()
+        .toolbar {
+            // Native bottom bar — iOS renders this in Liquid Glass to
+            // match the Start Workout button on the History root.
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button {
+                    showAddSheet = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 18, height: 18)
+                            .padding(.trailing, 3)
+                        Text("Add Entry")
+                    }
+                }
+                .padding(5)
+                .padding(.horizontal, 10)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(settings.fgColor)
             }
-            .padding(.top, 4)
-            .padding(.bottom, 12)
         }
         .sheet(isPresented: $showAddSheet) {
             AddProgressPhotosSheet()
@@ -94,27 +107,6 @@ struct ProgressPhotosView: View {
         }
     }
 
-    // MARK: - Add Entry button
-
-    private var addEntryButton: some View {
-        Button {
-            showAddSheet = true
-        } label: {
-            HStack {
-                Image(systemName: "plus.circle.fill")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .padding(.trailing, 3)
-                Text("Add Entry")
-            }
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundColor(settings.fgColor)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 12)
-            .background(.regularMaterial, in: Capsule())
-        }
-    }
 }
 
 // MARK: - Entry card

@@ -1,4 +1,4 @@
-ximport SwiftUI
+import SwiftUI
 import PhotosUI
 import UIKit
 
@@ -110,73 +110,22 @@ struct SettingsView: View {
                     .disabled(!profileHasUnsavedChanges)
                 }
                 .listRowBackground(GlobalSettings.shared.bgColor)
-
-                if sessionClient.myProfile != nil {
-                    Button(role: .destructive) {
-                        showClearProfileConfirm = true
-                    } label: {
-                        Text("Clear Profile")
-                    }
-                    .listRowBackground(GlobalSettings.shared.bgColor)
-                }
             } header: {
                 Text("Collaboration Profile")
             } footer: {
-                Text("Shown to friends when you join or host a collab session.")
-                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
-            }
-
-            Section {
-                NavigationLink {
-                    WeightHistoryView()
-                } label: {
-                    Label("Weight History", systemImage: "scalemass")
-                        .foregroundColor(.white)
-                }
-                .listRowBackground(GlobalSettings.shared.bgColor)
-
-                NavigationLink {
-                    ProgressPhotosView()
-                } label: {
-                    Label("Progress Photos", systemImage: "photo.on.rectangle.angled")
-                        .foregroundColor(.white)
-                }
-                .listRowBackground(GlobalSettings.shared.bgColor)
-            } header: {
-                Text("Progress Tracking")
-            }
-
-            Section {
-                Picker("", selection: $settings.weightUnit) {
-                    Text("Pounds (lb)").tag(WeightUnit.lb)
-                    Text("Kilograms (kg)").tag(WeightUnit.kg)
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(GlobalSettings.shared.bgColor)
-            } header: {
-                Text("Units")
-            } footer: {
-                Text("Applies to body weight and exercise weights everywhere in the app.")
-                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
-            }
-
-            Section {
-                heightInputRow
-                    .listRowBackground(GlobalSettings.shared.bgColor)
-
-                if settings.heightCm != nil {
-                    Button(role: .destructive) {
-                        clearHeight()
-                    } label: {
-                        Text("Clear Height")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Shown to friends when you workout with a friend.")
+                    if sessionClient.myProfile != nil {
+                        Button {
+                            showClearProfileConfirm = true
+                        } label: {
+                            Text("Clear Profile")
+                                .foregroundColor(settings.fgColor)
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    .listRowBackground(GlobalSettings.shared.bgColor)
                 }
-            } header: {
-                Text("Personal Metrics")
-            } footer: {
-                Text("Height is used to compute your BMI on the body weight log.")
-                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+                .foregroundColor(GlobalSettings.shared.editorDarkGray)
             }
 
             Section {
@@ -208,9 +157,71 @@ struct SettingsView: View {
                 .padding(.vertical, 8)
                 .listRowBackground(GlobalSettings.shared.bgColor)
             } header: {
-                Text("Accent Color")
+                Text("Color Theme")
             }
 
+            Section {
+                NavigationLink {
+                    WeightHistoryView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "scalemass")
+                            .font(.system(size: 13))
+                            .frame(width: 18)
+                        Text("Body Weight Tracking")
+                    }
+                    .foregroundColor(.white)
+                }
+                .listRowBackground(GlobalSettings.shared.bgColor)
+
+                NavigationLink {
+                    ProgressPhotosView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 13))
+                            .frame(width: 18)
+                        Text("Progress Photos")
+                    }
+                    .foregroundColor(.white)
+                }
+                .listRowBackground(GlobalSettings.shared.bgColor)
+            } header: {
+                Text("Progress Tracking")
+            }
+
+            Section {
+                heightInputRow
+                    .listRowBackground(GlobalSettings.shared.bgColor)
+
+                if settings.heightCm != nil {
+                    Button(role: .destructive) {
+                        clearHeight()
+                    } label: {
+                        Text("Clear Height")
+                    }
+                    .listRowBackground(GlobalSettings.shared.bgColor)
+                }
+            } header: {
+                Text("Hight Info for BMI")
+            } footer: {
+                Text("Height is used to compute your BMI in the body weight tracker.")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            }
+
+            Section {
+                Picker("", selection: $settings.weightUnit) {
+                    Text("Imperial (lb / ft)").tag(WeightUnit.lb)
+                    Text("Metric (kg / cm)").tag(WeightUnit.kg)
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(GlobalSettings.shared.bgColor)
+            } header: {
+                Text("Units")
+            } footer: {
+                Text("Applies to body weight and exercise weights everywhere in the app.")
+                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+            }
 
             Section {
                 let plansWithDate = planViewModel.workoutPlans.filter { $0.lastCompleted != nil }
@@ -232,27 +243,27 @@ struct SettingsView: View {
                                         .foregroundColor(.gray)
                                 }
                                 Spacer()
+                                // Hint text — actual Reset action lives in
+                                // .swipeActions trailing edge below.
+                                Text("← Swipe to Reset")
+                                    .font(.caption)
+                                    .foregroundColor(settings.fgColor)
+                            }
+                            .listRowBackground(GlobalSettings.shared.bgColor)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button {
                                     planViewModel.workoutPlans[index].lastCompleted = nil
                                     planViewModel.savePlans()
                                 } label: {
-                                    Text("Reset")
-                                        .font(.subheadline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(settings.fgColor)
-                                        .cornerRadius(settings.cornerRadiusMedium)
+                                    Image(systemName: "arrow.counterclockwise")
                                 }
-                                .buttonStyle(.borderless)
+                                .tint(settings.fgColor)
                             }
-                            .listRowBackground(GlobalSettings.shared.bgColor)
                         }
                     }
                 }
             } header: {
-                Text("Reset Last Completed")
+                Text("Reset Last Completed Date")
             }
         }
         .scrollContentBackground(.hidden)

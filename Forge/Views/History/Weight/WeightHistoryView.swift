@@ -24,15 +24,6 @@ struct WeightHistoryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Spacer()
-                updateWeightButton
-                Spacer()
-            }
-            .padding(.top, 4)
-            .padding(.bottom, 12)
-        }
         .sheet(item: $sheetTarget) { target in
             Group {
                 switch target {
@@ -59,6 +50,26 @@ struct WeightHistoryView: View {
                     Image(systemName: "ruler")
                         .foregroundColor(settings.fgColor)
                 }
+            }
+            // Native bottom bar — iOS renders this in Liquid Glass to
+            // match the Start Workout button on the History root.
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button {
+                    sheetTarget = .new
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 18, height: 18)
+                            .padding(.trailing, 3)
+                        Text("Update Weight")
+                    }
+                }
+                .padding(5)
+                .padding(.horizontal, 10)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(settings.fgColor)
             }
         }
     }
@@ -175,7 +186,6 @@ struct WeightHistoryView: View {
                 Text(label)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(darkGray)
-                    .underline()
             }
             .buttonStyle(.plain)
         } else {
@@ -245,28 +255,6 @@ struct WeightHistoryView: View {
                 .frame(maxHeight: .infinity)
         }
         .frame(width: timelineColumnWidth)
-    }
-
-    // MARK: - Update Weight button
-
-    private var updateWeightButton: some View {
-        Button {
-            sheetTarget = .new
-        } label: {
-            HStack {
-                Image(systemName: "plus.circle.fill")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .padding(.trailing, 3)
-                Text("Update Weight")
-            }
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundColor(settings.fgColor)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 12)
-            .background(.regularMaterial, in: Capsule())
-        }
     }
 
     // MARK: - Date label
