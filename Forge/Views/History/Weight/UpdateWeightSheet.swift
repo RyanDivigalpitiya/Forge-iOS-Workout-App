@@ -24,7 +24,11 @@ struct UpdateWeightSheet: View {
         // honor the initial detent at presentation time and only smooth
         // small changes afterward, so getting the seed right per-mode
         // matters more than relying on dynamic resize alone.
-        _measuredContentHeight = State(initialValue: editingEntry == nil ? 420 : 230)
+        // Delete-mode seed must cover toolbar (~54pt) + content (~195pt)
+        // + spacers (~26pt) ≈ 275pt; on iPhone SE there is no bottom
+        // safe-area inset to absorb under-seeding, so any shortfall
+        // visibly clips the Delete button.
+        _measuredContentHeight = State(initialValue: editingEntry == nil ? 420 : 290)
     }
 
     @EnvironmentObject var bodyWeight: BodyWeightViewModel
@@ -197,8 +201,8 @@ struct UpdateWeightSheet: View {
         .onPreferenceChange(SheetContentHeightKey.self) { newHeight in
             // Discard garbage values from incomplete layout passes
             // (sometimes SwiftUI emits a 0 before the first real
-            // measurement). 150pt covers the smaller delete-mode body
-            // (~210pt) while still rejecting spurious pre-layout readings.
+            // measurement). 150pt sits below either mode's real height
+            // while still rejecting spurious pre-layout readings.
             let rounded = newHeight.rounded()
             guard rounded > 150 else { return }
             if abs(rounded - measuredContentHeight) > 1 {

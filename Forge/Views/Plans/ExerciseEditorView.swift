@@ -201,13 +201,13 @@ struct ExerciseEditorView: View {
                 .opacity(homogenousSelectorOpacity)
             
                 // TOGGLE
-                HStack {
-                    Toggle(isOn: $areSetsUnique) {
-                        Text("Change Specific Sets")
-                            .foregroundColor(areSetsUnique ? settings.fgColor : darkGray)
-                            .fontWeight(.bold)
-                    }
-                    .onChange(of: areSetsUnique) { _, newValue in
+                HStack(spacing: 10) {
+                    Text("Change Specific Sets")
+                        .foregroundColor(areSetsUnique ? settings.fgColor : darkGray)
+                        .fontWeight(.bold)
+                    Toggle("", isOn: $areSetsUnique)
+                        .labelsHidden()
+                        .onChange(of: areSetsUnique) { _, newValue in
     
                         if editedExerciseStartedWithUniqueSets {
                             // do nothing - here's why:
