@@ -20,6 +20,14 @@ struct WeightHistoryView: View {
     /// new cascade.
     @State private var entryCascadeFinished = false
 
+    /// Drives the "newly added entry bounces" animation. Same recipe as
+    /// `PlanSuggestionView.bounceSuggestedPane()` — quick scale up, slow
+    /// spring back. Only the row matching `bouncingEntryId` reads the
+    /// scale; everything else stays at 1.0.
+    @State private var bounceScale: CGFloat = 1.0
+    @State private var bouncingEntryId: UUID?
+    @State private var lastObservedEntryCount: Int = 0
+
     private let darkGray = GlobalSettings.shared.darkGray
     private let nodeSize: CGFloat = 8
     private let diffDotSize: CGFloat = 5
@@ -86,6 +94,19 @@ struct WeightHistoryView: View {
         }
         .onAppear {
             triggerEntryCascade()
+            lastObservedEntryCount = bodyWeight.entries.count
+        }
+        .onChange(of: bodyWeight.entries.count) { oldCount, newCount in
+            // Only bounce on adds (not deletes). The added entry is at
+            // index 0 (entries are stored newest-first), so we bounce
+            // whichever id is now at the top. Small delay lets the
+            // sheet finish dismissing before the bounce plays.
+            if newCount > oldCount, let topId = bodyWeight.entries.first?.id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    bounceEntry(id: topId)
+                }
+            }
+            lastObservedEntryCount = newCount
         }
     }
 
@@ -113,6 +134,27 @@ struct WeightHistoryView: View {
                 try? await Task.sleep(for: .milliseconds(80))
             }
             entryCascadeFinished = true
+        }
+    }
+
+    private func diffSignPrefix(_ delta: Double) -> String {
+        if delta > 0 { return "+" }
+        if delta < 0 { return "-" }
+        return ""
+    }
+
+    /// Bounces the newly added entry: quick scale up, slow spring back.
+    /// Mirrors `PlanSuggestionView.bounceSuggestedPane()` exactly.
+    private func bounceEntry(id: UUID) {
+        bouncingEntryId = id
+        bounceScale = 1.0
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+            bounceScale = 1.08
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+                bounceScale = 1.0
+            }
         }
     }
 
@@ -205,6 +247,7 @@ struct WeightHistoryView: View {
                         }
                         .opacity(isAppeared ? 1 : 0)
                         .offset(y: isAppeared ? 0 : 24)
+                        .scaleEffect(entry.id == bouncingEntryId ? bounceScale : 1.0)
                     }
                     Spacer().frame(height: 20)
                 }
@@ -293,7 +336,10 @@ struct WeightHistoryView: View {
             HStack(spacing: 4) {
                 Image(systemName: delta > 0 ? "arrow.up" : (delta < 0 ? "arrow.down" : "minus"))
                     .font(.system(size: 11, weight: .bold))
-                Text(WeightUnit.formatDiffWeight(deltaLbs: delta, in: settings.weightUnit))
+                // Magnitude is unsigned (helper returns "2.5 lb"); prepend
+                // the sign here so e.g. losses read "↓ -4 lb" and gains
+                // read "↑ +5 lb".
+                Text("\(diffSignPrefix(delta))\(WeightUnit.formatDiffWeight(deltaLbs: delta, in: settings.weightUnit))")
                     .font(.system(size: 13, weight: .bold))
                 Spacer()
             }
