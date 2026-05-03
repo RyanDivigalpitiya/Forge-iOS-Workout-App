@@ -104,15 +104,68 @@ struct ProgressPhotosView: View {
     // MARK: - Entries list
 
     private var entriesList: some View {
-        // Cards as a horizontal carousel — swipe sideways to move between
-        // entries. Each page vertically centers its card inside the
-        // available area (overflowing into a scroll view if the card is
-        // taller than the viewport). Per-pose navigation lives inside the
-        // card via chevron buttons (no swipe conflict).
-        //
-        // Uses the native PageTabViewStyle indicator (UIPageControl under
-        // the hood) so the press-and-drag-to-scrub interaction works. Dot
-        // size is bumped to ~13pt via UIPageControl.appearance() in init.
+        // Date carousel above + card carousel below, both bound to
+        // currentEntryIndex so they stay synced. Tapping a date or
+        // swiping a card both write to the same source of truth.
+        VStack(spacing: 0) {
+            dateCarousel
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            cardCarousel
+        }
+        .onChange(of: photos.entries.count) { _, newCount in
+            if currentEntryIndex >= newCount {
+                currentEntryIndex = max(0, newCount - 1)
+            }
+        }
+    }
+
+    /// Horizontal date row — auto-scrolls to keep the active card's date
+    /// centered. Tapping a date jumps the card carousel to it.
+    private var dateCarousel: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 28) {
+                    ForEach(Array(photos.entries.enumerated()), id: \.element.id) { index, entry in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                currentEntryIndex = index
+                            }
+                        } label: {
+                            Text(formatEntryDate(entry.date))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(index == currentEntryIndex ? .white : darkGray)
+                        }
+                        .buttonStyle(.plain)
+                        .id(index)
+                    }
+                }
+                // Side insets large enough for any single label to scroll
+                // to true center on the smallest iPhone.
+                .padding(.horizontal, UIScreen.main.bounds.width / 2 - 60)
+            }
+            .frame(height: 32)
+            .onChange(of: currentEntryIndex) { _, newIndex in
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    proxy.scrollTo(newIndex, anchor: .center)
+                }
+            }
+            .onAppear {
+                // Defer one runloop so the ScrollView has laid out before
+                // the scroll-to call (otherwise the initial position can
+                // land off-center).
+                DispatchQueue.main.async {
+                    proxy.scrollTo(currentEntryIndex, anchor: .center)
+                }
+            }
+        }
+    }
+
+    /// Card carousel — uses native PageTabViewStyle so the dot indicator's
+    /// press-and-drag-to-scrub interaction works. Dot size is bumped to
+    /// ~13pt via UIPageControl.appearance() in init.
+    private var cardCarousel: some View {
         TabView(selection: $currentEntryIndex) {
             ForEach(Array(photos.entries.enumerated()), id: \.element.id) { index, entry in
                 GeometryReader { proxy in
@@ -132,11 +185,12 @@ struct ProgressPhotosView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: photos.entries.count > 1 ? .always : .never))
         .indexViewStyle(.page(backgroundDisplayMode: .always))
-        .onChange(of: photos.entries.count) { _, newCount in
-            if currentEntryIndex >= newCount {
-                currentEntryIndex = max(0, newCount - 1)
-            }
-        }
+    }
+
+    private func formatEntryDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
     }
 
 }
@@ -160,15 +214,13 @@ private struct EntryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(formatDate(entry.date))
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                Text(relativeLabel(for: entry.date))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(darkGray)
-            }
+            // Centered relative label — the absolute date is shown in the
+            // synced date carousel above the card carousel, so we don't
+            // duplicate it here.
+            Text(relativeLabel(for: entry.date))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(darkGray)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             // Single photo at a time — chevrons below cycle through poses.
             // No TabView here so the parent carousel's horizontal swipe
