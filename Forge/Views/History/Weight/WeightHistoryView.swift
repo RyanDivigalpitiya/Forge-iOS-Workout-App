@@ -124,6 +124,21 @@ struct WeightHistoryView: View {
                 LazyVStack(spacing: 0) {
                     Spacer().frame(height: 20)
                     ForEach(Array(bodyWeight.entries.enumerated()), id: \.element.id) { index, entry in
+                        if index == 0 {
+                            // "Latest:" label aligned with the weight column
+                            // — the leading spacers match the days-ago + timeline
+                            // column widths used in entryRow.
+                            HStack(spacing: 12) {
+                                Color.clear.frame(width: 90, height: 1)
+                                Color.clear.frame(width: timelineColumnWidth, height: 1)
+                                Text("Latest:")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                            .padding(.bottom, 2)
+                        }
+
                         Button {
                             sheetTarget = .edit(entry)
                         } label: {

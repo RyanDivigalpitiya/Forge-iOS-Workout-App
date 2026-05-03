@@ -19,6 +19,12 @@ struct UpdateWeightSheet: View {
 
     init(editingEntry: BodyWeightEntry? = nil) {
         self.editingEntry = editingEntry
+        // Seed the detent with each mode's natural size so the first
+        // frame is correct before the GeometryReader fires. iOS sheets
+        // honor the initial detent at presentation time and only smooth
+        // small changes afterward, so getting the seed right per-mode
+        // matters more than relying on dynamic resize alone.
+        _measuredContentHeight = State(initialValue: editingEntry == nil ? 420 : 230)
     }
 
     @EnvironmentObject var bodyWeight: BodyWeightViewModel
@@ -28,7 +34,7 @@ struct UpdateWeightSheet: View {
     @State private var weightLbs: Double = 175.0
     @State private var weightText: String = "175.0"
     @State private var showDeleteConfirm = false
-    @State private var measuredContentHeight: CGFloat = 420
+    @State private var measuredContentHeight: CGFloat
     @FocusState private var weightFieldFocused: Bool
 
     private let darkGray = GlobalSettings.shared.editorDarkGray
@@ -47,7 +53,7 @@ struct UpdateWeightSheet: View {
 
     private var isEditing: Bool { editingEntry != nil }
 
-    private var title: String { isEditing ? "Edit Weight" : "Update Weight" }
+    private var title: String { isEditing ? "Delete Entry" : "Update Weight" }
 
     /// Wheel bounds + step expressed in the *current* display unit. The
     /// kg ranges roughly mirror the lb ones (50 lb ≈ 22.7 kg, 500 lb ≈
@@ -145,18 +151,20 @@ struct UpdateWeightSheet: View {
                 .frame(width: 0.6 * screenWidth)
 
                 HStack {
-                    Button {
-                        save()
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .frame(width: 28, height: 28)
-                                .foregroundColor(buttonCircleBgColor)
-                            Image(systemName: isEditing ? "checkmark" : "arrow.up")
-                                .resizable()
-                                .frame(width: 13, height: 13)
-                                .fontWeight(.bold)
-                                .foregroundColor(settings.fgColor)
+                    if !isEditing {
+                        Button {
+                            save()
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .frame(width: 28, height: 28)
+                                    .foregroundColor(buttonCircleBgColor)
+                                Image(systemName: "arrow.up")
+                                    .resizable()
+                                    .frame(width: 13, height: 13)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(settings.fgColor)
+                            }
                         }
                     }
                 }
@@ -166,92 +174,16 @@ struct UpdateWeightSheet: View {
 
             Spacer().frame(height: 10)
 
-            // WEIGHT INPUT (above wheel) + WHEEL + ± buttons
-            VStack(spacing: 8) {
-
-                // Numeric text field — accepts arbitrary decimal lbs
-                // (e.g. 175.23). Wheel and ± below overwrite this with
-                // step-aligned values; typing here overrides them.
-                HStack(spacing: 8) {
-                    TextField("0", text: $weightText)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.center)
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(settings.fgColor)
-                        .focused($weightFieldFocused)
-                        .fixedSize(horizontal: true, vertical: false)
-                    Text(settings.weightUnit.pluralLabel)
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(darkGray)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 4)
-
-                Picker(selection: wheelSelection, label: Text("Weight")) {
-                    ForEach(weightRange, id: \.self) { value in
-                        Text("\(formatForField(value)) \(settings.weightUnit.shortLabel)")
-                            .foregroundColor(settings.fgColor)
-                            .tag(value)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .frame(width: 200, height: wheelSelectorSize)
-
-                // ± buttons (copy of HomogeneousSetPicker pattern, with
-                // symmetric horizontal spacing around both glyphs).
-                HStack(spacing: buttonPlusMinusGap) {
-                    Button {
-                        let current = userUnitValue(weightLbs)
-                        if current > wheelMin {
-                            weightLbs = lbsValue(roundToStep(current - wheelStep))
-                            feedbackGenerator.impactOccurred()
-                        }
-                    } label: {
-                        Image(systemName: "minus")
-                            .foregroundColor(.black)
-                            .font(.system(size: buttonPlusMinusIconSize))
-                            .bold()
-                            .padding(buttonPlusMinusSize)
-                    }
-
-                    Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
-
-                    Button {
-                        let current = userUnitValue(weightLbs)
-                        if current < wheelMax {
-                            weightLbs = lbsValue(roundToStep(current + wheelStep))
-                            feedbackGenerator.impactOccurred()
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundColor(.black)
-                            .font(.system(size: buttonPlusMinusIconSize))
-                            .bold()
-                            .padding(buttonPlusMinusSize)
-                    }
-                }
-                .padding(.horizontal, buttonPlusMinusGap)
-                .frame(height: buttonPlusMinusHeight)
-                .background(settings.fgColor)
-                .cornerRadius(settings.cornerRadiusSmall)
-
-                if isEditing {
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Text("Delete Entry")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(settings.fgColor)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                    }
-                    .padding(.top, 10)
-                }
+            if isEditing {
+                deleteContent
+            } else {
+                addContent
             }
 
             Spacer().frame(height: 16)
         }
         .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
         .background(
             GeometryReader { geo in
                 Color.clear.preference(
@@ -265,11 +197,10 @@ struct UpdateWeightSheet: View {
         .onPreferenceChange(SheetContentHeightKey.self) { newHeight in
             // Discard garbage values from incomplete layout passes
             // (sometimes SwiftUI emits a 0 before the first real
-            // measurement). 200pt is well below any plausible content
-            // height for this sheet — anything smaller is a spurious
-            // pre-layout reading.
+            // measurement). 150pt covers the smaller delete-mode body
+            // (~210pt) while still rejecting spurious pre-layout readings.
             let rounded = newHeight.rounded()
-            guard rounded > 200 else { return }
+            guard rounded > 150 else { return }
             if abs(rounded - measuredContentHeight) > 1 {
                 measuredContentHeight = rounded
             }
@@ -323,14 +254,143 @@ struct UpdateWeightSheet: View {
         }
     }
 
+    // MARK: - mode-specific content
+
+    /// Add-mode body: weight input field + wheel + ± buttons.
+    @ViewBuilder
+    private var addContent: some View {
+        VStack(spacing: 8) {
+
+            // Numeric text field — accepts arbitrary decimal lbs
+            // (e.g. 175.23). Wheel and ± below overwrite this with
+            // step-aligned values; typing here overrides them.
+            HStack(spacing: 8) {
+                TextField("0", text: $weightText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(settings.fgColor)
+                    .focused($weightFieldFocused)
+                    .fixedSize(horizontal: true, vertical: false)
+                Text(settings.weightUnit.pluralLabel)
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(darkGray)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 4)
+
+            Picker(selection: wheelSelection, label: Text("Weight")) {
+                ForEach(weightRange, id: \.self) { value in
+                    Text("\(formatForField(value)) \(settings.weightUnit.shortLabel)")
+                        .foregroundColor(settings.fgColor)
+                        .tag(value)
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(width: 200, height: wheelSelectorSize)
+
+            // ± buttons (copy of HomogeneousSetPicker pattern, with
+            // symmetric horizontal spacing around both glyphs).
+            HStack(spacing: buttonPlusMinusGap) {
+                Button {
+                    let current = userUnitValue(weightLbs)
+                    if current > wheelMin {
+                        weightLbs = lbsValue(roundToStep(current - wheelStep))
+                        feedbackGenerator.impactOccurred()
+                    }
+                } label: {
+                    Image(systemName: "minus")
+                        .foregroundColor(.black)
+                        .font(.system(size: buttonPlusMinusIconSize))
+                        .bold()
+                        .padding(buttonPlusMinusSize)
+                }
+
+                Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+                Button {
+                    let current = userUnitValue(weightLbs)
+                    if current < wheelMax {
+                        weightLbs = lbsValue(roundToStep(current + wheelStep))
+                        feedbackGenerator.impactOccurred()
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .foregroundColor(.black)
+                        .font(.system(size: buttonPlusMinusIconSize))
+                        .bold()
+                        .padding(buttonPlusMinusSize)
+                }
+            }
+            .padding(.horizontal, buttonPlusMinusGap)
+            .frame(height: buttonPlusMinusHeight)
+            .background(settings.fgColor)
+            .cornerRadius(settings.cornerRadiusSmall)
+        }
+    }
+
+    /// Delete-mode body: read-only entry summary + a single destructive
+    /// action. No editing controls — past entries can be removed but not
+    /// modified, so the user re-logs from scratch if they need to fix one.
+    @ViewBuilder
+    private var deleteContent: some View {
+        if let entry = editingEntry {
+            VStack(spacing: 12) {
+                Spacer().frame(height: 18)
+
+                Text(WeightUnit.formatWeight(lbs: entry.weightLbs, in: settings.weightUnit))
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundColor(settings.fgColor)
+
+                Text(entryDateLabel(for: entry.date))
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(darkGray)
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Delete Entry")
+                            .font(.system(size: 16, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 28)
+                    .background(settings.fgColor, in: Capsule())
+                }
+                .padding(.top, 18)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// "Today" / "Yesterday" / "N days ago" / "Mar 15, 2026" — same family
+    /// as the timeline label but with a year suffix for the deletion
+    /// confirmation context, where ambiguity matters more.
+    private func entryDateLabel(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInYesterday(date) { return "Yesterday" }
+        let startOfNow = calendar.startOfDay(for: Date())
+        let startOfDate = calendar.startOfDay(for: date)
+        let components = calendar.dateComponents([.day], from: startOfDate, to: startOfNow)
+        if let day = components.day, day > 0, day < 30 {
+            return "\(day) days ago"
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
+    }
+
     // MARK: - actions
 
     private func save() {
-        if let editingEntry {
-            bodyWeight.updateEntry(id: editingEntry.id, weightLbs: weightLbs)
-        } else {
-            bodyWeight.addEntry(weightLbs: weightLbs)
-        }
+        // Save is only reachable in add mode — the toolbar's save button
+        // is hidden when an entry is being targeted for deletion.
+        bodyWeight.addEntry(weightLbs: weightLbs)
         dismiss()
     }
 
@@ -341,9 +401,9 @@ struct UpdateWeightSheet: View {
     }
 
     private func initialWeight() -> Double {
-        if let editingEntry {
-            return editingEntry.weightLbs
-        }
+        // Add-mode preselection: the most recent entry, or 175 lb on
+        // first run. Edit-mode never reaches the wheel — its body uses a
+        // read-only summary instead.
         if let latest = bodyWeight.entries.first {
             return latest.weightLbs
         }
