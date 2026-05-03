@@ -19,7 +19,7 @@ struct ProgressPhotosView: View {
         // Safe to set globally — only one other PageTabViewStyle exists
         // in the app (HistoryView) and it uses indexDisplayMode: .never,
         // so this appearance never renders there.
-        let config = UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)
+        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
         UIPageControl.appearance().preferredIndicatorImage =
             UIImage(systemName: "circle.fill", withConfiguration: config)
     }
@@ -110,7 +110,6 @@ struct ProgressPhotosView: View {
         VStack(spacing: 0) {
             dateCarousel
                 .padding(.top, 8)
-                .padding(.bottom, 4)
 
             cardCarousel
         }
@@ -212,29 +211,71 @@ private struct EntryCard: View {
 
     private var poses: [ProgressPhotoPose] { photos.presentPoses(for: entry) }
 
+    /// File URL of the pose currently on screen. Used as the ShareLink
+    /// item — sharing a URL passes through the system share sheet so the
+    /// user can save to Photos, send via Messages/Mail, etc.
+    private var currentPhotoURL: URL? {
+        guard poses.indices.contains(pageIndex),
+              let filename = photos.filename(for: entry, pose: poses[pageIndex])
+        else { return nil }
+        return photos.photosDirectory.appendingPathComponent(filename)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Centered relative label — the absolute date is shown in the
-            // synced date carousel above the card carousel, so we don't
-            // duplicate it here.
-            Text(relativeLabel(for: entry.date))
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(darkGray)
-                .frame(maxWidth: .infinity, alignment: .center)
+            // Top row: delete (left) — relative label (center) — share (right).
+            // Centered label sits as a ZStack overlay so the side icons'
+            // widths don't shift it off-axis.
+            ZStack {
+                Text(relativeLabel(for: entry.date))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(darkGray)
+
+                HStack {
+                    Button {
+                        onLongPress()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(settings.fgColor)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    if let url = currentPhotoURL {
+                        ShareLink(item: url) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(settings.fgColor)
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
 
             // Single photo at a time — chevrons below cycle through poses.
             // No TabView here so the parent carousel's horizontal swipe
             // owns gesture handling exclusively.
-            Group {
-                if poses.indices.contains(pageIndex) {
-                    photoPage(pose: poses[pageIndex])
-                } else {
-                    Color.clear
+            //
+            // Uses a Color.clear sizer so the 4:5 aspect ratio governs the
+            // frame regardless of the underlying UIImage's intrinsic
+            // dimensions. With a resizable Image as the direct aspectRatio
+            // host, very large source photos (8K+) can blow the frame past
+            // the viewport — the Color.clear placeholder has no intrinsic
+            // size, so the constraint binds reliably.
+            Color.clear
+                .aspectRatio(4.0/5.0, contentMode: .fit)
+                .overlay {
+                    if poses.indices.contains(pageIndex) {
+                        photoPage(pose: poses[pageIndex])
+                    }
                 }
-            }
-            .aspectRatio(4.0/5.0, contentMode: .fit)
-            .background(bgColor)
-            .cornerRadius(settings.cornerRadiusLarge)
+                .background(bgColor)
+                .clipShape(RoundedRectangle(cornerRadius: settings.cornerRadiusLarge))
 
             // Segmented capsule indicator — same style as the plan
             // suggestion carousel. Sits above the pose label.
@@ -326,8 +367,7 @@ private struct EntryCard: View {
            let image = photos.loadImage(filename: filename) {
             Image(uiImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .aspectRatio(contentMode: .fill)
         } else {
             VStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle")
