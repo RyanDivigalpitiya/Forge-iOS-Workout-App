@@ -26,6 +26,8 @@ struct SettingsView: View {
     @State private var heightInchesText: String = ""
     @State private var heightCmText: String = ""
 
+    @FocusState private var heightFieldFocused: Bool
+
     private var profileTrimmedName: String {
         profileName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -193,20 +195,22 @@ struct SettingsView: View {
             Section {
                 heightInputRow
                     .listRowBackground(GlobalSettings.shared.bgColor)
-
-                if settings.heightCm != nil {
-                    Button(role: .destructive) {
-                        clearHeight()
-                    } label: {
-                        Text("Clear Height")
-                    }
-                    .listRowBackground(GlobalSettings.shared.bgColor)
-                }
             } header: {
                 Text("Hight Info for BMI")
             } footer: {
-                Text("Height is used to compute your BMI in the body weight tracker.")
-                    .foregroundColor(GlobalSettings.shared.editorDarkGray)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Height is used to compute your BMI in the body weight tracker.")
+                    if settings.heightCm != nil {
+                        Button {
+                            clearHeight()
+                        } label: {
+                            Text("Clear Height")
+                                .foregroundColor(settings.fgColor)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                .foregroundColor(GlobalSettings.shared.editorDarkGray)
             }
 
             Section {
@@ -267,6 +271,7 @@ struct SettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         .background(.black)
         .navigationTitle("Settings")
         .navigationBarTitleTextColor(settings.fgColor)
@@ -318,12 +323,14 @@ struct SettingsView: View {
             case .lb:
                 TextField("Feet", text: $heightFeetText)
                     .keyboardType(.numberPad)
+                    .focused($heightFieldFocused)
                     .frame(width: 50)
                     .multilineTextAlignment(.center)
                 Text("ft")
                     .foregroundColor(GlobalSettings.shared.editorDarkGray)
                 TextField("Inches", text: $heightInchesText)
                     .keyboardType(.decimalPad)
+                    .focused($heightFieldFocused)
                     .frame(width: 60)
                     .multilineTextAlignment(.center)
                 Text("in")
@@ -331,6 +338,7 @@ struct SettingsView: View {
             case .kg:
                 TextField("Centimeters", text: $heightCmText)
                     .keyboardType(.decimalPad)
+                    .focused($heightFieldFocused)
                     .frame(width: 100)
                     .multilineTextAlignment(.center)
                 Text("cm")
@@ -357,6 +365,7 @@ struct SettingsView: View {
 
     private func saveHeight() {
         guard let cm = heightDraftCm else { return }
+        heightFieldFocused = false
         settings.heightCm = cm
         // Re-derive the field text from the just-saved value so any
         // rounding (e.g. 5 ft 11.0 in → 180.34 cm → "180.3 cm") is

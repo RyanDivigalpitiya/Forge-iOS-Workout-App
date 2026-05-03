@@ -286,28 +286,11 @@ struct WeightHistoryView: View {
         }
     }
 
-    /// Wraps the parenthetical (BMI: XX.X) / (alt-unit) in a button when
-    /// no height is set — tapping any row's parenthetical doubles as a
-    /// shortcut to add height. When height is set the parenthetical is a
-    /// plain Text (the row's tap area still opens edit-weight, so we don't
-    /// want to compete with that gesture).
     @ViewBuilder
     private func parentheticalView(for entry: BodyWeightEntry) -> some View {
-        let label = "(\(parentheticalLabel(for: entry)))"
-        if settings.heightCm == nil {
-            Button {
-                showHeightSheet = true
-            } label: {
-                Text(label)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(darkGray)
-            }
-            .buttonStyle(.plain)
-        } else {
-            Text(label)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(darkGray)
-        }
+        Text("(\(parentheticalLabel(for: entry)))")
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(darkGray)
     }
 
     /// BMI when height is set, otherwise the weight rendered in the
