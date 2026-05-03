@@ -8,6 +8,18 @@ struct WeightHistoryView: View {
     @State private var sheetTarget: WeightSheetTarget?
     @State private var showHeightSheet = false
 
+    /// Entry IDs whose row has played the on-appear cascade. Rows render
+    /// at opacity 0 + .offset(y: 24) — sliding up from below — until the
+    /// id lands here. Mirrors `SelectPlanView`'s plan-row cascade.
+    @State private var appearedEntryIds: Swift.Set<UUID> = []
+    @State private var entryCascadeTask: Task<Void, Never>?
+    /// Set true when the cascade loop completes. Any entry added AFTER
+    /// the cascade finishes (e.g. logged via the Update Weight sheet
+    /// while we already animated the existing list) renders at final
+    /// state via the `isAppeared` short-circuit. Reset to false on every
+    /// new cascade.
+    @State private var entryCascadeFinished = false
+
     private let darkGray = GlobalSettings.shared.darkGray
     private let nodeSize: CGFloat = 8
     private let diffDotSize: CGFloat = 5
@@ -72,6 +84,36 @@ struct WeightHistoryView: View {
                 .foregroundColor(settings.fgColor)
             }
         }
+        .onAppear {
+            triggerEntryCascade()
+        }
+    }
+
+    /// Replays the staggered fade + slide-up-from-below cascade across
+    /// every visible weight entry. Same timing as `SelectPlanView`'s
+    /// plan-row cascade (80ms initial settle, 0.7s easeOut per row,
+    /// 80ms inter-row delay). The loop re-reads `bodyWeight.entries`
+    /// each iteration so an entry added mid-cascade gets picked up.
+    /// `entryCascadeFinished` covers the post-cascade case so late
+    /// additions render visible instead of stuck blank.
+    private func triggerEntryCascade() {
+        entryCascadeTask?.cancel()
+        appearedEntryIds = []
+        entryCascadeFinished = false
+        entryCascadeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(80))
+            while !Task.isCancelled {
+                let allIdsTopFirst = bodyWeight.entries.map(\.id)
+                guard let nextId = allIdsTopFirst.first(where: {
+                    !appearedEntryIds.contains($0)
+                }) else { break }
+                withAnimation(.easeOut(duration: 0.7)) {
+                    _ = appearedEntryIds.insert(nextId)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            entryCascadeFinished = true
+        }
     }
 
     // MARK: - Empty state
@@ -124,40 +166,45 @@ struct WeightHistoryView: View {
                 LazyVStack(spacing: 0) {
                     Spacer().frame(height: 20)
                     ForEach(Array(bodyWeight.entries.enumerated()), id: \.element.id) { index, entry in
-                        if index == 0 {
-                            // "Latest:" label aligned with the weight column
-                            // — the leading spacers match the days-ago + timeline
-                            // column widths used in entryRow.
-                            HStack(spacing: 12) {
-                                Color.clear.frame(width: 90, height: 1)
-                                Color.clear.frame(width: timelineColumnWidth, height: 1)
-                                Text("Latest:")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.white)
-                                Spacer()
+                        let isAppeared = entryCascadeFinished || appearedEntryIds.contains(entry.id)
+                        VStack(spacing: 0) {
+                            if index == 0 {
+                                // "Latest:" label aligned with the weight column
+                                // — the leading spacers match the days-ago + timeline
+                                // column widths used in entryRow.
+                                HStack(spacing: 12) {
+                                    Color.clear.frame(width: 90, height: 1)
+                                    Color.clear.frame(width: timelineColumnWidth, height: 1)
+                                    Text("Latest:")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                }
+                                .padding(.bottom, 2)
                             }
-                            .padding(.bottom, 2)
-                        }
 
-                        Button {
-                            sheetTarget = .edit(entry)
-                        } label: {
-                            entryRow(
-                                entry: entry,
-                                isFirst: index == 0,
-                                isLast: index == bodyWeight.entries.count - 1
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                            Button {
+                                sheetTarget = .edit(entry)
+                            } label: {
+                                entryRow(
+                                    entry: entry,
+                                    isFirst: index == 0,
+                                    isLast: index == bodyWeight.entries.count - 1
+                                )
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
 
-                        if index < bodyWeight.entries.count - 1 {
-                            let later = bodyWeight.entries[index]
-                            let earlier = bodyWeight.entries[index + 1]
-                            netDiffRow(
-                                delta: bodyWeight.netDifference(from: earlier, to: later)
-                            )
+                            if index < bodyWeight.entries.count - 1 {
+                                let later = bodyWeight.entries[index]
+                                let earlier = bodyWeight.entries[index + 1]
+                                netDiffRow(
+                                    delta: bodyWeight.netDifference(from: earlier, to: later)
+                                )
+                            }
                         }
+                        .opacity(isAppeared ? 1 : 0)
+                        .offset(y: isAppeared ? 0 : 24)
                     }
                     Spacer().frame(height: 20)
                 }
