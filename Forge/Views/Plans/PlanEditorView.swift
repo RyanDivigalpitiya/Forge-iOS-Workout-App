@@ -16,6 +16,14 @@ struct PlanEditorView: View {
     @State private var exerciseToTransferIndex: Int? = nil
     @State private var showTransferSheet = false
 
+    /// Drives the "newly added exercise bounces" animation. Same recipe
+    /// as `WeightHistoryView.bounceEntry(id:)` /
+    /// `PlanSuggestionView.bounceSuggestedPane()` — quick scale-up, slow
+    /// spring back. Targets the just-appended exercise (new ones land
+    /// at the end of `activePlan.exercises`).
+    @State private var bouncingExerciseId: UUID? = nil
+    @State private var bounceScale: CGFloat = 1.0
+
     private var isSaveDisabled: Bool {
         Validation.trimmedName(planViewModel.activePlan.name) == nil || planViewModel.activePlan.exercises.isEmpty
     }
@@ -128,6 +136,7 @@ struct PlanEditorView: View {
                         .padding(15)
                         .background(bgColor)
                         .cornerRadius(settings.cornerRadiusLarge)
+                        .scaleEffect(exercise.id == bouncingExerciseId ? bounceScale : 1.0)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if !planViewModel.activePlanIsReadOnly {
                                 Button(role: .destructive) {
@@ -344,6 +353,33 @@ struct PlanEditorView: View {
         }
         .background(.black)
         .disabled(isDoneCheckMarkVisible)
+        .onChange(of: planViewModel.activePlan.exercises.count) { oldCount, newCount in
+            // Bounce only on adds (not deletes/reorders/imports). New
+            // exercises are appended via `exercises.append(...)` in
+            // ExerciseEditorView.saveExercise(), so the just-added one
+            // is `last`. Small delay lets the editor sheet finish
+            // dismissing before the bounce plays.
+            if newCount > oldCount, let lastId = planViewModel.activePlan.exercises.last?.id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    bounceExercise(id: lastId)
+                }
+            }
+        }
+    }
+
+    /// Bounces the newly added exercise: quick scale up, slow spring
+    /// back. Mirrors `WeightHistoryView.bounceEntry(id:)`.
+    private func bounceExercise(id: UUID) {
+        bouncingExerciseId = id
+        bounceScale = 1.0
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+            bounceScale = 1.08
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+                bounceScale = 1.0
+            }
+        }
     }
 }
 
