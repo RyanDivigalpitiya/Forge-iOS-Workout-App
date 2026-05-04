@@ -36,6 +36,21 @@ struct PlanSuggestionView: View {
         return sessionClient.peerProfiles[pid]
     }
 
+    /// Compact layout for screens ≤ 380pt wide (iPhone SE 3rd gen, 12/13
+    /// mini). At standard sizing the avatar row's intrinsic width
+    /// approaches the SE's available content area, so READY UP / NOT
+    /// READY wraps to two lines. Compact mode shaves ~40pt across
+    /// avatars, button paddings, and the connector.
+    private var screenWidth: CGFloat { UIScreen.main.bounds.width }
+    private var isCompactWidth: Bool { screenWidth <= 380 }
+    private var avatarDiameter: CGFloat { isCompactWidth ? 36 : 44 }
+    private var connectorRectWidth: CGFloat { isCompactWidth ? 18 : 28 }
+    private var connectorCircleSize: CGFloat { isCompactWidth ? 5 : 6 }
+    private var connectorHPadding: CGFloat { isCompactWidth ? 6 : 8 }
+    private var readyButtonHPadding: CGFloat { isCompactWidth ? 7 : 10 }
+    private var readyButtonVPadding: CGFloat { isCompactWidth ? 4 : 6 }
+    private var readyButtonOuterPadding: CGFloat { isCompactWidth ? 4 : 7 }
+
     var body: some View {
         VStack(spacing: 16) {
             gradientPanel
@@ -276,25 +291,25 @@ struct PlanSuggestionView: View {
             Spacer()
 
             readyUpButton(isSelf: false)
-                .padding(.trailing, 7)
+                .padding(.trailing, readyButtonOuterPadding)
 
             avatar(
                 data: peerProfile?.photoData,
                 fallbackInitial: initial(from: peerProfile?.name ?? "?"),
-                diameter: 44
+                diameter: avatarDiameter
             )
 
             connector
-                .padding(.horizontal, 8)
+                .padding(.horizontal, connectorHPadding)
 
             avatar(
                 data: sessionClient.myProfile?.photoData,
                 fallbackInitial: initial(from: sessionClient.myProfile?.name ?? "?"),
-                diameter: 44
+                diameter: avatarDiameter
             )
 
             readyUpButton(isSelf: true)
-                .padding(.leading, 7)
+                .padding(.leading, readyButtonOuterPadding)
 
             Spacer()
         }
@@ -322,7 +337,10 @@ struct PlanSuggestionView: View {
         } else if isSelf {
             labelColor = settings.fgColor
         } else {
-            labelColor = .gray
+            // Friend's NOT READY status descriptor — lighter than system
+            // .gray so it stays legible against the dark backdrop without
+            // looking like a disabled control.
+            labelColor = Color(white: 0.72)
         }
 
         return Button {
@@ -346,14 +364,24 @@ struct PlanSuggestionView: View {
                 }
             }
             .foregroundColor(labelColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, readyButtonHPadding)
+            .padding(.vertical, readyButtonVPadding)
             .background(isReady ? settings.fgColor : Color.clear)
             .cornerRadius(settings.cornerRadiusSmall)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.plain)
-        .disabled(!canInteract)
-        .opacity(isReady || canInteract ? 1.0 : 0.65)
+        // `.allowsHitTesting` instead of `.disabled` so the friend's chip
+        // doesn't pick up SwiftUI's environmental disabled-dim — the
+        // friend's READY state should render at the same intensity as
+        // self's. Tap-suppression for friend taps is handled by the
+        // `if isSelf` guard inside the button action.
+        .allowsHitTesting(canInteract)
+        // Only dim self's pre-suggestion not-ready state. Friend states
+        // (ready or not) and self-ready stay full opacity; the friend's
+        // not-ready labelColor does its own muting via a lighter grey.
+        .opacity((isSelf && !isReady && !canInteract) ? 0.65 : 1.0)
         .shadow(
             color: settings.fgColor.opacity(isReady ? 0.5 : 0.4),
             radius: 15,
@@ -364,9 +392,9 @@ struct PlanSuggestionView: View {
 
     private var connector: some View {
         HStack(spacing: 0) {
-            Circle().frame(width: 6, height: 6)
-            Rectangle().frame(width: 28, height: 1)
-            Circle().frame(width: 6, height: 6)
+            Circle().frame(width: connectorCircleSize, height: connectorCircleSize)
+            Rectangle().frame(width: connectorRectWidth, height: 1)
+            Circle().frame(width: connectorCircleSize, height: connectorCircleSize)
         }
         .foregroundColor(GlobalSettings.shared.darkGray)
     }
