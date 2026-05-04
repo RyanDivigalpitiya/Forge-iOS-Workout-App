@@ -468,3 +468,29 @@ struct KeyboardPersistentTextView: UIViewRepresentable {
         }
     }
 }
+
+// MARK: - Previews
+
+#Preview("Paired w/ chat") {
+    CollabChatPanel(showAvatarHeader: true)
+        .environmentObject(MockSessionClient.pairedWithChat())
+        .environmentObject(GlobalSettings.shared)
+        .background(Color.black)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Empty (just paired)") {
+    CollabChatPanel(showAvatarHeader: true)
+        .environmentObject(MockSessionClient.paired())
+        .environmentObject(GlobalSettings.shared)
+        .background(Color.black)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Translucent input bg") {
+    CollabChatPanel(showAvatarHeader: false, translucentInputBackground: true)
+        .environmentObject(MockSessionClient.pairedWithChat())
+        .environmentObject(GlobalSettings.shared)
+        .background(Color.black)
+        .preferredColorScheme(.dark)
+}

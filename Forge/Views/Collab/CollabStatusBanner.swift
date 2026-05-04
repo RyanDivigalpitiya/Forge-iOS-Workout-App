@@ -183,3 +183,47 @@ struct CollabStatusBanner: View {
         }
     }
 }
+
+// MARK: - Previews
+
+/// The banner only renders content in non-healthy states; for sane Canvas
+/// rendering we wrap it in a fixed-height container with a black backdrop.
+private struct BannerPreviewHost<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        VStack {
+            content()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+    }
+}
+
+#Preview("Waiting for peer") {
+    BannerPreviewHost { CollabStatusBanner() }
+        .environmentObject(MockSessionClient.waitingForPeer())
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Peer finished") {
+    BannerPreviewHost { CollabStatusBanner() }
+        .environmentObject(MockSessionClient.peerExited(reason: .finished))
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Peer cancelled") {
+    BannerPreviewHost { CollabStatusBanner() }
+        .environmentObject(MockSessionClient.peerExited(reason: .cancelled))
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Disconnected") {
+    BannerPreviewHost { CollabStatusBanner() }
+        .environmentObject(MockSessionClient.disconnected())
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
+}

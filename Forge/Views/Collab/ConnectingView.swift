@@ -96,3 +96,32 @@ struct ConnectingView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#Preview("Connecting") {
+    NavigationStack {
+        ConnectingView()
+            .environmentObject(MockSessionClient.connecting())
+            .environmentObject(GlobalSettings.shared)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Waiting for peer") {
+    NavigationStack {
+        ConnectingView()
+            .environmentObject(MockSessionClient.waitingForPeer())
+            .environmentObject(GlobalSettings.shared)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Reconnecting") {
+    NavigationStack {
+        ConnectingView()
+            .environmentObject(MockSessionClient.disconnected())
+            .environmentObject(GlobalSettings.shared)
+    }
+    .preferredColorScheme(.dark)
+}

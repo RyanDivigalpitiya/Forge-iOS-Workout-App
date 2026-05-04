@@ -193,6 +193,133 @@ let mockBodyWeightEntries: [BodyWeightEntry] = [
     BodyWeightEntry(date: bwNow.addingTimeInterval(-75 * dayInSeconds),   weightLbs: 168.5),
 ]
 
+// MARK: - Collab session mocks (Xcode Canvas only)
+//
+// `SessionClient.init()` is non-networking — it just loads any cached
+// profile and wires a Combine sink — so setting `@Published` properties
+// directly produces a fully-rendered preview state without opening a
+// WebSocket. Use these factories in `#Preview` blocks; switch device
+// sizes from Canvas's device picker to sweep SE → Pro Max layouts.
+
+@MainActor
+enum MockSessionClient {
+
+    private static let myId      = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+    private static let peerId    = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+    private static let sessionId = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+
+    private static func basePaired(
+        myName: String = "Ryan",
+        peerName: String? = "Alex"
+    ) -> SessionClient {
+        let c = SessionClient()
+        c.myId = myId
+        c.sessionId = sessionId
+        c.myProfile = Profile(name: myName, photoData: nil)
+        c.hasSubmittedProfile = true
+        c.state = .paired(peerIds: [peerId])
+        if let peerName {
+            c.peerProfiles = [peerId: Profile(name: peerName, photoData: nil)]
+        }
+        return c
+    }
+
+    /// Both peers paired, no chat, no suggested plan.
+    static func paired(peerName: String? = "Alex") -> SessionClient {
+        basePaired(peerName: peerName)
+    }
+
+    /// Paired + a sample back-and-forth chat (peer + mine, multi-line,
+    /// reaction badges).
+    static func pairedWithChat() -> SessionClient {
+        let c = basePaired()
+        c.chatEntries = sampleChatEntries()
+        return c
+    }
+
+    /// Paired + a `suggestedPlan` set — drives `PlanSuggestionView`'s
+    /// "Plan Suggested" branch.
+    static func pairedWithSuggestion() -> SessionClient {
+        let c = basePaired()
+        if let firstPlan = mockWorkoutPlans.first {
+            c.suggestedPlan = PlanSnapshot(from: firstPlan)
+        }
+        return c
+    }
+
+    /// Socket up, no peer yet — `CollabStatusBanner` surfaces the
+    /// "Re-invite" affordance in this state.
+    static func waitingForPeer() -> SessionClient {
+        let c = SessionClient()
+        c.myId = myId
+        c.sessionId = sessionId
+        c.myProfile = Profile(name: "Ryan", photoData: nil)
+        c.hasSubmittedProfile = true
+        c.state = .waitingForPeer
+        return c
+    }
+
+    /// Local socket dropped — `CollabStatusBanner` shows the generic
+    /// disconnect message.
+    static func disconnected(reason: String = "Lost connection") -> SessionClient {
+        let c = SessionClient()
+        c.myId = myId
+        c.state = .disconnected(reason: reason)
+        return c
+    }
+
+    /// Peer broadcast a clean exit before closing — banner shows the
+    /// labeled "Friend finished" / "Friend left session" copy. Pass
+    /// `.finished` or `.cancelled`.
+    static func peerExited(reason: PeerExitInfo.Reason = .finished) -> SessionClient {
+        let c = basePaired()
+        c.peerExitInfo = PeerExitInfo(peerId: peerId, reason: reason)
+        return c
+    }
+
+    /// `ConnectingView` initial frame — pulsing icon, session id assigned
+    /// but no peer yet.
+    static func connecting() -> SessionClient {
+        let c = SessionClient()
+        c.myId = myId
+        c.sessionId = sessionId
+        c.state = .connecting
+        return c
+    }
+
+    /// Sample chat history — covers peer-sent, mine-sent, multi-line text,
+    /// and reactions on both sides.
+    static func sampleChatEntries() -> [ChatEntry] {
+        let now = Date()
+        return [
+            ChatEntry(
+                id: UUID(), text: "Hey, ready to lift?",
+                timestamp: now.addingTimeInterval(-300),
+                isMine: false,
+                myReaction: "❤️", peerReaction: nil
+            ),
+            ChatEntry(
+                id: UUID(), text: "Yeah, just warming up. Pull day?",
+                timestamp: now.addingTimeInterval(-240),
+                isMine: true,
+                myReaction: nil, peerReaction: nil
+            ),
+            ChatEntry(
+                id: UUID(), text: "Yep, hitting back + biceps. I'll suggest the plan.",
+                timestamp: now.addingTimeInterval(-180),
+                isMine: false,
+                myReaction: nil, peerReaction: nil
+            ),
+            ChatEntry(
+                id: UUID(), text: "Sounds good 💪",
+                timestamp: now.addingTimeInterval(-30),
+                isMine: true,
+                myReaction: nil, peerReaction: "🔥"
+            ),
+        ]
+    }
+}
+
 // MARK: - Progress photos mock data
 
 #if canImport(UIKit) && DEBUG
