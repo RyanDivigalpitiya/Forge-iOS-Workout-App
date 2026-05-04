@@ -208,19 +208,23 @@ struct PlanSuggestionView: View {
     }
 
     private func openPreview(snapshot: PlanSnapshot) {
-        // Phase C: if B already has a structurally-identical plan, route
-        // preview to B's own editable copy so they see their own
-        // weights/reps. Otherwise fall through to the existing read-only
-        // snapshot preview (covers both lineageMatch and none branches —
-        // divergence is handled at Ready time, not at preview).
+        // The suggested-header PREVIEW is strictly read-only on both
+        // devices — editing the suggested plan is not a supported
+        // operation through this surface (the suggester edits their plan
+        // via the carousel's own PREVIEW, which is the only path that
+        // re-broadcasts). Phase C still applies for *display*: if B has a
+        // structurally-identical local plan, render that copy so B sees
+        // their own weights/reps instead of the broadcast's. Index is the
+        // -1 sentinel so the save path stays gated even if a future
+        // refactor accidentally clears the read-only flag.
         if case .fingerprintMatch(let local, _) = planViewModel.findMatch(
             forFingerprint: snapshot.fingerprint,
             lineageId: snapshot.lineageId
         ) {
-            openPreview(ownPlan: local)
-            return
+            planViewModel.activePlan = local
+        } else {
+            planViewModel.activePlan = snapshot.toWorkoutPlan()
         }
-        planViewModel.activePlan = snapshot.toWorkoutPlan()
         planViewModel.activePlanIndex = -1      // sentinel: not in workoutPlans
         planViewModel.activePlanMode = .preview
         planViewModel.activePlanIsReadOnly = true
