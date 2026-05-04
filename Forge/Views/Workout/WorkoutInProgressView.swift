@@ -351,8 +351,16 @@ struct WorkoutInProgressView: View {
                     // Top Toolbar
                     VStack(spacing:0) {
                         VStack(spacing:0) { //extra vstack required for blur effect
-                            
-                            Spacer().frame(height: 75)
+
+                            // Track the actual top safe-area inset so the
+                            // back button / plan title clear the Dynamic
+                            // Island OR notch OR status bar with a
+                            // consistent 16pt gap. Hardcoded 75pt left a
+                            // 55pt empty band above the back button on
+                            // iPhone SE (no Dynamic Island, ~20pt status
+                            // bar). Pro phones (~59pt safe-area top)
+                            // resolve to 75pt — unchanged from before.
+                            Spacer().frame(height: safeAreaTop + 16)
                             
                             // Plan name + back button + %complete
                             VStack(spacing:0) {
