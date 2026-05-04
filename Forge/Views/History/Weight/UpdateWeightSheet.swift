@@ -176,7 +176,12 @@ struct UpdateWeightSheet: View {
             }
             .padding(.top, 20)
 
-            Spacer().frame(height: 10)
+            // Add mode: shift the 16pt from the bottom spacer up to the
+            // top so the weight input sits further below the title. Total
+            // (top + content + bottom) is unchanged so the detent doesn't
+            // grow. Delete mode keeps the original 10/16 split — its
+            // body is centered with its own internal padding.
+            Spacer().frame(height: isEditing ? 10 : 26)
 
             if isEditing {
                 deleteContent
@@ -184,7 +189,7 @@ struct UpdateWeightSheet: View {
                 addContent
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: isEditing ? 16 : 0)
         }
         .frame(maxWidth: .infinity)
         .fixedSize(horizontal: false, vertical: true)
