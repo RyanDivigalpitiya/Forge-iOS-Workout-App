@@ -1507,14 +1507,33 @@ struct BreakDurationPickerView: View {
     }
 }
 
-struct WorkoutInProgressView_Previews: PreviewProvider {
-    static var previews: some View {
-        WorkoutInProgressView()
-            .environmentObject(CompletedWorkoutsViewModel())
-            .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
-            .environmentObject(ExerciseViewModel())
-            .environmentObject(WorkoutHealthManager())
-            .environmentObject(GlobalSettings.shared)
-            .preferredColorScheme(.dark)
-    }
+// MARK: - Previews
+//
+// Caveats: WorkoutInProgressView shows a 3-second `StartingCountdownView`
+// on first appear before the workout body renders, so plan to wait those
+// 3s after the Canvas spins up. ActivityKit / HealthKit / WatchConnectivity
+// calls fail silently in Canvas (they're network-style side effects, not
+// layout drivers). The avatar gutter geometry is anchor-driven, so it
+// resolves on the first real layout pass.
+
+#Preview("Solo mode") {
+    WorkoutInProgressView()
+        .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+        .environmentObject(ExerciseViewModel())
+        .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+        .environmentObject(WorkoutHealthManager())
+        .environmentObject(SessionClient())   // .idle — no joint-mode chrome
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Joint mode") {
+    WorkoutInProgressView()
+        .environmentObject(PlanViewModel(mockPlans: mockWorkoutPlans))
+        .environmentObject(ExerciseViewModel())
+        .environmentObject(CompletedWorkoutsViewModel(mockCompletedWorkouts: mockCompletedWorkouts))
+        .environmentObject(WorkoutHealthManager())
+        .environmentObject(MockSessionClient.midWorkout())
+        .environmentObject(GlobalSettings.shared)
+        .preferredColorScheme(.dark)
 }

@@ -287,6 +287,19 @@ enum MockSessionClient {
         return c
     }
 
+    /// Joint-mode `WorkoutInProgressView` state — paired, peer parked at
+    /// the first set of the first exercise, one set already completed.
+    /// Pair with `mockWorkoutPlans.first` set as `planViewModel.activePlan`.
+    static func midWorkout() -> SessionClient {
+        let c = basePaired()
+        c.peerPositions = [peerId: UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)]
+        c.peerCompletedSets = [PeerSetKey(exerciseIndex: 0, setIndex: 0)]
+        if let firstPlan = mockWorkoutPlans.first {
+            c.workoutInProgress = PlanSnapshot(from: firstPlan)
+        }
+        return c
+    }
+
     /// Sample chat history — covers peer-sent, mine-sent, multi-line text,
     /// and reactions on both sides.
     static func sampleChatEntries() -> [ChatEntry] {
