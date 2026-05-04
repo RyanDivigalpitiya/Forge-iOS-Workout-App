@@ -357,12 +357,11 @@ struct PlanEditorView: View {
             // Bounce only on adds (not deletes/reorders/imports). New
             // exercises are appended via `exercises.append(...)` in
             // ExerciseEditorView.saveExercise(), so the just-added one
-            // is `last`. Small delay lets the editor sheet finish
-            // dismissing before the bounce plays.
+            // is `last`. Fires immediately so the bounce coincides with
+            // the row's first visible frame as the editor sheet
+            // dismisses.
             if newCount > oldCount, let lastId = planViewModel.activePlan.exercises.last?.id {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    bounceExercise(id: lastId)
-                }
+                bounceExercise(id: lastId)
             }
         }
     }
