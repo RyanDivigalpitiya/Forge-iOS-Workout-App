@@ -1,10 +1,26 @@
+import Combine
+import Foundation
 import WatchConnectivity
+
+/// Identifies a single watch-originated set-completion tap. Each tap mints a
+/// fresh `id` so two consecutive taps with identical indices both fire the
+/// `@Published` subscriber on the phone side.
+struct SetCompletionRequest: Identifiable, Equatable {
+    let id = UUID()
+    let exerciseIndex: Int
+    let setIndex: Int
+}
 
 /// Manages the phone side of WatchConnectivity, sending break timer state to the Apple Watch.
 /// Singleton — activated once in `ForgeApp.init()` and called from `WorkoutInProgressView`.
-final class PhoneSessionManager: NSObject, WCSessionDelegate {
+final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     static let shared = PhoneSessionManager()
+
+    /// Watch-originated tap on the Complete button. Subscribed by
+    /// `WorkoutInProgressView` and validated against the current workout state
+    /// before being routed into `handleSetTap`.
+    @Published var setCompletedFromWatch: SetCompletionRequest?
 
     private override init() {
         super.init()
@@ -45,6 +61,24 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         send(["type": "workoutEnded"])
     }
 
+    /// Pushes the user's "next set" descriptor to the watch so it can render an
+    /// idle next-set view + Complete button when no break timer is active.
+    /// When `isAwaitingFinish` is true, every set is complete and the watch
+    /// should render the "finish on iPhone" message instead of a button.
+    func sendNextSetInfo(exerciseIndex: Int, setIndex: Int,
+                         exerciseName: String, setDescription: String,
+                         isAwaitingFinish: Bool) {
+        let payload: [String: Any] = [
+            "type": "nextSetInfo",
+            "exerciseIndex": exerciseIndex,
+            "setIndex": setIndex,
+            "exerciseName": exerciseName,
+            "setDescription": setDescription,
+            "isAwaitingFinish": isAwaitingFinish
+        ]
+        send(payload)
+    }
+
     // MARK: - Private
 
     private func send(_ payload: [String: Any]) {
@@ -81,5 +115,34 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     func sessionDidDeactivate(_ session: WCSession) {
         // Re-activate after the user switches Apple Watches.
         session.activate()
+    }
+
+    // MARK: - Inbound (watch → phone)
+
+    func session(_ session: WCSession,
+                 didReceiveMessage message: [String: Any]) {
+        DispatchQueue.main.async { self.handleInbound(message) }
+    }
+
+    func session(_ session: WCSession,
+                 didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { self.handleInbound(userInfo) }
+    }
+
+    private func handleInbound(_ message: [String: Any]) {
+        guard let type = message["type"] as? String else { return }
+        switch type {
+        case "setCompletedFromWatch":
+            guard let exerciseIndex = message["exerciseIndex"] as? Int,
+                  let setIndex = message["setIndex"] as? Int else { return }
+            // Fresh request id per tap so consecutive taps with identical
+            // indices each fire the `@Published` subscriber.
+            setCompletedFromWatch = SetCompletionRequest(
+                exerciseIndex: exerciseIndex,
+                setIndex: setIndex
+            )
+        default:
+            break
+        }
     }
 }

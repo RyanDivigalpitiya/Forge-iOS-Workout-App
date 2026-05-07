@@ -29,6 +29,20 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     @Published private(set) var timerState: TimerState = .idle
 
+    /// Mirrors the phone's "next set" position so the watch can show an idle
+    /// next-set view + Complete button outside of the break timer. Cleared on
+    /// `workoutEnded`. `isAwaitingFinish == true` after the last set is
+    /// completed — UI renders "Finish on iPhone" instead of a button.
+    struct SetInfo: Equatable {
+        let exerciseIndex: Int
+        let setIndex: Int
+        let exerciseName: String
+        let setDescription: String
+        let isAwaitingFinish: Bool
+    }
+
+    @Published private(set) var currentSetInfo: SetInfo?
+
     // Tracks the endDate of the most recently processed timerStarted message so
     // duplicate deliveries (sendMessage + applicationContext) don't double-process.
     private var lastHandledEndDate: Date?
@@ -140,11 +154,48 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             expiryTask = nil
             timerState = .idle
             lastHandledEndDate = nil
+            currentSetInfo = nil
             WatchWorkoutRuntime.shared.endWorkout()
+
+        case "nextSetInfo":
+            guard let exIdx = message["exerciseIndex"] as? Int,
+                  let sIdx = message["setIndex"] as? Int else { return }
+            let exerciseName = message["exerciseName"] as? String ?? ""
+            let setDescription = message["setDescription"] as? String ?? ""
+            let isAwaitingFinish = message["isAwaitingFinish"] as? Bool ?? false
+            currentSetInfo = SetInfo(
+                exerciseIndex: exIdx,
+                setIndex: sIdx,
+                exerciseName: exerciseName,
+                setDescription: setDescription,
+                isAwaitingFinish: isAwaitingFinish
+            )
 
         default:
             break
         }
+    }
+
+    // MARK: - Outgoing (watch → phone)
+
+    /// Sent when the user taps Complete on the watch. Uses both `sendMessage`
+    /// (immediate, requires reachability) and `transferUserInfo` (queued,
+    /// guaranteed delivery) so a tap lands even if the phone is briefly
+    /// unreachable. Phone-side validates indices against current workout state
+    /// before acting — duplicate deliveries are dropped naturally.
+    func sendSetCompleted(exerciseIndex: Int, setIndex: Int) {
+        guard WCSession.default.activationState == .activated else { return }
+        let payload: [String: Any] = [
+            "type": "setCompletedFromWatch",
+            "exerciseIndex": exerciseIndex,
+            "setIndex": setIndex
+        ]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil) { error in
+                print("[ForgeWatch] sendMessage error: \(error.localizedDescription)")
+            }
+        }
+        WCSession.default.transferUserInfo(payload)
     }
 
     // MARK: - Expiry Scheduling

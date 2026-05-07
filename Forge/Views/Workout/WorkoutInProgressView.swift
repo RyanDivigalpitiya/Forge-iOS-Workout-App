@@ -635,6 +635,14 @@ struct WorkoutInProgressView: View {
                 sessionClient.sendPositionUpdate(myPosition)
             }
         }
+        .onReceive(PhoneSessionManager.shared.$setCompletedFromWatch) { request in
+            guard let request else { return }
+            handleWatchSetCompletion(request)
+            // Clear so a stale value doesn't fire again on a future
+            // re-subscription (the @Published replays its current value to
+            // new subscribers).
+            PhoneSessionManager.shared.setCompletedFromWatch = nil
+        }
         .onChange(of: myPosition) { _, new in
             if sessionClient.isPaired {
                 sessionClient.sendPositionUpdate(new)
@@ -1153,6 +1161,91 @@ extension WorkoutInProgressView {
         return nil
     }
 
+    /// Returns the indices + display strings for the first incomplete set, or
+    /// nil if every set is complete. Shares `findNextIncompleteSet`'s
+    /// formatting so the watch's "next set" string matches the Live Activity
+    /// and break-timer-start strings exactly.
+    private func findNextIncompleteSetWithIndices()
+        -> (exerciseIndex: Int, setIndex: Int, exerciseName: String, setDescription: String)? {
+        for (exIdx, exercise) in planViewModel.activePlan.exercises.enumerated() {
+            for (sIdx, set) in exercise.sets.enumerated() {
+                if !set.completed {
+                    let setLabel = "Set \(sIdx + 1)"
+                    let weightString = WeightUnit.formatWeight(lbs: Double(set.weight), in: settings.weightUnit)
+                    let detail = set.tillFailure
+                        ? "Until Failure"
+                        : "\(weightString) x \(set.reps) rep\(set.reps == 1 ? "" : "s")"
+                    return (exIdx, sIdx, exercise.name, "\(setLabel)  →  \(detail)")
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Pushes the user's next-set descriptor to the watch so the watch can
+    /// render the idle "next set + Complete" view between break timers.
+    /// Suppressed during the 3s starting countdown — the watch stays on the
+    /// dumbbell idle until the workout truly begins.
+    private func pushNextSetInfoToWatch() {
+        guard shouldShowWorkout else { return }
+
+        if let next = findNextIncompleteSetWithIndices() {
+            PhoneSessionManager.shared.sendNextSetInfo(
+                exerciseIndex: next.exerciseIndex,
+                setIndex: next.setIndex,
+                exerciseName: next.exerciseName,
+                setDescription: next.setDescription,
+                isAwaitingFinish: false
+            )
+        } else {
+            // Every set is complete — watch shows "Finish on iPhone".
+            PhoneSessionManager.shared.sendNextSetInfo(
+                exerciseIndex: 0,
+                setIndex: 0,
+                exerciseName: "",
+                setDescription: "",
+                isAwaitingFinish: true
+            )
+        }
+    }
+
+    /// Validates a watch-originated Complete tap against current workout
+    /// state, then routes a valid tap through the existing `handleSetTap`
+    /// path so strikethrough animation, break-timer scheduling, peer
+    /// broadcast, Live Activity, and the next watch push all fire normally.
+    /// Stale taps (e.g. user already tapped on the phone, or the indices
+    /// don't match the current next-set) are dropped, with a corrective
+    /// `nextSetInfo` re-pushed so the watch self-corrects within a frame.
+    private func handleWatchSetCompletion(_ request: SetCompletionRequest) {
+        // Defense in depth: phone push is already gated on shouldShowWorkout,
+        // but a queued transferUserInfo could arrive during the countdown.
+        guard shouldShowWorkout else { return }
+
+        let plan = planViewModel.activePlan
+        let exIdx = request.exerciseIndex
+        let sIdx = request.setIndex
+
+        guard plan.exercises.indices.contains(exIdx),
+              plan.exercises[exIdx].sets.indices.contains(sIdx) else {
+            pushNextSetInfoToWatch()
+            return
+        }
+
+        guard !plan.exercises[exIdx].sets[sIdx].completed else {
+            pushNextSetInfoToWatch()
+            return
+        }
+
+        guard let next = findNextIncompleteSetWithIndices(),
+              next.exerciseIndex == exIdx,
+              next.setIndex == sIdx else {
+            pushNextSetInfoToWatch()
+            return
+        }
+
+        handleSetTap(exerciseIndex: exIdx, setIndex: sIdx)
+    }
+
     private func buildContentState() -> WorkoutActivityAttributes.ContentState {
         let nextSet = findNextIncompleteSet()
         return WorkoutActivityAttributes.ContentState(
@@ -1207,6 +1300,12 @@ extension WorkoutInProgressView {
     /// of-order completion / un-completion fall out naturally — there's no
     /// special branching for "natural" vs "skipped" taps.
     private func recomputeMyPosition() {
+        // Every recompute also re-pushes the watch's idle "next set" info so
+        // the watch always mirrors the phone's view of the upcoming set.
+        // Suppressed by `pushNextSetInfoToWatch` itself during the 3s
+        // starting countdown.
+        defer { pushNextSetInfoToWatch() }
+
         let plan = planViewModel.activePlan
         guard !plan.exercises.isEmpty else {
             myPosition = UserPosition(exerciseIndex: 0, setIndex: 0, isResting: false)

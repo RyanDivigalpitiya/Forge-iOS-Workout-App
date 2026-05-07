@@ -1,7 +1,12 @@
 import SwiftUI
 import WatchKit
 
-/// Watch face for the break timer. Three states: idle, counting down, expired.
+/// Watch face for the workout companion. States:
+/// - idle (no workout) → dumbbell + "Forge"
+/// - idle (mid-workout, no break) → exercise + set description + Complete button
+/// - idle (workout fully complete) → "All Sets Complete — Finish on iPhone"
+/// - counting → countdown ring + "Up Next"
+/// - expired → "Start Next Set" + Complete button
 /// Uses TimelineView for countdown updates (same pattern as the iOS BreakTimerView).
 struct BreakTimerWatchView: View {
 
@@ -12,7 +17,7 @@ struct BreakTimerWatchView: View {
     var body: some View {
         switch sessionManager.timerState {
         case .idle:
-            idleView
+            idleBranch
         case let .counting(endDate, duration, exerciseName, setDescription):
             countingView(endDate: endDate, duration: duration,
                          exerciseName: exerciseName, setDescription: setDescription)
@@ -21,7 +26,20 @@ struct BreakTimerWatchView: View {
         }
     }
 
-    // MARK: - Idle
+    // MARK: - Idle branch
+
+    @ViewBuilder
+    private var idleBranch: some View {
+        if let info = sessionManager.currentSetInfo {
+            if info.isAwaitingFinish {
+                awaitingFinishView
+            } else {
+                nextSetView(info: info)
+            }
+        } else {
+            idleView
+        }
+    }
 
     private var idleView: some View {
         VStack(spacing: 8) {
@@ -32,6 +50,43 @@ struct BreakTimerWatchView: View {
                 .font(.headline)
                 .foregroundColor(.white)
         }
+    }
+
+    private func nextSetView(info: WatchSessionManager.SetInfo) -> some View {
+        VStack(spacing: 8) {
+            if !info.exerciseName.isEmpty {
+                Text(info.exerciseName)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            if !info.setDescription.isEmpty {
+                Text(info.setDescription)
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            completeButton(info: info)
+        }
+        .padding(.horizontal, 8)
+    }
+
+    private var awaitingFinishView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 36))
+                .foregroundColor(fgColor)
+            Text("All Sets Complete")
+                .font(.headline)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+            Text("Finish on iPhone")
+                .font(.caption2)
+                .foregroundColor(.gray)
+        }
+        .padding(.horizontal, 8)
     }
 
     // MARK: - Counting
@@ -82,12 +137,9 @@ struct BreakTimerWatchView: View {
     // MARK: - Expired
 
     private func expiredView(exerciseName: String, setDescription: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: "figure.strengthtraining.functional")
-                .font(.system(size: 28))
-                .foregroundColor(fgColor)
+        VStack(spacing: 6) {
             Text("Start Next Set")
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundColor(fgColor)
             if !exerciseName.isEmpty {
                 Text(exerciseName)
@@ -101,6 +153,30 @@ struct BreakTimerWatchView: View {
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
+            if let info = sessionManager.currentSetInfo, !info.isAwaitingFinish {
+                completeButton(info: info)
+                    .padding(.top, 2)
+            }
         }
+        .padding(.horizontal, 8)
+    }
+
+    // MARK: - Shared
+
+    private func completeButton(info: WatchSessionManager.SetInfo) -> some View {
+        Button {
+            sessionManager.sendSetCompleted(
+                exerciseIndex: info.exerciseIndex,
+                setIndex: info.setIndex
+            )
+            WKInterfaceDevice.current().play(.click)
+        } label: {
+            Text("Complete")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(fgColor)
     }
 }
