@@ -22,6 +22,7 @@ struct WorkoutInProgressView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var exerciseEditorIsPresented = false
+    @State private var focusNameFieldOnEdit = false
     @State private var reorderDeleteViewPresented = false
     @State var percentCompleted: Int = 0
 
@@ -192,20 +193,26 @@ struct WorkoutInProgressView: View {
 
                                         // EXERCISE NAME + LOG CHANGE BUTTON
                                         HStack {
-                                            Text(planViewModel.activePlan.exercises[exerciseIndex].name)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                                .font(.system(size: 30))
-                                            Spacer()
-                                            
-                                            // LOG CHANGE BUTTON
+                                            // EXERCISE NAME BUTTON — opens the
+                                            // editor with the name field
+                                            // pre-focused so the user drops
+                                            // straight into renaming.
                                             Button(action: {
-                                                exerciseViewModel.activeExerciseMode = .log
-                                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
-                                                exerciseViewModel.activeExerciseIndex = exerciseIndex
-                                                self.exerciseEditorIsPresented = true
+                                                openExerciseLogEditor(exerciseIndex: exerciseIndex, focusName: true)
                                             }) {
-                                                Image(systemName: "plusminus.circle.fill")
+                                                Text(planViewModel.activePlan.exercises[exerciseIndex].name)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.white)
+                                                    .font(.system(size: 30))
+                                            }
+                                            .buttonStyle(.plain)
+                                            Spacer()
+
+                                            // LOG CHANGE BUTTON (ellipsis)
+                                            Button(action: {
+                                                openExerciseLogEditor(exerciseIndex: exerciseIndex, focusName: false)
+                                            }) {
+                                                Image(systemName: "ellipsis.circle.fill")
                                                     .resizable()
                                                     .frame(width: 25, height: 25)
                                                     .foregroundColor(settings.fgColor)
@@ -213,10 +220,10 @@ struct WorkoutInProgressView: View {
                                                     .padding(.trailing, 8)
                                             }
                                             .sheet(isPresented: $exerciseEditorIsPresented) {
-                                                
-                                                ExerciseEditorView()
+
+                                                ExerciseEditorView(focusNameOnAppear: focusNameFieldOnEdit)
                                                     .environment(\.colorScheme, .dark)
-                                                
+
                                             }
 
                                         }
@@ -269,19 +276,27 @@ struct WorkoutInProgressView: View {
                                                     .padding(.trailing, 3)
 
                                                     
-                                                    SetView(
-                                                        content: .individual(
-                                                            set: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex],
-                                                            index: setIndex
-                                                        ),
-                                                        appearance: sessionClient.isPaired
-                                                            ? .workoutActiveCollab(
-                                                                isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                            )
-                                                            : .workoutActive(
-                                                                isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
-                                                            )
-                                                    )
+                                                    // SET ROW BUTTON — tapping the
+                                                    // Set # chip + weight x reps
+                                                    // area opens the editor.
+                                                    Button(action: {
+                                                        openExerciseLogEditor(exerciseIndex: exerciseIndex, focusName: false)
+                                                    }) {
+                                                        SetView(
+                                                            content: .individual(
+                                                                set: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex],
+                                                                index: setIndex
+                                                            ),
+                                                            appearance: sessionClient.isPaired
+                                                                ? .workoutActiveCollab(
+                                                                    isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                                )
+                                                                : .workoutActive(
+                                                                    isCompleted: planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
+                                                                )
+                                                        )
+                                                    }
+                                                    .buttonStyle(.plain)
                                                 }
                                                 .frame(height: setRowHeight)
                                                 .anchorPreference(
@@ -755,6 +770,18 @@ struct WorkoutInProgressView: View {
     ///     isn't already fully complete, schedule the break-timer start
     ///     animation (1s grace period → scroll view shrinks → timer fades in).
     ///  4. Recompute avatar position + percent + Live Activity at the end.
+    /// Shared entry point for the three pathways into the editor sheet
+    /// (exercise name button, set row button, ellipsis button). Always opens
+    /// in `.log` mode against the tapped exercise. `focusName` is set true
+    /// only by the name-text pathway so the keyboard comes up automatically.
+    private func openExerciseLogEditor(exerciseIndex: Int, focusName: Bool) {
+        exerciseViewModel.activeExerciseMode = .log
+        exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
+        exerciseViewModel.activeExerciseIndex = exerciseIndex
+        focusNameFieldOnEdit = focusName
+        exerciseEditorIsPresented = true
+    }
+
     private func handleSetTap(exerciseIndex: Int, setIndex: Int) {
         let willComplete = !planViewModel.activePlan.exercises[exerciseIndex].sets[setIndex].completed
         if willComplete {

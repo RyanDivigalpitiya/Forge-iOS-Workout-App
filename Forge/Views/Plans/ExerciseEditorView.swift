@@ -1,13 +1,23 @@
 import SwiftUI
 
 struct ExerciseEditorView: View {
-    
+
+    /// When true, the editor brings up the keyboard with focus on the name
+    /// field after the present transition settles. Used by the in-workout
+    /// "tap exercise name" pathway that wants to drop the user straight
+    /// into renaming.
+    let focusNameOnAppear: Bool
+
+    init(focusNameOnAppear: Bool = false) {
+        self.focusNameOnAppear = focusNameOnAppear
+    }
+
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var planViewModel: PlanViewModel
     //-////////////////////////////////////////////////////////
     @EnvironmentObject var exerciseViewModel: ExerciseViewModel
     //-////////////////////////////////////////////////////////
-    
+
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFieldFocused: Bool // used to assign focus on exercise name textfield on appear
 
@@ -316,6 +326,15 @@ struct ExerciseEditorView: View {
             // -  //////////////////////////////////// //////////////////////////////////
 
             homoHeteroControlsAreConnected = true
+
+            if focusNameOnAppear {
+                // @FocusState set during a sheet's present transition gets
+                // silently dropped by SwiftUI; ~0.4s lets the transition
+                // settle before we ask for focus.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    isNameFieldFocused = true
+                }
+            }
         }
     }
 }
