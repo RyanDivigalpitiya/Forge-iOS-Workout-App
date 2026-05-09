@@ -79,7 +79,7 @@ struct CompletedWorkoutsView: View {
                                     .resizable()
                                     .frame(width: 13, height: 13)
                                     .padding(.leading,7)
-                                Text("\(completedWorkout.completion) Finished")
+                                Text("\(completedWorkout.completion) Done")
                                     .padding(.leading, -3)
                                 Image(systemName: "flame.circle.fill")
                                     .resizable()

@@ -415,6 +415,7 @@ struct WorkoutInProgressView: View {
                                                 .contentShape(Rectangle())
                                         }
                                         .disabled(timerEnabled)
+                                        .opacity(timerEnabled ? 0 : 1)
                                         .padding(.leading, 5)
                                     }
 
@@ -443,6 +444,7 @@ struct WorkoutInProgressView: View {
                                                 .contentShape(Rectangle())
                                         }
                                         .disabled(timerEnabled)
+                                        .opacity(timerEnabled ? 0 : 1)
                                         .padding(.trailing, 5)
                                     } else {
                                         // Invisible placeholder mirrors the back chevron's

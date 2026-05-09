@@ -45,6 +45,7 @@ struct WorkoutBottomToolbarView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .opacity(timerEnabled ? 0 : 1)
 
 
                 // DONE BUTTON
@@ -99,6 +100,7 @@ struct WorkoutBottomToolbarView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .opacity(timerEnabled ? 0 : 1)
             }
             .frame(height: bottomToolbarHeight)
             .background(BlurView(style: .systemChromeMaterial))
