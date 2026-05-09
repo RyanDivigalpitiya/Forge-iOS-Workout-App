@@ -15,9 +15,9 @@ struct ExerciseOptionsSheet: View {
     enum Stage { case menu, history, editor }
 
     @State private var stage: Stage = .menu
-    @State private var selectedDetent: PresentationDetent = .height(220)
+    @State private var selectedDetent: PresentationDetent = .height(230)
 
-    private let menuDetent: PresentationDetent = .height(220)
+    private let menuDetent: PresentationDetent = .height(230)
 
     /// Same calculation as `ExerciseEditorView.homoModeDetent` so the editor
     /// stage's homo height matches the standalone editor exactly. Kept in
@@ -67,23 +67,27 @@ struct ExerciseOptionsSheet: View {
 
             Spacer()
 
-            HStack(spacing: 14) {
-                menuButton(
-                    title: "View History",
-                    systemImage: "chart.line.uptrend.xyaxis"
-                ) {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        stage = .history
-                        selectedDetent = .medium
-                    }
-                }
+            VStack(spacing: 0) {
                 menuButton(
                     title: "Log Change",
-                    systemImage: "square.and.pencil"
+                    systemImage: "square.and.pencil.circle.fill"
                 ) {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         stage = .editor
                         selectedDetent = homoModeDetent
+                    }
+                }
+                Rectangle()
+                    .fill(Color.gray.opacity(0.25))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 20)
+                menuButton(
+                    title: "View History",
+                    systemImage: "cellularbars.circle.fill"
+                ) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        stage = .history
+                        selectedDetent = .medium
                     }
                 }
             }
@@ -99,18 +103,22 @@ struct ExerciseOptionsSheet: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            HStack(spacing: 16) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 26))
+                    .font(.system(size: 28))
                     .foregroundColor(settings.fgColor)
                 Text(title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.white)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.gray)
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 22)
-            .background(GlobalSettings.shared.buttonCircleBgColor)
-            .cornerRadius(settings.cornerRadiusMedium)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
