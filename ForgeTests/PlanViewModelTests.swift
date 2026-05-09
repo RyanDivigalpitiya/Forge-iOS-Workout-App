@@ -106,6 +106,63 @@ final class PlanViewModelTests {
         #expect(reloaded.workoutPlans.first?.exercises.count == mockWorkoutPlans.first?.exercises.count)
     }
 
+    @Test func saveAndLoadPlansPreservesBreakDurations() {
+        var exercise = Exercise(
+            name: "Bench Press",
+            sets: [
+                Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false),
+                Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false),
+                Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)
+            ]
+        )
+        exercise.breakDurations = [75, 120]
+        let plan = WorkoutPlan(name: "Custom Rests", exercises: [exercise])
+
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+        vm.savePlans()
+
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.first?.exercises.first?.breakDurations == [75, 120])
+    }
+
+    @Test func legacyPlansDecodeWithNilBreakDurations() {
+        // A plan persisted before the breakDurations field existed should
+        // decode cleanly with breakDurations == nil — readers fall back to
+        // the global default at use time. We inject raw JSON shaped like
+        // pre-feature data (no breakDurations key on the Exercise object).
+        let json = """
+        [
+          {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "name": "Legacy",
+            "exercises": [
+              {
+                "id": "22222222-2222-2222-2222-222222222222",
+                "name": "Bench Press",
+                "sets": [
+                  {
+                    "id": "33333333-3333-3333-3333-333333333333",
+                    "weight": 100,
+                    "reps": 10,
+                    "tillFailure": false,
+                    "completed": false
+                  }
+                ],
+                "areSetsUnique": false,
+                "completed": false
+              }
+            ]
+          }
+        ]
+        """
+        testDefaults.set(Data(json.utf8), forKey: "workoutPlans")
+
+        let vm = PlanViewModel(userDefaults: testDefaults)
+
+        #expect(vm.workoutPlans.count == 1)
+        #expect(vm.workoutPlans.first?.exercises.first?.breakDurations == nil)
+    }
+
     @Test func loadPlansFromEmptyDefaultsReturnsEmpty() {
         let vm = PlanViewModel(userDefaults: testDefaults)
         #expect(vm.workoutPlans.isEmpty)

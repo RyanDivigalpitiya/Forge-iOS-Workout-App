@@ -131,4 +131,15 @@ struct WorkoutPlanFingerprintTests {
         let chest = WorkoutPlan(name: "Chest Day", exercises: [ex("Bench Press", setCount: 3)])
         #expect(push.fingerprint == chest.fingerprint)
     }
+
+    @Test func breakDurationsDoNotAffectFingerprint() {
+        // Two friends running "the same plan" with different rest preferences
+        // must still fingerprint-match so collab same-plan-detection picks
+        // the receiver's local copy (preserving their rest values).
+        var fast = WorkoutPlan(name: "Push Day", exercises: [ex("Bench Press", setCount: 3)])
+        var slow = WorkoutPlan(name: "Push Day", exercises: [ex("Bench Press", setCount: 3)])
+        fast.exercises[0].breakDurations = [30, 30]
+        slow.exercises[0].breakDurations = [180, 180]
+        #expect(fast.fingerprint == slow.fingerprint)
+    }
 }

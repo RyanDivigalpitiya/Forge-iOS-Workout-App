@@ -20,6 +20,10 @@ struct ExerciseSnapshot: Codable, Sendable, Equatable {
     let id: UUID
     let name: String
     let sets: [SetSnapshot]
+    /// Per-gap rest durations (length == sets.count - 1 when present).
+    /// Optional for backward-compat with older clients that don't send the
+    /// field. Server is opaque — forwards what it sees.
+    let breakDurations: [Int]?
 }
 
 struct PlanSnapshot: Codable, Sendable, Equatable {

@@ -23,6 +23,16 @@ struct ExerciseSnapshot: Codable, Equatable, Identifiable {
     let id: UUID
     let name: String
     let sets: [SetSnapshot]
+    /// Per-gap rest durations (length == sets.count - 1 when present).
+    /// Optional for backward-compat with older clients that don't send it.
+    let breakDurations: [Int]?
+
+    init(id: UUID, name: String, sets: [SetSnapshot], breakDurations: [Int]? = nil) {
+        self.id = id
+        self.name = name
+        self.sets = sets
+        self.breakDurations = breakDurations
+    }
 }
 
 struct PlanSnapshot: Codable, Equatable, Identifiable {
@@ -60,7 +70,8 @@ struct PlanSnapshot: Codable, Equatable, Identifiable {
                         reps: set.reps,
                         tillFailure: set.tillFailure
                     )
-                }
+                },
+                breakDurations: exercise.breakDurations
             )
         }
         self.lineageId = plan.lineageId
@@ -110,6 +121,7 @@ extension PlanSnapshot {
                 }
             )
             exercise.id = ex.id
+            exercise.breakDurations = ex.breakDurations
             return exercise
         }
         var plan = WorkoutPlan(name: name, exercises: mappedExercises)

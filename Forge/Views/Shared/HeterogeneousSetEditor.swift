@@ -9,6 +9,7 @@ struct HeterogeneousSetEditor: View {
     @Binding var weights: [Int]
     @Binding var reps: [Int]
     @Binding var failure: [Bool]
+    @Binding var breakDurations: [Int]
 
     let minWeight: Int
     let maxWeight: Int
@@ -16,6 +17,11 @@ struct HeterogeneousSetEditor: View {
     let minReps: Int
     let maxReps: Int
     let maxSets: Int
+    let minBreakDuration: Int
+    let maxBreakDuration: Int
+    let breakDurationStep: Int
+    let defaultBreakDuration: Int
+    let onBreakDurationChanged: (Int) -> Void
 
     let isSaveDisabled: Bool
     let onSave: () -> Void
@@ -29,6 +35,13 @@ struct HeterogeneousSetEditor: View {
     private let buttonPlusMinusWidth: CGFloat = 85
     private let buttonPlusMinusHeight: CGFloat = 30
     private let buttonPlusMinusSize: CGFloat = 5
+
+    // Set-row width is measured live so the between-sets break-timer chip
+    // can span exactly from the delete button's left edge (5pt right of the
+    // row's left edge — delete is 60pt centered in a 70pt label column) to
+    // the till-failure button's right edge (the row's right edge — the
+    // 135pt button bar fills the rightmost column).
+    @State private var setRowWidth: CGFloat = 0
 
     /// Wheel options for the active unit. Recomputed on every body eval —
     /// the array is only ~120 entries and is needed for snap + step in the
@@ -54,6 +67,7 @@ struct HeterogeneousSetEditor: View {
         VStack {
             ForEach(weights.indices, id: \.self) { setIndex in
 
+                Group {
                 // SET ROW
                 HStack() {
                     HStack { // internal padding hstack
@@ -73,6 +87,13 @@ struct HeterogeneousSetEditor: View {
                                     weights.remove(at: setIndex)
                                     reps.remove(at: setIndex)
                                     failure.remove(at: setIndex)
+                                    // Remove the gap that was after this set, or
+                                    // the last gap if we deleted the final set.
+                                    if breakDurations.indices.contains(setIndex) {
+                                        breakDurations.remove(at: setIndex)
+                                    } else if !breakDurations.isEmpty {
+                                        breakDurations.removeLast()
+                                    }
                                 }
                             }) {
                                 Image(systemName: "trash.fill")
@@ -219,6 +240,72 @@ struct HeterogeneousSetEditor: View {
                 .frame(height: 100)
                 .padding(.top, 10)
                 .cornerRadius(20)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(key: HeteroSetRowWidthKey.self, value: geo.size.width)
+                    }
+                )
+
+                // BETWEEN-SETS BREAK TIMER ROW (omitted after the last set)
+                if setIndex < weights.count - 1 {
+                    let gapIndex = setIndex
+                    HStack(spacing: 0) {
+                        // DECREMENT
+                        Button(action: {
+                            guard breakDurations.indices.contains(gapIndex) else { return }
+                            let next = breakDurations[gapIndex] - breakDurationStep
+                            if next >= minBreakDuration {
+                                breakDurations[gapIndex] = next
+                                feedbackGenerator.impactOccurred()
+                                onBreakDurationChanged(next)
+                            }
+                        }) {
+                            Image(systemName: "minus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .frame(width: 44, height: buttonPlusMinusHeight)
+                        }
+
+                        Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+                        // LABEL
+                        Text("\(breakDurations.indices.contains(gapIndex) ? breakDurations[gapIndex] : defaultBreakDuration)s Break Timer")
+                            .foregroundColor(.black)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity)
+
+                        Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+                        // INCREMENT
+                        Button(action: {
+                            guard breakDurations.indices.contains(gapIndex) else { return }
+                            let next = breakDurations[gapIndex] + breakDurationStep
+                            if next <= maxBreakDuration {
+                                breakDurations[gapIndex] = next
+                                feedbackGenerator.impactOccurred()
+                                onBreakDurationChanged(next)
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.black)
+                                .font(.system(size: buttonPlusMinusIconSize))
+                                .bold()
+                                .frame(width: 44, height: buttonPlusMinusHeight)
+                        }
+                    }
+                    .frame(width: max(0, setRowWidth - 5), height: buttonPlusMinusHeight)
+                    .background(settings.fgColor)
+                    .cornerRadius(settings.cornerRadiusSmall)
+                    // Trailing-align the (setRowWidth - 5) chip inside a
+                    // setRowWidth-wide outer frame so the chip's right edge
+                    // matches the row's right edge (∞ button) and its left
+                    // edge sits 5pt in (delete button's left edge).
+                    .frame(width: setRowWidth, alignment: .trailing)
+                    .padding(.top, 10)
+                }
+                }
             }
 
             // ADD SET BUTTON
@@ -227,6 +314,11 @@ struct HeterogeneousSetEditor: View {
                 if let lastWeight = weights.last { weights.append(lastWeight) }
                 if let lastReps = reps.last { reps.append(lastReps) }
                 if let lastFailure = failure.last { failure.append(lastFailure) }
+                // Append a new gap value (the gap that now sits between the
+                // previously-last set and the freshly-added one). Match
+                // existing array's last value, falling back to the default.
+                let pad = breakDurations.last ?? defaultBreakDuration
+                breakDurations.append(pad)
             }) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -258,5 +350,19 @@ struct HeterogeneousSetEditor: View {
             }
             .padding(20)
         }
+        .onPreferenceChange(HeteroSetRowWidthKey.self) { newValue in
+            setRowWidth = newValue
+        }
+    }
+}
+
+/// Captures a heterogeneous set row's measured width so the between-sets
+/// break-timer chip can span exactly from the delete button's left edge
+/// (5pt right of the row's left edge) to the till-failure (∞) button's
+/// right edge (the row's right edge).
+private struct HeteroSetRowWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

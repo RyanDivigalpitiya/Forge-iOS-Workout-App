@@ -14,6 +14,7 @@ struct HomogeneousSetPicker: View {
     @Binding var sets: Int
     @Binding var weight: Int
     @Binding var reps: Int
+    @Binding var breakDuration: Int
 
     let minSets: Int
     let maxSets: Int
@@ -22,6 +23,10 @@ struct HomogeneousSetPicker: View {
     let weightStep: Int
     let minReps: Int
     let maxReps: Int
+    let minBreakDuration: Int
+    let maxBreakDuration: Int
+    let breakDurationStep: Int
+    let onBreakDurationChanged: (Int) -> Void
 
     @EnvironmentObject var settings: GlobalSettings
     private let darkGray = GlobalSettings.shared.editorDarkGray
@@ -32,6 +37,13 @@ struct HomogeneousSetPicker: View {
     private let buttonPlusMinusHeight: CGFloat = 30
     private let buttonPlusMinusSize: CGFloat = 5
     private let wheelSelectorSize: CGFloat = 150
+
+    // Picker row width is measured live so the break-timer chip can span
+    // exactly from the leftmost +/- button's left edge to the rightmost +/-
+    // button's right edge. Each +/- button (85pt wide) is centered in its
+    // 100pt picker column, so the chip's horizontal inset on each side is
+    // (100 - 85) / 2 = 7.5pt → chip width = pickerRowWidth - 15.
+    @State private var pickerRowWidth: CGFloat = 0
 
     private var setsRange: [Int] { Array((minSets...maxSets).reversed()) }
     private var repsRange: [Int] { Array((minReps...maxReps).reversed()) }
@@ -75,6 +87,7 @@ struct HomogeneousSetPicker: View {
     }
 
     var body: some View {
+        VStack(spacing: 16) {
         HStack {
 
             // SETS SELECTOR
@@ -230,6 +243,72 @@ struct HomogeneousSetPicker: View {
                 .cornerRadius(settings.cornerRadiusSmall)
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .preference(key: HomoPickerRowWidthKey.self, value: geo.size.width)
+            }
+        )
+
+        // BREAK TIMER ROW: [ - | "60s Break Timer" | + ]
+        HStack(spacing: 0) {
+            // DECREMENT
+            Button(action: {
+                if breakDuration - breakDurationStep >= minBreakDuration {
+                    breakDuration -= breakDurationStep
+                    feedbackGenerator.impactOccurred()
+                    onBreakDurationChanged(breakDuration)
+                }
+            }) {
+                Image(systemName: "minus")
+                    .foregroundColor(.black)
+                    .font(.system(size: buttonPlusMinusIconSize))
+                    .bold()
+                    .frame(width: 44, height: buttonPlusMinusHeight)
+            }
+
+            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+            // LABEL
+            Text("\(breakDuration)s Break Timer")
+                .foregroundColor(.black)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity)
+
+            Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
+
+            // INCREMENT
+            Button(action: {
+                if breakDuration + breakDurationStep <= maxBreakDuration {
+                    breakDuration += breakDurationStep
+                    feedbackGenerator.impactOccurred()
+                    onBreakDurationChanged(breakDuration)
+                }
+            }) {
+                Image(systemName: "plus")
+                    .foregroundColor(.black)
+                    .font(.system(size: buttonPlusMinusIconSize))
+                    .bold()
+                    .frame(width: 44, height: buttonPlusMinusHeight)
+            }
+        }
+        .frame(width: max(0, pickerRowWidth - 15), height: buttonPlusMinusHeight)
+        .background(settings.fgColor)
+        .cornerRadius(settings.cornerRadiusSmall)
+        }
+        .onPreferenceChange(HomoPickerRowWidthKey.self) { newValue in
+            pickerRowWidth = newValue
+        }
+    }
+}
+
+/// Captures the homogeneous picker row's measured width so the break-timer
+/// chip below can size itself to span exactly the leftmost +/- button's
+/// left edge to the rightmost +/- button's right edge.
+private struct HomoPickerRowWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

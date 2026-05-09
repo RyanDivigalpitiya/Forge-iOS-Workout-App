@@ -316,7 +316,7 @@ struct WorkoutInProgressView: View {
                                                 ) { [.setRow(setIndex): $0] }
 
                                                 if setIndex < planViewModel.activePlan.exercises[exerciseIndex].sets.count - 1 {
-                                                    restBreakRow()
+                                                    restBreakRow(exerciseIndex: exerciseIndex, setIndex: setIndex)
                                                         .anchorPreference(
                                                             key: RowAnchorKey.self,
                                                             value: .bounds
@@ -843,12 +843,37 @@ struct WorkoutInProgressView: View {
         }
     }
 
+    /// Looks up the per-gap break duration for the gap immediately AFTER the
+    /// given set. Falls back to the global default for legacy exercises
+    /// whose `breakDurations` is nil or whose array is mis-sized.
+    private func breakDurationForGap(exerciseIndex: Int, setIndex: Int) -> Int {
+        let fallback = GlobalSettings.shared.breakDuration
+        guard planViewModel.activePlan.exercises.indices.contains(exerciseIndex) else {
+            return fallback
+        }
+        let exercise = planViewModel.activePlan.exercises[exerciseIndex]
+        guard let durations = exercise.breakDurations,
+              durations.indices.contains(setIndex) else {
+            return fallback
+        }
+        return durations[setIndex]
+    }
+
     /// Schedules the break-timer start animation after a 1-second grace
     /// period — matches the pre-refactor timing exactly. The `guard
     /// !isWorkoutDone` checks prevent the animation from firing if the
     /// workout was cancelled / finished during the delay.
     private func scheduleBreakTimerStart(exerciseIndex: Int, setIndex: Int) {
         isScrollViewDisabled = true
+        // Per-gap break duration (the timer between this set and the next).
+        // Falls back to the global default for legacy exercises whose
+        // `breakDurations` is nil. Programmatic assignment to
+        // `selectedBreakDuration` is safe — there's no onChange that would
+        // write back to GlobalSettings; the global default only updates from
+        // explicit user actions (picker-sheet Save, editor break-timer
+        // spinner taps).
+        let perGapDuration = breakDurationForGap(exerciseIndex: exerciseIndex, setIndex: setIndex)
+        selectedBreakDuration = perGapDuration
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             guard !isWorkoutDone else { return }
             withAnimation(.easeInOut(duration: settings.animationStandard)) {
@@ -859,7 +884,7 @@ struct WorkoutInProgressView: View {
                 topToolBarHeight = screenHeight * 0.8
                 topToolBarCornerRadius = 30
                 timerEnabled = true
-                breakTimerEndDate = Date().addingTimeInterval(TimeInterval(selectedBreakDuration))
+                breakTimerEndDate = Date().addingTimeInterval(TimeInterval(perGapDuration))
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     guard !isWorkoutDone else { return }
                     withAnimation(.easeInOut(duration: settings.animationStandard)) {
@@ -872,7 +897,7 @@ struct WorkoutInProgressView: View {
                 let nextSetForWatch = findNextIncompleteSet()
                 PhoneSessionManager.shared.sendTimerStarted(
                     endDate: endDate,
-                    duration: selectedBreakDuration,
+                    duration: perGapDuration,
                     exerciseName: nextSetForWatch?.exerciseName,
                     setDescription: nextSetForWatch?.setDescription
                 )
@@ -1504,7 +1529,8 @@ extension WorkoutInProgressView {
     /// the break-duration picker — replaces the timer icon that used to
     /// live in the top toolbar.
     @ViewBuilder
-    private func restBreakRow() -> some View {
+    private func restBreakRow(exerciseIndex: Int, setIndex: Int) -> some View {
+        let displayDuration = breakDurationForGap(exerciseIndex: exerciseIndex, setIndex: setIndex)
         Button(action: { showTimerSettings = true }) {
             HStack(spacing: 0) {
                 if sessionClient.isPaired {
@@ -1513,7 +1539,7 @@ extension WorkoutInProgressView {
                 }
                 restConnectorColumn()
                     .padding(.trailing, 16)
-                Text("Rest ( \(selectedBreakDuration)s )")
+                Text("Rest ( \(displayDuration)s )")
                     .font(.system(size: 14))
                     .fontWeight(.bold)
                     .foregroundColor(darkGray)

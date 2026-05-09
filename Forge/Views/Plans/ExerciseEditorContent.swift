@@ -54,6 +54,9 @@ struct ExerciseEditorContent: View {
     @State private var heteroWeights: [Int] = [5, 5, 5]
     @State private var heteroReps: [Int] = [12, 12, 12]
     @State private var heteroFailure: [Bool] = [false, false, false]
+    // Break timer durations:
+    @State private var homoBreakDuration: Int = 60
+    @State private var heteroBreakDurations: [Int] = []
     private let minSets = 1
     private let maxSets = 50
     private let minWeight = -100
@@ -61,6 +64,9 @@ struct ExerciseEditorContent: View {
     private let weightStep = 5
     private let minReps = 1
     private let maxReps = 500
+    private let minBreakDuration = 5
+    private let maxBreakDuration = 300
+    private let breakDurationStep = 5
     private var setsRange: [Int] { Array((minSets...maxSets).reversed()) }
     private var weightRange: [Int] { Array(stride(from: maxWeight, through: minWeight, by: -weightStep)) }
     private var repsRange: [Int] { Array((minReps...maxReps).reversed()) }
@@ -193,9 +199,16 @@ struct ExerciseEditorContent: View {
                     sets: $homoSets,
                     weight: $homoWeight,
                     reps: $homoReps,
+                    breakDuration: $homoBreakDuration,
                     minSets: minSets, maxSets: maxSets,
                     minWeight: minWeight, maxWeight: maxWeight, weightStep: weightStep,
-                    minReps: minReps, maxReps: maxReps
+                    minReps: minReps, maxReps: maxReps,
+                    minBreakDuration: minBreakDuration,
+                    maxBreakDuration: maxBreakDuration,
+                    breakDurationStep: breakDurationStep,
+                    onBreakDurationChanged: { newValue in
+                        GlobalSettings.shared.breakDuration = newValue
+                    }
                 )
                 .frame(maxHeight: homogenousSelectorHeight)
                 .clipped()
@@ -254,8 +267,16 @@ struct ExerciseEditorContent: View {
                             weights: $heteroWeights,
                             reps: $heteroReps,
                             failure: $heteroFailure,
+                            breakDurations: $heteroBreakDurations,
                             minWeight: minWeight, maxWeight: maxWeight, weightStep: weightStep,
                             minReps: minReps, maxReps: maxReps, maxSets: maxSets,
+                            minBreakDuration: minBreakDuration,
+                            maxBreakDuration: maxBreakDuration,
+                            breakDurationStep: breakDurationStep,
+                            defaultBreakDuration: GlobalSettings.shared.breakDuration,
+                            onBreakDurationChanged: { newValue in
+                                GlobalSettings.shared.breakDuration = newValue
+                            },
                             isSaveDisabled: isSaveDisabled,
                             onSave: { saveExercise() }
                         )
@@ -311,6 +332,29 @@ struct ExerciseEditorContent: View {
             } else {
                 homoWeight = 5
                 homoReps = 12
+            }
+
+            // Break-timer durations. Fall back to the global default
+            // ("last value the user specified anywhere") for legacy
+            // exercises whose `breakDurations` is nil.
+            let globalDefault = GlobalSettings.shared.breakDuration
+            let storedDurations = exerciseViewModel.activeExercise.breakDurations
+            let gapCount = max(0, sourceSets.count - 1)
+            if let stored = storedDurations, !stored.isEmpty {
+                // Match the gap count even if stored length is stale.
+                if stored.count == gapCount {
+                    heteroBreakDurations = stored.map { clampBreakDuration($0) }
+                } else if stored.count < gapCount {
+                    let pad = stored.last ?? globalDefault
+                    heteroBreakDurations = stored.map { clampBreakDuration($0) }
+                        + Array(repeating: clampBreakDuration(pad), count: gapCount - stored.count)
+                } else {
+                    heteroBreakDurations = stored.prefix(gapCount).map { clampBreakDuration($0) }
+                }
+                homoBreakDuration = clampBreakDuration(stored.first ?? globalDefault)
+            } else {
+                homoBreakDuration = clampBreakDuration(globalDefault)
+                heteroBreakDurations = Array(repeating: homoBreakDuration, count: gapCount)
             }
             // -  //////////////////////////////////// //////////////////////////////////
 
@@ -389,10 +433,28 @@ extension ExerciseEditorContent {
             newSets = [Set()]
         }
 
+        // Build the final break-durations array (length == newSets.count - 1).
+        // Homo writes the same value to every gap; hetero writes per-index.
+        let gapCount = max(0, newSets.count - 1)
+        let finalBreakDurations: [Int]
+        if areSetsUnique {
+            if heteroBreakDurations.count == gapCount {
+                finalBreakDurations = heteroBreakDurations.map { clampBreakDuration($0) }
+            } else if heteroBreakDurations.count < gapCount {
+                let pad = heteroBreakDurations.last ?? homoBreakDuration
+                finalBreakDurations = heteroBreakDurations.map { clampBreakDuration($0) }
+                    + Array(repeating: clampBreakDuration(pad), count: gapCount - heteroBreakDurations.count)
+            } else {
+                finalBreakDurations = heteroBreakDurations.prefix(gapCount).map { clampBreakDuration($0) }
+            }
+        } else {
+            finalBreakDurations = Array(repeating: clampBreakDuration(homoBreakDuration), count: gapCount)
+        }
 
         if exerciseViewModel.activeExerciseMode == .add {
             // create new exercise + append it to planViewModel's active plan
-            let newExercise = Exercise(name: exerciseName, sets: newSets)
+            var newExercise = Exercise(name: exerciseName, sets: newSets)
+            newExercise.breakDurations = finalBreakDurations
             planViewModel.activePlan.exercises.append(newExercise)
 
         } else if exerciseViewModel.activeExerciseMode == .edit || exerciseViewModel.activeExerciseMode == .log {
@@ -400,9 +462,11 @@ extension ExerciseEditorContent {
             if var updatedExercise = existingExercise {
                 updatedExercise.name = exerciseName
                 updatedExercise.sets = newSets
+                updatedExercise.breakDurations = finalBreakDurations
                 planViewModel.activePlan.exercises[existingExerciseIndex] = updatedExercise
             } else {
-                let fallbackExercise = Exercise(name: exerciseName, sets: newSets)
+                var fallbackExercise = Exercise(name: exerciseName, sets: newSets)
+                fallbackExercise.breakDurations = finalBreakDurations
                 planViewModel.activePlan.exercises.append(fallbackExercise)
             }
         }
@@ -419,6 +483,10 @@ extension ExerciseEditorContent {
         heteroWeights = Array(repeating: weight, count: count)
         heteroReps = Array(repeating: reps, count: count)
         heteroFailure = Array(repeating: false, count: count)
+        heteroBreakDurations = Array(
+            repeating: clampBreakDuration(homoBreakDuration),
+            count: max(0, count - 1)
+        )
     }
 
     func updateHomoDataBasedOnHeteroData() {
@@ -432,6 +500,11 @@ extension ExerciseEditorContent {
             homoWeight = 5
             homoReps = 12
         }
+        // Collapse multiple per-gap values into one — first wins, matching
+        // how weight/reps collapse above.
+        homoBreakDuration = clampBreakDuration(
+            heteroBreakDurations.first ?? GlobalSettings.shared.breakDuration
+        )
     }
 
     private func clampSetCount(_ count: Int) -> Int {
@@ -446,5 +519,12 @@ extension ExerciseEditorContent {
 
     private func clampReps(_ reps: Int) -> Int {
         min(max(reps, minReps), maxReps)
+    }
+
+    private func clampBreakDuration(_ value: Int) -> Int {
+        // Snap to step grid first so the +/- buttons land on clean values
+        // even if a legacy / migrated entry was off-grid.
+        let snapped = Int((Double(value) / Double(breakDurationStep)).rounded()) * breakDurationStep
+        return min(max(snapped, minBreakDuration), maxBreakDuration)
     }
 }

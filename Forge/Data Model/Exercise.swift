@@ -12,11 +12,18 @@ struct Exercise: Identifiable, Encodable, Decodable {
             } else {
                 self.completed = false
             }
+            resizeBreakDurationsToMatchSets()
         }
     }
     var areSetsUnique: Bool
     var completed: Bool
-    
+
+    // Per-gap rest durations. When non-nil, length is (sets.count - 1).
+    // Optional for backward-compat decode; readers fall back to
+    // GlobalSettings.shared.breakDuration when nil. Editor populates it on
+    // save; data-model layer intentionally doesn't reference GlobalSettings.
+    var breakDurations: [Int]?
+
     // empty initializer
     init() {
         self.id = UUID()
@@ -25,8 +32,9 @@ struct Exercise: Identifiable, Encodable, Decodable {
         self.completed = false
         self.areSetsUnique = false
         self.areSetsUnique = doesExerciseHaveUniqueSets()
+        self.breakDurations = nil
     }
-    
+
     // create new Exercise object with specified params
     init(name: String, sets: [Set]) {
         self.id = UUID()
@@ -35,6 +43,23 @@ struct Exercise: Identifiable, Encodable, Decodable {
         self.completed = false
         self.areSetsUnique = false
         self.areSetsUnique = doesExerciseHaveUniqueSets()
+        self.breakDurations = nil
+    }
+
+    private mutating func resizeBreakDurationsToMatchSets() {
+        let target = max(0, sets.count - 1)
+        guard var current = breakDurations else { return }
+        if current.count == target { return }
+        if current.count < target {
+            // Pad with the last known per-gap value (or 60s if the array is
+            // somehow empty) — exact value isn't load-bearing because the
+            // editor / workout view re-write per-gap values from user input.
+            let pad = current.last ?? 60
+            current.append(contentsOf: Array(repeating: pad, count: target - current.count))
+        } else {
+            current.removeLast(current.count - target)
+        }
+        breakDurations = current
     }
     
     func doesExerciseHaveUniqueSets() -> Bool {
