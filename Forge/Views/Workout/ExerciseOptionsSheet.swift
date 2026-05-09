@@ -131,7 +131,7 @@ struct ExerciseOptionsSheet: View {
                 .padding(.top, 15)
             ScrollView {
                 VStack(spacing: 12) {
-                    ExerciseProgressCard(exercise: exercise)
+                    ExerciseProgressCard(exercise: exercise, showsBackground: false)
                 }
                 .padding(.horizontal, 15)
                 .padding(.vertical, 12)

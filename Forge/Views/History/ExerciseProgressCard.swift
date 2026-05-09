@@ -8,6 +8,18 @@ import Charts
 struct ExerciseProgressCard: View {
     let exercise: Exercise
 
+    /// When false, the card renders without its dark `bgColor` background +
+    /// rounded corners — useful when the card is hosted on a translucent
+    /// surface (e.g. the in-workout options sheet) where the dark fill
+    /// would punch a hole in the liquid-glass effect. Defaults to true so
+    /// the History tab behaviour is unchanged.
+    let showsBackground: Bool
+
+    init(exercise: Exercise, showsBackground: Bool = true) {
+        self.exercise = exercise
+        self.showsBackground = showsBackground
+    }
+
     @EnvironmentObject var completedWorkoutsViewModel: CompletedWorkoutsViewModel
     @EnvironmentObject var settings: GlobalSettings
 
@@ -21,8 +33,8 @@ struct ExerciseProgressCard: View {
             chart
         }
         .padding(17)
-        .background(settings.bgColor)
-        .cornerRadius(settings.cornerRadiusLarge)
+        .background(showsBackground ? settings.bgColor : Color.clear)
+        .cornerRadius(showsBackground ? settings.cornerRadiusLarge : 0)
     }
 
     private var exerciseNameHeader: some View {
