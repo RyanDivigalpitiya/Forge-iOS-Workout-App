@@ -23,6 +23,8 @@ struct WorkoutInProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var exerciseEditorIsPresented = false
     @State private var focusNameFieldOnEdit = false
+    @State private var showOptionsSheet = false
+    @State private var optionsSheetExerciseIndex = 0
     @State private var reorderDeleteViewPresented = false
     @State var percentCompleted: Int = 0
 
@@ -208,9 +210,18 @@ struct WorkoutInProgressView: View {
                                             .buttonStyle(.plain)
                                             Spacer()
 
-                                            // LOG CHANGE BUTTON (ellipsis)
+                                            // ELLIPSIS BUTTON — opens the
+                                            // morphing options sheet (View
+                                            // History / Log Change) for
+                                            // this exercise.
                                             Button(action: {
-                                                openExerciseLogEditor(exerciseIndex: exerciseIndex, focusName: false)
+                                                optionsSheetExerciseIndex = exerciseIndex
+                                                // Seed editor's view-model state so the editor
+                                                // stage finds the right data when it materialises.
+                                                exerciseViewModel.activeExerciseMode = .log
+                                                exerciseViewModel.activeExercise = planViewModel.activePlan.exercises[exerciseIndex]
+                                                exerciseViewModel.activeExerciseIndex = exerciseIndex
+                                                showOptionsSheet = true
                                             }) {
                                                 Image(systemName: "ellipsis.circle.fill")
                                                     .resizable()
@@ -642,6 +653,14 @@ struct WorkoutInProgressView: View {
                 // finishWorkout already plays confetti for 2s before
                 // navigating away, so no extra delay needed here.
                 finishWorkout()
+            }
+        }
+        .sheet(isPresented: $showOptionsSheet) {
+            if planViewModel.activePlan.exercises.indices.contains(optionsSheetExerciseIndex) {
+                ExerciseOptionsSheet(
+                    exercise: planViewModel.activePlan.exercises[optionsSheetExerciseIndex]
+                )
+                .environment(\.colorScheme, .dark)
             }
         }
         .sheet(isPresented: $showTimerSettings) {
