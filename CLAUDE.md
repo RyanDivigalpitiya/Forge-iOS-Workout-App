@@ -48,7 +48,8 @@ All ViewModels are `ObservableObject` with `@Published`.
 
 Views with non-obvious behaviors:
 
-- `WorkoutInProgressView` — active workout. Live Activity + HealthKit + stopwatch + break timer + collab + chat. Joint-mode avatar gutter + anchor-driven row positioning.
+- `WorkoutInProgressView` — active workout. Live Activity + HealthKit + stopwatch + break timer + collab + chat. Joint-mode avatar gutter + anchor-driven row positioning. Exercise-name text and the Set # / weight × reps area of each set row are both plain Buttons that open `ExerciseEditorView` (name pre-focused for the name button); the corner ellipsis opens `ExerciseOptionsSheet` instead.
+- `ExerciseOptionsSheet` — in-workout ellipsis sheet. Single sheet that morphs between menu / history (`ExerciseProgressCard` with `showsBackground: false`) / editor (`ExerciseEditorContent`) stages, animating the sheet detent per stage under one `withAnimation`. Top-bar X always closes the whole sheet (no morph back to menu).
 - `HistoryView` — read-only past workout. Segmented tabs: Most Recent (calories/completion/duration + per-exercise sets) and Full History (per-exercise progress cards: Weight PR / Reps PR + Weight↔Reps line chart via SwiftUI Charts).
 - `SetView` — reusable row. `Content`(`.individual`/`.summary`) × `Appearance`(`.standard`/`.muted`/`.workoutActive`/`.workoutActiveCollab`).
 - `BreakTimerView` — configurable rest timer (`TimelineView`) + `UNTimeIntervalNotificationTrigger`.
@@ -58,7 +59,7 @@ Views with non-obvious behaviors:
 - `CollabChatPanel` — chat + `KeyboardPersistentTextView`. Custom long-press iMessage-Tapback reaction picker.
 - `CollabStatusBanner` — capsule overlay. `.waitingForPeer` shows "Re-invite" reusing existing `sessionId`. `peerExitInfo` override for clean exits.
 
-Other views (`SettingsView`, `SelectPlanView`, `PlanEditorView`, `ExerciseEditorView`, `HomogeneousSetPicker`, `HeterogeneousSetEditor`, `StartingCountdownView`, `WorkoutBottomToolbarView`, `ReorderDeleteView`, `BreakTimerWatchView`, `ConnectingView`, `JoinSessionView`) — read the file.
+Other views (`SettingsView`, `SelectPlanView`, `PlanEditorView`, `ExerciseEditorView` (thin wrapper around `ExerciseEditorContent` so the editor body can be re-embedded by `ExerciseOptionsSheet` without duplicating state), `HomogeneousSetPicker`, `HeterogeneousSetEditor`, `StartingCountdownView`, `WorkoutBottomToolbarView`, `ReorderDeleteView`, `BreakTimerWatchView`, `ConnectingView`, `JoinSessionView`) — read the file.
 
 ## Live Activity (`ForgeWidgets/`)
 
@@ -80,11 +81,12 @@ Other views (`SettingsView`, `SelectPlanView`, `PlanEditorView`, `ExerciseEditor
 
 ## Apple Watch (`ForgeWatch/`)
 
-Standalone watchOS app receiving break-timer state via WatchConnectivity. iOS won't route notifications to Watch while phone is foreground, so Watch handles haptics. `WatchSessionManager` (watch) ↔ `PhoneSessionManager` (phone, singleton activated in `ForgeApp.init()`); called from `WorkoutInProgressView` at timer start, dismiss, workout end.
+Standalone watchOS app paired via WatchConnectivity. iOS won't route notifications to Watch while phone is foreground, so Watch handles haptics. `WatchSessionManager` (watch) ↔ `PhoneSessionManager` (phone, singleton activated in `ForgeApp.init()`). Bidirectional: phone pushes timer + workout state; watch can Complete the next set back to the phone.
 
-- Wire: `timerStarted` (endDate, duration, exerciseName, setDescription), `timerDismissed`, `workoutEnded`.
-- **Dual delivery:** every message via both `sendMessage` (real-time) AND `updateApplicationContext` (guaranteed eventual). Watch checks `receivedApplicationContext` on activation.
-- **Haptic:** `WKInterfaceDevice.current().play(.notification)` when countdown hits zero or `timerStarted` arrives with already-past `endDate`.
+- Wire (phone→watch): `workoutStarted`, `timerStarted` (endDate, duration, exerciseName, setDescription), `timerDismissed`, `nextSetInfo` (next-set descriptor pushed on every position recompute so the watch can render an idle "next set + Complete" view between break timers; also signals "Finish on iPhone" when all sets are done), `workoutEnded`.
+- Wire (watch→phone): `setCompletedFromWatch` (exerciseIndex, setIndex). Phone validates indices against current state in `WorkoutInProgressView.handleWatchSetCompletion` and routes valid taps through the existing `handleSetTap`; stale taps drop with a corrective `nextSetInfo` re-push so the watch self-corrects.
+- **Dual delivery:** every message via both `sendMessage` (real-time) AND `updateApplicationContext` (guaranteed eventual). Watch checks `receivedApplicationContext` on activation. Watch→phone Complete taps additionally use `transferUserInfo` for queued guaranteed delivery.
+- **Haptic:** `WKInterfaceDevice.current().play(.notification)` fires from the watch's own `Task.sleep` deadline in `WatchSessionManager.scheduleExpiryTask` — NOT driven by phone messages. See the natural-expiry race below.
 
 ## Plan Sharing (`.forgeplan`)
 
@@ -157,7 +159,11 @@ iOS hardcodes hostname in `SessionClient.serverHost`. `ForgeServer` restarts don
 - Rest timer: 5–300s (default 60s). `BreakTimerView` uses `TimelineView(.periodic(from:by:))` (immune to parent re-renders, unlike `Timer.publish`); schedules `UNTimeIntervalNotificationTrigger` for backgrounded alert.
 - Foreground suppression: `AppDelegate.userNotificationCenter(_:willPresent:)` suppresses `"workoutCategory"` notifications while app is active.
 
-**Critical race:** `dismissBreakTimerView(cancelPendingNotification:)` — natural-expiry path (`onExpired`) MUST pass `false`, otherwise the in-app timer cancels the notification at the moment iOS is delivering it. Bites hardest under Xcode debugger (keeps app alive in background → in-app timer keeps ticking and races system delivery). X/Done paths pass `true`.
+**Critical races on natural break-timer expiry.** `dismissBreakTimerView(cancelPendingNotification:notifyWatch:)` — the natural-expiry path (`BreakTimerView.onExpired`) MUST pass BOTH `cancelPendingNotification: false` AND `notifyWatch: false`:
+- `cancelPendingNotification: false` — otherwise the in-app timer cancels the iOS local notification at the exact moment iOS is delivering it. Bites hardest under Xcode debugger (keeps app alive in background → in-app timer keeps ticking and races system delivery).
+- `notifyWatch: false` — otherwise the phone broadcasts `timerDismissed` to the watch at the same wall-clock instant the watch's own `Task.sleep` is about to fire its haptic; the watch's `timerDismissed` handler cancels the expiry task before the haptic plays. Result: silent expiry on the watch.
+
+User-initiated dismiss paths (X button, finish/cancel) leave both flags `true` — they want the watch's `.counting` state cleared.
 
 ## Testing
 
@@ -166,6 +172,7 @@ iOS hardcodes hostname in `SessionClient.serverHost`. `ForgeServer` restarts don
 - Suites: `ExerciseTests` (8), `PlanViewModelTests` (28), `CompletedWorkoutsViewModelTests` (23), `ValidationTests` (6), `WorkoutPlanFingerprintTests` (12), `SessionClientTests` (31) — 108 cases.
 - Persistence isolation: test classes touching persistence are `final class` (init/deinit = setUp/tearDown). Each gets its own `UserDefaults(suiteName: "ForgeTests.\(UUID().uuidString)")`, removes domain in `deinit`.
 - Mock data: `Forge/View Model/MockData.swift` exposes `mockWorkoutPlans` + `mockCompletedWorkouts` as module-internal globals. Tests use `@testable import Forge`.
+- **Shared `Forge.xcscheme` has an empty `TestAction`** — `xcodebuild test -scheme Forge` errors with "not currently configured for the test action" until the ForgeTests target is added to the scheme via Xcode (Edit Scheme → Test → "+" → ForgeTests). `cmd+U` in Xcode works regardless (uses per-user scheme state).
 
 ## Subtle gotchas
 
