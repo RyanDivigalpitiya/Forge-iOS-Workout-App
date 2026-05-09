@@ -523,6 +523,7 @@ struct WorkoutInProgressView: View {
                         reorderDeleteViewPresented: $reorderDeleteViewPresented,
                         isDoneCheckMarkVisible: isDoneCheckMarkVisible,
                         timerEnabled: timerEnabled,
+                        exerciseCount: planViewModel.activePlan.exercises.count,
                         onAddTapped: {
                             exerciseViewModel.activeExercise = Exercise()
                             exerciseViewModel.activeExerciseMode = .add

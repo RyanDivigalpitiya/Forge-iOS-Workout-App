@@ -16,11 +16,19 @@ struct WorkoutBottomToolbarView: View {
 
     let isDoneCheckMarkVisible: Bool
     let timerEnabled: Bool
+    let exerciseCount: Int
     let onAddTapped: () -> Void
     let onDoneTapped: () -> Void
 
     @EnvironmentObject var settings: GlobalSettings
     private let bottomToolbarHeight = GlobalSettings.shared.bottomToolbarHeight
+
+    /// Initial detent for the reorder/delete sheet. Set by the Edit button
+    /// action right before the sheet presents — `.large` when the plan has
+    /// more than 4 exercises (so the user doesn't have to drag up to see
+    /// them all), `.medium` otherwise. The user can still drag between
+    /// `.medium` and `.large` once the sheet is open.
+    @State private var reorderDetent: PresentationDetent = .medium
 
     var body: some View {
         VStack {
@@ -81,6 +89,7 @@ struct WorkoutBottomToolbarView: View {
                 // REORDER BUTTON
                 HStack {
                     Button(action: {
+                        reorderDetent = exerciseCount > 4 ? .large : .medium
                         reorderDeleteViewPresented = true
                     }) {
                         Image(systemName: "arrow.up.arrow.down.circle.fill")
@@ -95,7 +104,7 @@ struct WorkoutBottomToolbarView: View {
                     .disabled(timerEnabled)
                     .sheet(isPresented: $reorderDeleteViewPresented) {
                         ReorderDeleteView(mode: .exercise)
-                            .presentationDetents([.medium, .large])
+                            .presentationDetents([.medium, .large], selection: $reorderDetent)
                             .environment(\.colorScheme, .dark)
                     }
                 }
