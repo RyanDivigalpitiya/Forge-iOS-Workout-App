@@ -78,6 +78,7 @@ struct WorkoutInProgressView: View {
 
     @State private var isWorkoutDone: Bool = false
     @State private var showCancelConfirmation: Bool = false
+    @State private var showFinishConfirmation: Bool = false
     @State private var workoutActivity: Activity<WorkoutActivityAttributes>? = nil
     @State private var breakTimerEndDate: Date? = nil
 
@@ -462,7 +463,11 @@ struct WorkoutInProgressView: View {
                                         // do NOT cancel the pending notification on natural expiry —
                                         // it has either already fired or is about to, and cancelling
                                         // would race against system delivery.
-                                        dismissBreakTimerView(cancelPendingNotification: false)
+                                        // do NOT notify the watch either — the watch fires its own
+                                        // haptic at the same deadline; sending `timerDismissed` here
+                                        // would cancel its expiry task before the haptic plays.
+                                        dismissBreakTimerView(cancelPendingNotification: false,
+                                                              notifyWatch: false)
                                     },
                                     onCancelTapped: {
                                         dismissBreakTimerView()
@@ -496,7 +501,7 @@ struct WorkoutInProgressView: View {
                             exerciseEditorIsPresented = true
                         },
                         onDoneTapped: {
-                            finishWorkout()
+                            showFinishConfirmation = true
                         }
                     )
                     .edgesIgnoringSafeArea(.bottom)
@@ -611,6 +616,17 @@ struct WorkoutInProgressView: View {
             Button("No", role: .cancel) { }
             Button("Yes", role: .destructive) {
                 cancelWorkout()
+            }
+        }
+        .alert(
+            "Finish Workout?",
+            isPresented: $showFinishConfirmation
+        ) {
+            Button("No", role: .cancel) { }
+            Button("Yes") {
+                // finishWorkout already plays confetti for 2s before
+                // navigating away, so no extra delay needed here.
+                finishWorkout()
             }
         }
         .sheet(isPresented: $showTimerSettings) {
@@ -1049,8 +1065,9 @@ extension WorkoutInProgressView {
         }
     }
 
-    func dismissBreakTimerView(cancelPendingNotification: Bool = true) {
-        Log.debug("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification))")
+    func dismissBreakTimerView(cancelPendingNotification: Bool = true,
+                               notifyWatch: Bool = true) {
+        Log.debug("[Forge] dismissBreakTimerView called (cancelPendingNotification: \(cancelPendingNotification), notifyWatch: \(notifyWatch))")
 
         // Remove scheduled notification only when the user explicitly dismisses the
         // timer (X button or Done). On natural expiry, the notification has either
@@ -1082,7 +1099,12 @@ extension WorkoutInProgressView {
                 recomputeMyPosition()
             }
             updateLiveActivity()
-            PhoneSessionManager.shared.sendTimerDismissed()
+            // Skip on natural expiry: the watch fires its own haptic at the
+            // same deadline via its local Task.sleep, and `timerDismissed`
+            // would cancel that task before the haptic plays.
+            if notifyWatch {
+                PhoneSessionManager.shared.sendTimerDismissed()
+            }
             if sessionClient.isPaired {
                 // Indices are ignored by the receiver when endDate is nil —
                 // they just clear the peer's entry from peerBreakTimer.
@@ -1447,7 +1469,7 @@ extension WorkoutInProgressView {
                     .fontWeight(.bold)
                     .foregroundColor(darkGray)
                     .padding(.vertical, 15)
-                    .padding(.leading, 10)
+                    .padding(.leading, 3)
                 Spacer()
             }
             .frame(height: restRowHeight)
