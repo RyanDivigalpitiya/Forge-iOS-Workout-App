@@ -27,6 +27,7 @@ class PlanViewModel: ObservableObject {
         self.workoutPlans = loadPlans()
         dedupePlanIdsIfNeeded()
         migrateLineageAndFingerprintIfNeeded()
+        migrateBreakDurationsIfNeeded()
     }
 
     init(mockPlans: [WorkoutPlan], userDefaults: UserDefaults = .standard) {
@@ -140,6 +141,30 @@ extension PlanViewModel {
             if workoutPlans[index].fingerprint == nil {
                 workoutPlans[index].refreshFingerprint()
                 changed = true
+            }
+        }
+        if changed { savePlans() }
+    }
+
+    // One-shot backfill for exercises that predate the per-gap break-timer
+    // feature (`breakDurations` is nil after decode). Without this, every
+    // legacy exercise reads `GlobalSettings.shared.breakDuration` at editor
+    // open time, so an edit-then-open-another-exercise sequence looks like
+    // the value "propagated" — but really both exercises are just showing
+    // the now-shared global. Backfilling each exercise with its own
+    // concrete array makes them independent. Idempotent: saves only if any
+    // exercise changed.
+    private func migrateBreakDurationsIfNeeded() {
+        let seedValue = GlobalSettings.shared.breakDuration
+        var changed = false
+        for planIndex in workoutPlans.indices {
+            for exerciseIndex in workoutPlans[planIndex].exercises.indices {
+                if workoutPlans[planIndex].exercises[exerciseIndex].breakDurations == nil {
+                    let gapCount = max(0, workoutPlans[planIndex].exercises[exerciseIndex].sets.count - 1)
+                    workoutPlans[planIndex].exercises[exerciseIndex].breakDurations =
+                        Array(repeating: seedValue, count: gapCount)
+                    changed = true
+                }
             }
         }
         if changed { savePlans() }

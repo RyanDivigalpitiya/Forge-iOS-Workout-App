@@ -264,7 +264,7 @@ struct HomogeneousSetPicker: View {
                     .foregroundColor(.black)
                     .font(.system(size: buttonPlusMinusIconSize))
                     .bold()
-                    .frame(width: 44, height: buttonPlusMinusHeight)
+                    .frame(width: 42, height: buttonPlusMinusHeight)
             }
 
             Rectangle().frame(width: 1, height: 18).foregroundColor(.black).opacity(0.3)
@@ -289,7 +289,7 @@ struct HomogeneousSetPicker: View {
                     .foregroundColor(.black)
                     .font(.system(size: buttonPlusMinusIconSize))
                     .bold()
-                    .frame(width: 44, height: buttonPlusMinusHeight)
+                    .frame(width: 42, height: buttonPlusMinusHeight)
             }
         }
         .frame(width: max(0, pickerRowWidth - 15), height: buttonPlusMinusHeight)

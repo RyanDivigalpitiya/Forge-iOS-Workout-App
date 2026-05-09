@@ -206,9 +206,7 @@ struct ExerciseEditorContent: View {
                     minBreakDuration: minBreakDuration,
                     maxBreakDuration: maxBreakDuration,
                     breakDurationStep: breakDurationStep,
-                    onBreakDurationChanged: { newValue in
-                        GlobalSettings.shared.breakDuration = newValue
-                    }
+                    onBreakDurationChanged: { _ in }
                 )
                 .frame(maxHeight: homogenousSelectorHeight)
                 .clipped()
@@ -274,9 +272,7 @@ struct ExerciseEditorContent: View {
                             maxBreakDuration: maxBreakDuration,
                             breakDurationStep: breakDurationStep,
                             defaultBreakDuration: GlobalSettings.shared.breakDuration,
-                            onBreakDurationChanged: { newValue in
-                                GlobalSettings.shared.breakDuration = newValue
-                            },
+                            onBreakDurationChanged: { _ in },
                             isSaveDisabled: isSaveDisabled,
                             onSave: { saveExercise() }
                         )
@@ -450,6 +446,15 @@ extension ExerciseEditorContent {
         } else {
             finalBreakDurations = Array(repeating: clampBreakDuration(homoBreakDuration), count: gapCount)
         }
+
+        // "Remember the last value the user specified" — update the global
+        // default ONLY at save time (not per spinner tap), so an unsaved
+        // edit doesn't leak into other exercises that fall back to the
+        // global. Pulls the homo value or the first hetero value.
+        let lastSpecifiedDuration = areSetsUnique
+            ? (heteroBreakDurations.first ?? homoBreakDuration)
+            : homoBreakDuration
+        GlobalSettings.shared.breakDuration = clampBreakDuration(lastSpecifiedDuration)
 
         if exerciseViewModel.activeExerciseMode == .add {
             // create new exercise + append it to planViewModel's active plan

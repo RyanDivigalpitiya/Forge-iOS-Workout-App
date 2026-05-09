@@ -126,10 +126,11 @@ final class PlanViewModelTests {
     }
 
     @Test func legacyPlansDecodeWithNilBreakDurations() {
-        // A plan persisted before the breakDurations field existed should
-        // decode cleanly with breakDurations == nil — readers fall back to
-        // the global default at use time. We inject raw JSON shaped like
-        // pre-feature data (no breakDurations key on the Exercise object).
+        // A plan persisted before the breakDurations field existed must
+        // decode cleanly. PlanViewModel.init then runs the migration which
+        // backfills concrete per-exercise arrays — without that, every
+        // legacy exercise would share the global default and edits would
+        // appear to "propagate" between exercises.
         let json = """
         [
           {
@@ -142,6 +143,20 @@ final class PlanViewModelTests {
                 "sets": [
                   {
                     "id": "33333333-3333-3333-3333-333333333333",
+                    "weight": 100,
+                    "reps": 10,
+                    "tillFailure": false,
+                    "completed": false
+                  },
+                  {
+                    "id": "44444444-4444-4444-4444-444444444444",
+                    "weight": 100,
+                    "reps": 10,
+                    "tillFailure": false,
+                    "completed": false
+                  },
+                  {
+                    "id": "55555555-5555-5555-5555-555555555555",
                     "weight": 100,
                     "reps": 10,
                     "tillFailure": false,
@@ -160,7 +175,30 @@ final class PlanViewModelTests {
         let vm = PlanViewModel(userDefaults: testDefaults)
 
         #expect(vm.workoutPlans.count == 1)
-        #expect(vm.workoutPlans.first?.exercises.first?.breakDurations == nil)
+        // Migration backfills (sets.count - 1) entries seeded from the
+        // current global default.
+        let durations = vm.workoutPlans.first?.exercises.first?.breakDurations
+        #expect(durations?.count == 2)
+        #expect(durations?.allSatisfy { $0 == GlobalSettings.shared.breakDuration } == true)
+    }
+
+    @Test func breakDurationsMigrationIsIdempotent() {
+        // After the first load migrates a legacy plan, a subsequent load
+        // must not touch already-populated exercises (e.g. an exercise the
+        // user has since saved with custom values).
+        let exercise = Exercise(
+            name: "Bench Press",
+            sets: [Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false),
+                   Forge.Set(weight: 100, reps: 10, tillFailure: false, completed: false)]
+        )
+        var plan = WorkoutPlan(name: "P", exercises: [exercise])
+        plan.exercises[0].breakDurations = [123]   // user-specified value
+
+        let vm = PlanViewModel(mockPlans: [plan], userDefaults: testDefaults)
+        vm.savePlans()
+
+        let reloaded = PlanViewModel(userDefaults: testDefaults)
+        #expect(reloaded.workoutPlans.first?.exercises.first?.breakDurations == [123])
     }
 
     @Test func loadPlansFromEmptyDefaultsReturnsEmpty() {
