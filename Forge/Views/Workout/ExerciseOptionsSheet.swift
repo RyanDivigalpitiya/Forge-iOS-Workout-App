@@ -52,7 +52,7 @@ struct ExerciseOptionsSheet: View {
             }
         }
         .presentationDetents(
-            [menuDetent, homoModeDetent, .large],
+            [menuDetent, .medium, homoModeDetent, .large],
             selection: $selectedDetent
         )
         .presentationDragIndicator(.hidden)
@@ -74,7 +74,7 @@ struct ExerciseOptionsSheet: View {
                 ) {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         stage = .history
-                        selectedDetent = .large
+                        selectedDetent = .medium
                     }
                 }
                 menuButton(
