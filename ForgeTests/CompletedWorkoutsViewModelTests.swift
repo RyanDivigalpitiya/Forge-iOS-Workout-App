@@ -24,40 +24,39 @@ final class CompletedWorkoutsViewModelTests {
 
     @Test func formatTimeIntervalSeconds() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        #expect(vm.format(timeInterval: 30) == "30 seconds")
+        #expect(vm.format(timeInterval: 30) == "30s")
     }
 
     @Test func formatTimeIntervalZero() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        // 0 seconds hits the `seconds > 1 || seconds == 0` plural branch.
-        #expect(vm.format(timeInterval: 0) == "0 seconds")
+        #expect(vm.format(timeInterval: 0) == "0s")
     }
 
     @Test func formatTimeIntervalOneSecond() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        #expect(vm.format(timeInterval: 1) == "1 second")
+        #expect(vm.format(timeInterval: 1) == "1s")
     }
 
     @Test func formatTimeIntervalSingleMinute() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        #expect(vm.format(timeInterval: 60) == "1 minute")
+        #expect(vm.format(timeInterval: 60) == "1 min")
     }
 
     @Test func formatTimeIntervalMultipleMinutes() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        #expect(vm.format(timeInterval: 120) == "2 minutes")
+        #expect(vm.format(timeInterval: 120) == "2 min")
     }
 
     @Test func formatTimeIntervalHoursAndMinutes() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
         // 1 hour, 1 minute = 3600 + 60 = 3660s
-        #expect(vm.format(timeInterval: 3660) == "1 hour, 1 minute")
+        #expect(vm.format(timeInterval: 3660) == "1h 1m")
     }
 
     @Test func formatTimeIntervalWholeHours() {
         let vm = CompletedWorkoutsViewModel(userDefaults: testDefaults)
-        // 2 hours, 0 minutes = 7200s. minutes == 0 takes the "s" branch.
-        #expect(vm.format(timeInterval: 7200) == "2 hours, 0 minutes")
+        // 2 hours, 0 minutes = 7200s.
+        #expect(vm.format(timeInterval: 7200) == "2h 0m")
     }
 
     // MARK: - numberOfDaysString(from:)

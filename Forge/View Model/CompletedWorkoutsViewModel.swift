@@ -67,13 +67,13 @@ extension CompletedWorkoutsViewModel {
         let totalMinutes = totalSeconds / 60
         let minutes = totalMinutes % 60
         let hours = totalMinutes / 60
-        
+
         if hours > 0 {
-            return "\(hours) hour\(hours > 1 ? "s" : ""), \(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
+            return "\(hours)h \(minutes)m"
         } else if minutes > 0 {
-            return "\(minutes) minute\(minutes > 1 || minutes == 0 ? "s" : "")"
+            return "\(minutes) min"
         } else {
-            return "\(seconds) second\(seconds > 1 || seconds == 0 ? "s" : "")"
+            return "\(seconds)s"
         }
     }
     
